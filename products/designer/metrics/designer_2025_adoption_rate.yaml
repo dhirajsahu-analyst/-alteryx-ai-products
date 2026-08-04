@@ -1,0 +1,36 @@
+id: designer_2025_adoption_rate
+name: Designer 2025+ Adoption Rate
+description: Percentage of Designer accounts and users running version 2025.1 or later
+product: designer
+status: validated
+category: adoption
+definition:
+  business: Key adoption metric for latest Designer generation tracking migration to modern platform
+  technical: 'From DESIGNER_2025_ADOPTION_PCT_LATEST_MONTH_VIEW: latest month snapshot'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    PCT_OF_DESIGNER_ACCOUNTS,
+    PCT_OF_DESIGNER_USERS,
+    (PCT_OF_DESIGNER_ACCOUNTS + PCT_OF_DESIGNER_USERS) / 2 AS blended_adoption_rate,
+    ROUND(PCT_OF_DESIGNER_ACCOUNTS - PCT_OF_DESIGNER_USERS, 2) AS account_user_gap
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.DESIGNER_2025_ADOPTION_PCT_LATEST_MONTH_VIEW
+  LIMIT 1
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- designer_002
+- designer_003
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- designer
+last_updated: '2026-08-03'
+version: '1.0'

@@ -1,0 +1,39 @@
+id: machine_support_status_percentage
+name: Machine Support Status Percentage
+description: Percentage of machines by support status (Supported vs Unsupported) by product
+product: account_user
+status: validated
+category: adoption
+definition:
+  business: Machine-level adoption metric showing infrastructure modernization progress
+  technical: From MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    PRODUCT_ID,
+    SUPPORTED_UNSUPPORTED,
+    ROUND(PCT_SUPPORTED_MACHINE, 2) AS pct_of_total,
+    LAG(PCT_SUPPORTED_MACHINE) OVER (PARTITION BY PRODUCT_ID, SUPPORTED_UNSUPPORTED ORDER BY MONTH) AS prev_month_pct,
+    ROUND(PCT_SUPPORTED_MACHINE - LAG(PCT_SUPPORTED_MACHINE) OVER (PARTITION BY PRODUCT_ID, SUPPORTED_UNSUPPORTED ORDER BY MONTH), 2) AS mom_change
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+  ORDER BY MONTH DESC, PRODUCT_ID
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- account_user_007
+- account_user_008
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- account_user
+last_updated: '2026-08-03'
+version: '1.0'

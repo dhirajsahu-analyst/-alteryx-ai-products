@@ -1,0 +1,44 @@
+id: copilot_adoption_rate
+name: Copilot Adoption Rate
+description: Percentage of eligible Copilot users who have activated and are actively using the product
+product: ask_alteryx
+status: validated
+category: adoption
+definition:
+  business: Measures how many eligible users have successfully adopted Copilot. Key metric for product growth and value realization.
+  technical: ADOPTION_PERCENTAGE from COPILOT_USERS_ADOPTION_RATE_VIEW (active_users / eligible_users * 100)
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    ADOPTION_PERCENTAGE as adoption_rate_pct,
+    ACTIVE_USERS as active_users_count,
+    ELIGIBLE_USERS as eligible_users_count,
+    ROUND(ADOPTION_PERCENTAGE, 2) as adoption_rate_rounded
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ADOPTION_RATE_VIEW
+  WHERE ADOPTION_PERCENTAGE IS NOT NULL
+  LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: monthly
+filters:
+- ADOPTION_PERCENTAGE IS NOT NULL
+depends_on:
+- copilot_eligible_users
+- copilot_active_users
+related_metrics:
+- copilot_adoption_gap
+- copilot_activation_rate
+- copilot_enabled_users_rate
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- copilot
+- growth
+- penetration
+- key-metric
+last_updated: '2026-08-03'
+version: '1.0'

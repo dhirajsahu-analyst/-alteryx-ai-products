@@ -1,0 +1,45 @@
+id: version_adoption_008
+name: Version Running Sum Users Pareto
+description: Cumulative user distribution across versions showing 80/20 concentration analysis
+product: version_adoption
+status: validated
+category: adoption
+definition:
+  business: Identifies which versions account for 80% of active users, optimizing support and compatibility focus
+  technical: From VERSION_RUNNING_SUM_USERS_AND_MACHINE_VIEW with Pareto calculations
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    PRODUCT_ID,
+    VERSION,
+    TOTAL_USERS,
+    RUNNING_PCT_OF_USER_TOTAL,
+    TOTAL_MACHINES,
+    RUNNING_PCT_OF_MACHINE_TOTAL,
+    CASE
+      WHEN RUNNING_PCT_OF_USER_TOTAL <= 50 THEN 'Top 50%'
+      WHEN RUNNING_PCT_OF_USER_TOTAL <= 80 THEN '50-80%'
+      WHEN RUNNING_PCT_OF_USER_TOTAL <= 95 THEN '80-95%'
+      ELSE 'Long Tail'
+    END AS pareto_segment
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.VERSION_RUNNING_SUM_USERS_AND_MACHINE_VIEW
+  ORDER BY PRODUCT_ID, RUNNING_PCT_OF_USER_TOTAL
+  LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- version_adoption_007
+- version_adoption_009
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- version_adoption
+last_updated: '2026-08-03'
+version: '1.0'

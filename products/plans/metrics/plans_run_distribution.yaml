@@ -1,0 +1,329 @@
+id: plans_run_distribution
+name: Plans Run Distribution
+description: Distribution of Plans runs
+product: plans
+status: validated
+category: product_metric
+definition:
+  business: Plans Run Distribution - Distribution of Plans runs
+  technical: Query from PLANS_RUN_DISTRIBUTION_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables:
+  - DISCOVERY_PRODUCT_MANAGEMENT
+sql_template: |-
+  SELECT
+      -- Reporting month
+      TO_CHAR(
+          DATE_TRUNC('MONTH', YEAR_MONTH),
+          'Mon-YYYY'
+      ) AS MONTH,
+
+      -- Total plan runs
+      COALESCE(SUM(PLAN_RUN), 0) AS TOTAL_PLAN_RUNS,
+
+      -- Scheduled plan runs
+      COALESCE(SUM(SCHEDULE_PLAN_RUNS), 0) AS SCHEDULE_PLAN_RUNS,
+
+      -- Percentage of scheduled plan runs
+      ROUND(
+          DIV0(
+              COALESCE(SUM(SCHEDULE_PLAN_RUNS), 0),
+              COALESCE(SUM(PLAN_RUN), 0)
+          ) * 100,
+          2
+      ) AS SCHEDULE_RUN_PCT,
+
+      -- API-triggered plan runs
+      COALESCE(SUM(API_PLAN_RUNS), 0) AS API_PLAN_RUNS,
+
+      -- Percentage of API-triggered plan runs
+      ROUND(
+          DIV0(
+              COALESCE(SUM(API_PLAN_RUNS), 0),
+              COALESCE(SUM(PLAN_RUN), 0)
+          ) * 100,
+          2
+      ) AS API_RUN_PCT,
+
+      -- Manually triggered plan runs
+      COALESCE(SUM(MANUAL_PLAN_RUNS), 0) AS MANUAL_PLAN_RUNS,
+
+      -- Percentage of manually triggered plan runs
+      ROUND(
+          DIV0(
+              COALESCE(SUM(MANUAL_PLAN_RUNS), 0),
+              COALESCE(SUM(PLAN_RUN), 0)
+          ) * 100,
+          2
+      ) AS MANUAL_RUN_PCT
+
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+  WHERE
+      -- Current month and previous three months
+      YEAR_MONTH >= DATE_TRUNC(
+          'MONTH',
+          DATEADD(
+              MONTH,
+              -3,
+              CURRENT_DATE()
+          )
+      )
+
+      -- Purchased accounts only
+      AND LICENSE_TYPE = 'Purchase'
+
+      -- Optional filters
+      -- AND PIPELINE_REGION = 'AMER'
+      -- AND ACCOUNT_EDITION = 'Enterprise'
+      -- AND PRICING_AND_PACKAGING = '2025'
+      -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'
+
+  GROUP BY
+      DATE_TRUNC('MONTH', YEAR_MONTH)
+
+  ORDER BY
+      DATE_TRUNC('MONTH', YEAR_MONTH);
+queries:
+- name: base
+  description: Base metric query
+  query: |-
+    SELECT
+        -- Reporting month
+        TO_CHAR(
+            DATE_TRUNC('MONTH', YEAR_MONTH),
+            'Mon-YYYY'
+        ) AS MONTH,
+
+        -- Total plan runs
+        COALESCE(SUM(PLAN_RUN), 0) AS TOTAL_PLAN_RUNS,
+
+        -- Scheduled plan runs
+        COALESCE(SUM(SCHEDULE_PLAN_RUNS), 0) AS SCHEDULE_PLAN_RUNS,
+
+        -- Percentage of scheduled plan runs
+        ROUND(
+            DIV0(
+                COALESCE(SUM(SCHEDULE_PLAN_RUNS), 0),
+                COALESCE(SUM(PLAN_RUN), 0)
+            ) * 100,
+            2
+        ) AS SCHEDULE_RUN_PCT,
+
+        -- API-triggered plan runs
+        COALESCE(SUM(API_PLAN_RUNS), 0) AS API_PLAN_RUNS,
+
+        -- Percentage of API-triggered plan runs
+        ROUND(
+            DIV0(
+                COALESCE(SUM(API_PLAN_RUNS), 0),
+                COALESCE(SUM(PLAN_RUN), 0)
+            ) * 100,
+            2
+        ) AS API_RUN_PCT,
+
+        -- Manually triggered plan runs
+        COALESCE(SUM(MANUAL_PLAN_RUNS), 0) AS MANUAL_PLAN_RUNS,
+
+        -- Percentage of manually triggered plan runs
+        ROUND(
+            DIV0(
+                COALESCE(SUM(MANUAL_PLAN_RUNS), 0),
+                COALESCE(SUM(PLAN_RUN), 0)
+            ) * 100,
+            2
+        ) AS MANUAL_RUN_PCT
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+    WHERE
+        -- Current month and previous three months
+        YEAR_MONTH >= DATE_TRUNC(
+            'MONTH',
+            DATEADD(
+                MONTH,
+                -3,
+                CURRENT_DATE()
+            )
+        )
+
+        -- Purchased accounts only
+        AND LICENSE_TYPE = 'Purchase'
+
+        -- Optional filters
+        -- AND PIPELINE_REGION = 'AMER'
+        -- AND ACCOUNT_EDITION = 'Enterprise'
+        -- AND PRICING_AND_PACKAGING = '2025'
+        -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'
+
+    GROUP BY
+        DATE_TRUNC('MONTH', YEAR_MONTH)
+
+    ORDER BY
+        DATE_TRUNC('MONTH', YEAR_MONTH);
+- name: daily
+  description: Daily metrics
+  query: |-
+    SELECT
+        -- Reporting month
+        TO_CHAR(
+            DATE_TRUNC('MONTH', YEAR_MONTH),
+            'Mon-YYYY'
+        ) AS MONTH,
+
+        -- Total plan runs
+        COALESCE(SUM(PLAN_RUN), 0) AS TOTAL_PLAN_RUNS,
+
+        -- Scheduled plan runs
+        COALESCE(SUM(SCHEDULE_PLAN_RUNS), 0) AS SCHEDULE_PLAN_RUNS,
+
+        -- Percentage of scheduled plan runs
+        ROUND(
+            DIV0(
+                COALESCE(SUM(SCHEDULE_PLAN_RUNS), 0),
+                COALESCE(SUM(PLAN_RUN), 0)
+            ) * 100,
+            2
+        ) AS SCHEDULE_RUN_PCT,
+
+        -- API-triggered plan runs
+        COALESCE(SUM(API_PLAN_RUNS), 0) AS API_PLAN_RUNS,
+
+        -- Percentage of API-triggered plan runs
+        ROUND(
+            DIV0(
+                COALESCE(SUM(API_PLAN_RUNS), 0),
+                COALESCE(SUM(PLAN_RUN), 0)
+            ) * 100,
+            2
+        ) AS API_RUN_PCT,
+
+        -- Manually triggered plan runs
+        COALESCE(SUM(MANUAL_PLAN_RUNS), 0) AS MANUAL_PLAN_RUNS,
+
+        -- Percentage of manually triggered plan runs
+        ROUND(
+            DIV0(
+                COALESCE(SUM(MANUAL_PLAN_RUNS), 0),
+                COALESCE(SUM(PLAN_RUN), 0)
+            ) * 100,
+            2
+        ) AS MANUAL_RUN_PCT
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+    WHERE
+        -- Current month and previous three months
+        YEAR_MONTH >= DATE_TRUNC(
+            'MONTH',
+            DATEADD(
+                MONTH,
+                -3,
+                CURRENT_DATE()
+            )
+        )
+
+        -- Purchased accounts only
+        AND LICENSE_TYPE = 'Purchase'
+
+        -- Optional filters
+        -- AND PIPELINE_REGION = 'AMER'
+        -- AND ACCOUNT_EDITION = 'Enterprise'
+        -- AND PRICING_AND_PACKAGING = '2025'
+        -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'
+
+    GROUP BY
+        DATE_TRUNC('MONTH', YEAR_MONTH)
+
+    ORDER BY
+        DATE_TRUNC('MONTH', YEAR_MONTH);
+- name: monthly
+  description: Monthly aggregated metrics
+  query: |-
+    SELECT
+        -- Reporting month
+        TO_CHAR(
+            DATE_TRUNC('MONTH', YEAR_MONTH),
+            'Mon-YYYY'
+        ) AS MONTH,
+
+        -- Total plan runs
+        COALESCE(SUM(PLAN_RUN), 0) AS TOTAL_PLAN_RUNS,
+
+        -- Scheduled plan runs
+        COALESCE(SUM(SCHEDULE_PLAN_RUNS), 0) AS SCHEDULE_PLAN_RUNS,
+
+        -- Percentage of scheduled plan runs
+        ROUND(
+            DIV0(
+                COALESCE(SUM(SCHEDULE_PLAN_RUNS), 0),
+                COALESCE(SUM(PLAN_RUN), 0)
+            ) * 100,
+            2
+        ) AS SCHEDULE_RUN_PCT,
+
+        -- API-triggered plan runs
+        COALESCE(SUM(API_PLAN_RUNS), 0) AS API_PLAN_RUNS,
+
+        -- Percentage of API-triggered plan runs
+        ROUND(
+            DIV0(
+                COALESCE(SUM(API_PLAN_RUNS), 0),
+                COALESCE(SUM(PLAN_RUN), 0)
+            ) * 100,
+            2
+        ) AS API_RUN_PCT,
+
+        -- Manually triggered plan runs
+        COALESCE(SUM(MANUAL_PLAN_RUNS), 0) AS MANUAL_PLAN_RUNS,
+
+        -- Percentage of manually triggered plan runs
+        ROUND(
+            DIV0(
+                COALESCE(SUM(MANUAL_PLAN_RUNS), 0),
+                COALESCE(SUM(PLAN_RUN), 0)
+            ) * 100,
+            2
+        ) AS MANUAL_RUN_PCT
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+    WHERE
+        -- Current month and previous three months
+        YEAR_MONTH >= DATE_TRUNC(
+            'MONTH',
+            DATEADD(
+                MONTH,
+                -3,
+                CURRENT_DATE()
+            )
+        )
+
+        -- Purchased accounts only
+        AND LICENSE_TYPE = 'Purchase'
+
+        -- Optional filters
+        -- AND PIPELINE_REGION = 'AMER'
+        -- AND ACCOUNT_EDITION = 'Enterprise'
+        -- AND PRICING_AND_PACKAGING = '2025'
+        -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'
+
+    GROUP BY
+        DATE_TRUNC('MONTH', YEAR_MONTH)
+
+    ORDER BY
+        DATE_TRUNC('MONTH', YEAR_MONTH);
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: data-engineering@alteryx.com
+tags:
+- plans
+- product_metric
+last_updated: '2026-08-04'
+version: '1.0'

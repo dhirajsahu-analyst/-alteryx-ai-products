@@ -1,0 +1,41 @@
+id: version_adoption_001
+name: Designer Version Adoption Rate
+description: Percentage of Designer users running a supported (current) product version, measured against total active Designer users
+product: version_adoption
+status: validated
+category: adoption
+definition:
+  business: Tracks the percentage of Designer users upgraded to supported versions, indicating upgrade velocity and technical debt
+  technical: 'Derived from VERSION_ADOPTION_30_60_90_DAYS_VIEW: DESIGNER_VERSION_USERS / DESIGNER_TOTAL_USERS * 100'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    VERSION,
+    DAYS,
+    RELEASE_DATE,
+    DESIGNER_VERSION_USERS,
+    DESIGNER_TOTAL_USERS,
+    ROUND((DESIGNER_VERSION_USERS / NULLIF(DESIGNER_TOTAL_USERS, 0)) * 100, 2) AS adoption_pct
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.VERSION_ADOPTION_30_60_90_DAYS_VIEW
+  WHERE DAYS IN (30, 60, 90, 180)
+  ORDER BY RELEASE_DATE DESC, DAYS ASC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters:
+- DAYS IN (30, 60, 90, 180)
+depends_on: []
+related_metrics:
+- version_adoption_002
+- version_adoption_003
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- version_adoption
+last_updated: '2026-08-03'
+version: '1.0'

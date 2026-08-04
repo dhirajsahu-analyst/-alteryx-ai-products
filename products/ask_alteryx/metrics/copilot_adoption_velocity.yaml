@@ -1,0 +1,33 @@
+id: copilot_adoption_velocity
+name: Copilot Adoption Velocity
+description: Month-over-month percentage change in Copilot adoption rate
+product: ask_alteryx
+status: validated
+category: adoption
+definition:
+  business: Month-over-month percentage change in Copilot adoption rate
+  technical: '[''ADOPTION_PERCENTAGE''] from COPILOT_USERS_ADOPTION_RATE_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT ADOPTION_PERCENTAGE as current_adoption_rate, ROUND(ADOPTION_PERCENTAGE, 2) as adoption_rate_rounded FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ADOPTION_RATE_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on:
+- copilot_adoption_rate
+related_metrics:
+- copilot_adoption_gap
+- copilot_workflow_run_growth_rate
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- copilot
+- velocity
+- growth-acceleration
+last_updated: '2026-08-03'
+version: '1.0'

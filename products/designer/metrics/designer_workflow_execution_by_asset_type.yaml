@@ -1,0 +1,43 @@
+id: designer_workflow_execution_by_asset_type
+name: Designer Workflow Execution by Asset Type
+description: Distribution of workflow executions across different asset/workflow types
+product: designer
+status: validated
+category: usage
+definition:
+  business: Feature adoption metric showing which workflow types are most used in Designer
+  technical: From ENGINE_DESIGNER_SERVER_RUN_WITH_ASSET_TYPE_VIEW aggregated by WORKFLOW_TYPE
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    WORKFLOW_TYPE,
+    COUNT(DISTINCT PAYLOAD_ID) AS execution_count,
+    COUNT(DISTINCT MACHINE_ID_DECODED) AS machine_count,
+    COUNT(DISTINCT USER_EMAIL) AS user_count,
+    ROUND(COUNT(DISTINCT PAYLOAD_ID) / SUM(COUNT(DISTINCT PAYLOAD_ID)) OVER (PARTITION BY MONTH) * 100, 2) AS pct_of_total,
+    ROUND(AVG(DURATION_NUM), 2) AS avg_duration_seconds
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ENGINE_DESIGNER_SERVER_RUN_WITH_ASSET_TYPE_VIEW
+  WHERE PRODUCT_NAME = 'Designer'
+  GROUP BY MONTH, WORKFLOW_TYPE
+  ORDER BY MONTH DESC, execution_count DESC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters:
+- PRODUCT_NAME = 'Designer'
+depends_on: []
+related_metrics:
+- designer_007
+- designer_008
+maintainer: analytics@alteryx.com
+tags:
+- usage
+- designer
+last_updated: '2026-08-03'
+version: '1.0'

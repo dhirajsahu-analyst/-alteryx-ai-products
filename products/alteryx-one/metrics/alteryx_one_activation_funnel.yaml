@@ -1,0 +1,28 @@
+id: alteryx_one_activation_funnel
+name: Alteryx One Activation Funnel
+description: Complete activation funnel showing progression from available seats through activation.
+product: alteryx_one
+status: validated
+category: activation
+definition:
+  business: Complete activation funnel showing progression from available seats through activation.
+  technical: From ALTERYX_ONE_ACTIVATION_FUNNEL_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT AVAILABLE_SEATS, INVITED_USERS, ACTIVATED_USER, PERCENTAGE_AVAILABLE_SEATS, PERCENTAGE_INVITED_USERS, PERCENTAGE_ACTIVATED_USERS FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ACTIVATION_FUNNEL_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: analytics@alteryx.com
+tags:
+- activation
+- alteryx-one
+last_updated: '2026-08-03'
+version: '1.0'

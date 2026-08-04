@@ -1,0 +1,11 @@
+analytics_lead:
+  email: analytics_team@alteryx.com
+  name: Analytics Data Team
+  review_required: true
+data_owner:
+  email: data_team@alteryx.com
+  name: EDW Data Team
+product_owner:
+  approval_required: true
+  email: alteryx_one_team@alteryx.com
+  name: Alteryx One Product Team

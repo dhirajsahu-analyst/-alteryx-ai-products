@@ -1,0 +1,36 @@
+product_id: alteryx_one
+product_name: Alteryx One
+product_description: Cloud-native, collaborative analytics platform for team-based
+  analytics workflows.
+business_domain: Alteryx One Onboarding, Activation, Engagement, Retention
+strategic_importance: Critical for customer acquisition and retention
+target_users:
+- GTM Leaders
+- Product Managers
+- Analytics Teams
+primary_metrics:
+- alteryx_one_monthly_active_users
+- alteryx_one_activation_count
+- alteryx_one_engagement_rate
+- alteryx_one_deployment_rate
+- alteryx_one_activation_funnel
+- alteryx_one_user_retention
+source_database: DISCOVERY_PRODUCT_MANAGEMENT
+source_schema: METRIC_STORE
+key_entities:
+- Account
+- Billing Account
+- User
+- Workspace
+- Workspace Group
+primary_keys:
+- BILLING_ACCOUNT_ID
+- USER_ID
+date_fields:
+- YEAR_MONTH
+- COHORT_MONTH
+typical_grain: Monthly aggregated by account or user
+documentation_reference: https://docs.alteryx.com/analytics/alteryx-one/
+support_contact: alteryx_one_team@alteryx.com
+last_updated: '2026-08-03T12:25:43.517859'
+metric_count: 9

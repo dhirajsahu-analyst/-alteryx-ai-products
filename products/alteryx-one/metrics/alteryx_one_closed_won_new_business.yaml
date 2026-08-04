@@ -1,0 +1,28 @@
+id: alteryx_one_closed_won_new_business
+name: Alteryx One Closed Won New Business
+description: Count of closed-won opportunities from new business (NB) acquisitions for Alteryx One.
+product: alteryx_one
+status: validated
+category: sales
+definition:
+  business: Count of closed-won opportunities from new business (NB) acquisitions for Alteryx One.
+  technical: From ALTERYX_ONE_CLOSED_WON_ACCOUNT_OPPORTUNITY_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT CLOSED_WON_NB_ALTERYX_ONE_OPPORTUNITY as count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_CLOSED_WON_ACCOUNT_OPPORTUNITY_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: analytics@alteryx.com
+tags:
+- sales
+- alteryx-one
+last_updated: '2026-08-03'
+version: '1.0'

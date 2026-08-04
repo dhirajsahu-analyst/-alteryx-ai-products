@@ -1,0 +1,32 @@
+id: copilot_onboarded_accounts
+name: Copilot Onboarded Accounts
+description: Total count of accounts that have initiated Copilot onboarding
+product: ask_alteryx
+status: validated
+category: volume
+definition:
+  business: Total count of accounts that have initiated Copilot onboarding
+  technical: '[''ONBOARDED_ACCOUNTS''] from COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT ONBOARDED_ACCOUNTS as onboarded_accounts_count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW WHERE ONBOARDED_ACCOUNTS > 0 LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- ONBOARDED_ACCOUNTS > 0
+depends_on: []
+related_metrics:
+- copilot_active_accounts
+maintainer: analytics@alteryx.com
+tags:
+- volume
+- copilot
+- cohort
+- funnel-base
+last_updated: '2026-08-03'
+version: '1.0'

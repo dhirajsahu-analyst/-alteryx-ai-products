@@ -1,0 +1,37 @@
+id: copilot_user_engagement_rate
+name: Copilot User Engagement Rate
+description: Percentage of onboarded Copilot users who have achieved engaged status through feature adoption
+product: ask_alteryx
+status: validated
+category: engagement
+definition:
+  business: Percentage of onboarded Copilot users who have achieved engaged status through feature adoption
+  technical: '[''ENGAGED_USERS'', ''ONBOARDED_USERS''] from COPILOT_USERS_ACTIVITY_FUNNEL_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT ROUND(ENGAGED_USERS / ONBOARDED_USERS * 100, 2) as engagement_rate_pct, ENGAGED_USERS as engaged_users_count, ONBOARDED_USERS as onboarded_users_total FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ACTIVITY_FUNNEL_VIEW WHERE ONBOARDED_USERS > 0 LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- ONBOARDED_USERS > 0
+depends_on:
+- copilot_onboarded_users
+- copilot_active_users
+related_metrics:
+- copilot_account_engagement_rate
+- copilot_user_activation_rate
+- copilot_highly_engaged_users
+maintainer: analytics@alteryx.com
+tags:
+- engagement
+- copilot
+- user-health
+- funnel-metric
+- quality-indicator
+last_updated: '2026-08-03'
+version: '1.0'

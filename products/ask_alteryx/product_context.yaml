@@ -1,0 +1,17 @@
+last_updated: '2026-08-03T12:46:05.529509'
+metric_count: 15
+product_description: Copilot adoption, engagement, retention, funnel metrics
+product_id: ask_alteryx
+product_name: Ask Alteryx / Copilot
+source_database: DISCOVERY_PRODUCT_MANAGEMENT
+source_schema: METRIC_STORE
+typical_grain: Monthly aggregated
+views:
+- COPILOT_30_60_RETENTION_RATE_VIEW
+- COPILOT_7_15_RETENTION_RATE_VIEW
+- COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW
+- COPILOT_ELIGBLE_USERS_VIEW
+- COPILOT_ELIGIBLE_ACCOUNT_FUNNEL_VIEW
+- COPILOT_USERS_ACTIVITY_FUNNEL_VIEW
+- COPILOT_USERS_ADOPTION_RATE_VIEW
+- COPILOT_WORKFLOW_DETAILS_VIEW

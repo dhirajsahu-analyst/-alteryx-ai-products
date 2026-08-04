@@ -1,0 +1,14 @@
+last_updated: '2026-08-03T12:46:05.535410'
+metric_count: 6
+product_description: Product version adoption trends and metrics
+product_id: version_adoption
+product_name: Version Adoption
+source_database: DISCOVERY_PRODUCT_MANAGEMENT
+source_schema: METRIC_STORE
+typical_grain: Monthly aggregated
+views:
+- DESIGNER_2025_ADOPTION_PCT_LATEST_MONTH_VIEW
+- DESIGNER_LATEST_VERSION_ADOPTION_MONTHLY_VIEW
+- DESIGNER_SERVER_VERSION_ADOPTION_RATE_VIEW
+- PRODUCT_VERSION_ADOPTION_MONTHLY_SUMMARY_VIEW
+- VERSION_ADOPTION_30_60_90_DAYS_VIEW

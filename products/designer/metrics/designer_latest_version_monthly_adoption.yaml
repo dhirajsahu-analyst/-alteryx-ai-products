@@ -1,0 +1,43 @@
+id: designer_latest_version_monthly_adoption
+name: Designer Latest Version Monthly Adoption
+description: Monthly trend of Designer 2025.1+ accounts and users with Alteryx One breakdown
+product: designer
+status: validated
+category: adoption
+definition:
+  business: Adoption velocity tracking showing monthly progression of latest version uptake
+  technical: From DESIGNER_LATEST_VERSION_ADOPTION_MONTHLY_VIEW with time series
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    TOTAL_ACCOUNTS_PREVAILING_2025_1_PLUS,
+    TOTAL_USERS_VERSION_2025_1_PLUS,
+    TOTAL_AYX_ONE_ACCOUNTS,
+    TOTAL_AYX_ONE_USERS,
+    ROUND(TOTAL_ACCOUNTS_PREVAILING_2025_1_PLUS / NULLIF(TOTAL_AYX_ONE_ACCOUNTS, 0) * 100, 2) AS pct_ayx1_on_2025,
+    ROUND(TOTAL_USERS_VERSION_2025_1_PLUS / NULLIF(TOTAL_AYX_ONE_USERS, 0) * 100, 2) AS pct_ayx1_users_on_2025,
+    LAG(TOTAL_USERS_VERSION_2025_1_PLUS) OVER (ORDER BY MONTH) AS prev_month_users,
+    ROUND((TOTAL_USERS_VERSION_2025_1_PLUS - LAG(TOTAL_USERS_VERSION_2025_1_PLUS) OVER (ORDER BY MONTH)) /
+          NULLIF(LAG(TOTAL_USERS_VERSION_2025_1_PLUS) OVER (ORDER BY MONTH), 0) * 100, 2) AS mom_user_growth_pct
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.DESIGNER_LATEST_VERSION_ADOPTION_MONTHLY_VIEW
+  ORDER BY MONTH DESC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- designer_001
+- designer_004
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- designer
+last_updated: '2026-08-03'
+version: '1.0'

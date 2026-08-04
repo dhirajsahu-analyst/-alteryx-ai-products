@@ -1,0 +1,28 @@
+id: alteryx_one_cloud_engaged_users
+name: Alteryx One Cloud Engaged Users
+description: Count of engaged users specifically in cloud modules.
+product: alteryx_one
+status: validated
+category: engagement
+definition:
+  business: Count of engaged users specifically in cloud modules.
+  technical: From ALTERYX_ONE_ENGAGED_USERS_BY_PRODUCT_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT CLOUD_ENGAGED_USERS as count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ENGAGED_USERS_BY_PRODUCT_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: analytics@alteryx.com
+tags:
+- engagement
+- alteryx-one
+last_updated: '2026-08-03'
+version: '1.0'

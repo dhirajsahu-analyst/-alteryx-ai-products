@@ -1,0 +1,35 @@
+id: copilot_users_needing_engagement
+name: Copilot Users Needing Engagement
+description: Count of active users who have not yet reached engaged status (nurture opportunity)
+product: ask_alteryx
+status: validated
+category: funnel
+definition:
+  business: Count of active users who have not yet reached engaged status (nurture opportunity)
+  technical: '[''ACTIVE_USERS'', ''ENGAGED_USERS''] from COPILOT_USERS_ACTIVITY_FUNNEL_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT (ACTIVE_USERS - ENGAGED_USERS) as users_needing_engagement, ACTIVE_USERS as total_active_users, ENGAGED_USERS as already_engaged_users, ROUND((ACTIVE_USERS - ENGAGED_USERS) / ACTIVE_USERS * 100, 2) as engagement_gap_pct FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ACTIVITY_FUNNEL_VIEW WHERE ACTIVE_USERS > ENGAGED_USERS LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- ACTIVE_USERS > ENGAGED_USERS
+depends_on:
+- copilot_active_users
+- copilot_highly_engaged_users
+related_metrics:
+- copilot_user_engagement_rate
+- copilot_user_funnel_health
+maintainer: analytics@alteryx.com
+tags:
+- funnel
+- copilot
+- opportunity
+- nurture
+last_updated: '2026-08-03'
+version: '1.0'

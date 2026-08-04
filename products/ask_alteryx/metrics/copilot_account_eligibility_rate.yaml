@@ -1,0 +1,33 @@
+id: copilot_account_eligibility_rate
+name: Copilot Account Eligibility Rate
+description: Percentage of total Alteryx accounts that are eligible for Copilot
+product: ask_alteryx
+status: validated
+category: market_size
+definition:
+  business: Percentage of total Alteryx accounts that are eligible for Copilot
+  technical: '[''COPILOT_ELIGIBLE_ACCOUNTS'', ''TOTAL_AYX_ACCOUNTS''] from COPILOT_ELIGIBLE_ACCOUNT_FUNNEL_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT ROUND(COPILOT_ELIGIBLE_ACCOUNTS / TOTAL_AYX_ACCOUNTS * 100, 2) as eligibility_rate_pct, COPILOT_ELIGIBLE_ACCOUNTS as eligible_accounts, TOTAL_AYX_ACCOUNTS as total_accounts, MONTH_YEAR as period FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ELIGIBLE_ACCOUNT_FUNNEL_VIEW WHERE TOTAL_AYX_ACCOUNTS > 0 ORDER BY MONTH_YEAR DESC LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- TOTAL_AYX_ACCOUNTS > 0
+depends_on:
+- copilot_eligible_accounts
+related_metrics:
+- copilot_penetration_in_alteryx_one
+maintainer: analytics@alteryx.com
+tags:
+- market-size
+- copilot
+- penetration
+- eligibility
+last_updated: '2026-08-03'
+version: '1.0'

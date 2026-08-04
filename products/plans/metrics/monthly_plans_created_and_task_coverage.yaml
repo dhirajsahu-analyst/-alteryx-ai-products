@@ -1,0 +1,245 @@
+id: monthly_plans_created_and_task_coverage
+name: Monthly Plans Created and Task Coverage
+description: Monthly plans created with task coverage metrics
+product: plans
+status: validated
+category: product_metric
+definition:
+  business: Monthly Plans Created and Task Coverage - Monthly plans created with task coverage metrics
+  technical: Query from MONTHLY_PLANS_CREATED_AND_TASK_COVERAGE_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables:
+  - DISCOVERY_PRODUCT_MANAGEMENT
+sql_template: |-
+  SELECT
+      -- Reporting month
+      TO_CHAR(
+          DATE_TRUNC('MONTH', YEAR_MONTH),
+          'Mon-YYYY'
+      ) AS MONTH,
+
+      -- Total plans created during the reporting month
+      SUM(CREATED_PLAN) AS TOTAL_CREATED_PLAN,
+
+      -- Total plans without any task
+      SUM(PLANS_WITHOUT_TASK) AS PLANS_WITHOUT_TASK,
+
+      -- Total available plans containing at least one supported task type
+      SUM(
+          CASE
+              WHEN COALESCE(PLANS_WITH_WORKFLOW_TASK, 0) > 0
+                  OR COALESCE(PLANS_WITH_FLOW_TASK, 0) > 0
+                  OR COALESCE(PLANS_WITH_HTTP_TASK, 0) > 0
+                  OR COALESCE(PLANS_WITH_EMAIL_TASK, 0) > 0
+                  OR COALESCE(PLANS_WITH_AI_DATASET_TASK, 0) > 0
+                  OR COALESCE(PLANS_WITH_CEFD_TASK, 0) > 0
+                  OR COALESCE(PLANS_WITH_ML_TASK, 0) > 0
+              THEN AVAILABLE_PLANS
+              ELSE 0
+          END
+      ) AS PLANS_WITH_TASK
+
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+  WHERE
+      -- Current month and previous three months
+      DATE_TRUNC('MONTH', YEAR_MONTH) >= DATEADD(
+          MONTH,
+          -3,
+          DATE_TRUNC('MONTH', CURRENT_DATE())
+      )
+
+      -- Purchased accounts only
+      AND LICENSE_TYPE = 'Purchase'
+
+      -- Optional filters
+      -- AND PIPELINE_REGION = 'US'
+      -- AND ACCOUNT_EDITION = 'Enterprise'
+      -- AND PRICING_AND_PACKAGING = '2025'
+      -- AND IS_ACTIVE_ACCOUNT = TRUE
+
+  GROUP BY
+      DATE_TRUNC('MONTH', YEAR_MONTH)
+
+  ORDER BY
+      DATE_TRUNC('MONTH', YEAR_MONTH);
+queries:
+- name: base
+  description: Base metric query
+  query: |-
+    SELECT
+        -- Reporting month
+        TO_CHAR(
+            DATE_TRUNC('MONTH', YEAR_MONTH),
+            'Mon-YYYY'
+        ) AS MONTH,
+
+        -- Total plans created during the reporting month
+        SUM(CREATED_PLAN) AS TOTAL_CREATED_PLAN,
+
+        -- Total plans without any task
+        SUM(PLANS_WITHOUT_TASK) AS PLANS_WITHOUT_TASK,
+
+        -- Total available plans containing at least one supported task type
+        SUM(
+            CASE
+                WHEN COALESCE(PLANS_WITH_WORKFLOW_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_FLOW_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_HTTP_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_EMAIL_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_AI_DATASET_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_CEFD_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_ML_TASK, 0) > 0
+                THEN AVAILABLE_PLANS
+                ELSE 0
+            END
+        ) AS PLANS_WITH_TASK
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+    WHERE
+        -- Current month and previous three months
+        DATE_TRUNC('MONTH', YEAR_MONTH) >= DATEADD(
+            MONTH,
+            -3,
+            DATE_TRUNC('MONTH', CURRENT_DATE())
+        )
+
+        -- Purchased accounts only
+        AND LICENSE_TYPE = 'Purchase'
+
+        -- Optional filters
+        -- AND PIPELINE_REGION = 'US'
+        -- AND ACCOUNT_EDITION = 'Enterprise'
+        -- AND PRICING_AND_PACKAGING = '2025'
+        -- AND IS_ACTIVE_ACCOUNT = TRUE
+
+    GROUP BY
+        DATE_TRUNC('MONTH', YEAR_MONTH)
+
+    ORDER BY
+        DATE_TRUNC('MONTH', YEAR_MONTH);
+- name: daily
+  description: Daily metrics
+  query: |-
+    SELECT
+        -- Reporting month
+        TO_CHAR(
+            DATE_TRUNC('MONTH', YEAR_MONTH),
+            'Mon-YYYY'
+        ) AS MONTH,
+
+        -- Total plans created during the reporting month
+        SUM(CREATED_PLAN) AS TOTAL_CREATED_PLAN,
+
+        -- Total plans without any task
+        SUM(PLANS_WITHOUT_TASK) AS PLANS_WITHOUT_TASK,
+
+        -- Total available plans containing at least one supported task type
+        SUM(
+            CASE
+                WHEN COALESCE(PLANS_WITH_WORKFLOW_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_FLOW_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_HTTP_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_EMAIL_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_AI_DATASET_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_CEFD_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_ML_TASK, 0) > 0
+                THEN AVAILABLE_PLANS
+                ELSE 0
+            END
+        ) AS PLANS_WITH_TASK
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+    WHERE
+        -- Current month and previous three months
+        DATE_TRUNC('MONTH', YEAR_MONTH) >= DATEADD(
+            MONTH,
+            -3,
+            DATE_TRUNC('MONTH', CURRENT_DATE())
+        )
+
+        -- Purchased accounts only
+        AND LICENSE_TYPE = 'Purchase'
+
+        -- Optional filters
+        -- AND PIPELINE_REGION = 'US'
+        -- AND ACCOUNT_EDITION = 'Enterprise'
+        -- AND PRICING_AND_PACKAGING = '2025'
+        -- AND IS_ACTIVE_ACCOUNT = TRUE
+
+    GROUP BY
+        DATE_TRUNC('MONTH', YEAR_MONTH)
+
+    ORDER BY
+        DATE_TRUNC('MONTH', YEAR_MONTH);
+- name: monthly
+  description: Monthly aggregated metrics
+  query: |-
+    SELECT
+        -- Reporting month
+        TO_CHAR(
+            DATE_TRUNC('MONTH', YEAR_MONTH),
+            'Mon-YYYY'
+        ) AS MONTH,
+
+        -- Total plans created during the reporting month
+        SUM(CREATED_PLAN) AS TOTAL_CREATED_PLAN,
+
+        -- Total plans without any task
+        SUM(PLANS_WITHOUT_TASK) AS PLANS_WITHOUT_TASK,
+
+        -- Total available plans containing at least one supported task type
+        SUM(
+            CASE
+                WHEN COALESCE(PLANS_WITH_WORKFLOW_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_FLOW_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_HTTP_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_EMAIL_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_AI_DATASET_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_CEFD_TASK, 0) > 0
+                    OR COALESCE(PLANS_WITH_ML_TASK, 0) > 0
+                THEN AVAILABLE_PLANS
+                ELSE 0
+            END
+        ) AS PLANS_WITH_TASK
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+    WHERE
+        -- Current month and previous three months
+        DATE_TRUNC('MONTH', YEAR_MONTH) >= DATEADD(
+            MONTH,
+            -3,
+            DATE_TRUNC('MONTH', CURRENT_DATE())
+        )
+
+        -- Purchased accounts only
+        AND LICENSE_TYPE = 'Purchase'
+
+        -- Optional filters
+        -- AND PIPELINE_REGION = 'US'
+        -- AND ACCOUNT_EDITION = 'Enterprise'
+        -- AND PRICING_AND_PACKAGING = '2025'
+        -- AND IS_ACTIVE_ACCOUNT = TRUE
+
+    GROUP BY
+        DATE_TRUNC('MONTH', YEAR_MONTH)
+
+    ORDER BY
+        DATE_TRUNC('MONTH', YEAR_MONTH);
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: data-engineering@alteryx.com
+tags:
+- plans
+- product_metric
+last_updated: '2026-08-04'
+version: '1.0'

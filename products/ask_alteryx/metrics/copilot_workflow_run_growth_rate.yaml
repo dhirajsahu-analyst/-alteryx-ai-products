@@ -1,0 +1,33 @@
+id: copilot_workflow_run_growth_rate
+name: Copilot Workflow Run Growth Rate
+description: Percentage month-over-month growth in Copilot workflow execution
+product: ask_alteryx
+status: validated
+category: usage
+definition:
+  business: Percentage month-over-month growth in Copilot workflow execution
+  technical: '[''COPILOT_MAPPED_WORKFLOW_RUNS''] from COPILOT_WORKFLOW_DETAILS_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT 'Growth Rate' as metric, COPILOT_PCT_WORKFLOW_RUNS as growth_metric FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_WORKFLOW_DETAILS_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on:
+- copilot_workflow_volume_trend
+related_metrics:
+- copilot_workflow_runs
+- copilot_adoption_velocity
+maintainer: analytics@alteryx.com
+tags:
+- usage
+- copilot
+- growth
+- acceleration
+last_updated: '2026-08-03'
+version: '1.0'

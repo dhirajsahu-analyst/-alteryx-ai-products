@@ -1,0 +1,39 @@
+id: trial_monthly_sal_conversion
+name: Trial Monthly SAL Conversion
+description: Monthly Sales Accepted Lead conversion rate with trend analysis
+product: trial
+status: validated
+category: funnel
+definition:
+  business: Sales funnel metric showing which trial cohorts convert to sales pipeline
+  technical: 'From TRIAL_FUNNEL_METRICS_MONTHLY_VIEW: SAL conversions'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    RESPONSE_MONTH,
+    TOTAL_TRIAL_REGISTRATION,
+    SAL,
+    ROUND((SAL / NULLIF(TOTAL_TRIAL_REGISTRATION, 0)) * 100, 2) AS sal_rate_pct,
+    ROUND((SAL / NULLIF(QL, 0)) * 100, 2) AS sal_from_ql_pct,
+    LAG(SAL) OVER (ORDER BY RESPONSE_MONTH) AS prev_month_sal
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.TRIAL_FUNNEL_METRICS_MONTHLY_VIEW
+  ORDER BY RESPONSE_MONTH DESC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- trial_006
+- trial_008
+maintainer: analytics@alteryx.com
+tags:
+- funnel
+- trial
+last_updated: '2026-08-03'
+version: '1.0'

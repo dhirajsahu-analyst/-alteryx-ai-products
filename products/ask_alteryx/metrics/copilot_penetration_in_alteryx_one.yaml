@@ -1,0 +1,33 @@
+id: copilot_penetration_in_alteryx_one
+name: Copilot Penetration in Alteryx One
+description: Percentage of Alteryx One accounts that have Copilot eligibility activated
+product: ask_alteryx
+status: validated
+category: market_size
+definition:
+  business: Percentage of Alteryx One accounts that have Copilot eligibility activated
+  technical: '[''COPILOT_ELIGIBLE_ACCOUNTS'', ''TOTAL_AYX1_ACCOUNTS''] from COPILOT_ELIGIBLE_ACCOUNT_FUNNEL_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT ROUND(COPILOT_ELIGIBLE_ACCOUNTS / TOTAL_AYX1_ACCOUNTS * 100, 2) as penetration_rate_pct, COPILOT_ELIGIBLE_ACCOUNTS as eligible_accounts, TOTAL_AYX1_ACCOUNTS as ayx_one_accounts, MONTH_YEAR as period FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ELIGIBLE_ACCOUNT_FUNNEL_VIEW WHERE TOTAL_AYX1_ACCOUNTS > 0 ORDER BY MONTH_YEAR DESC LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- TOTAL_AYX1_ACCOUNTS > 0
+depends_on:
+- copilot_eligible_accounts
+related_metrics:
+- copilot_account_eligibility_rate
+maintainer: analytics@alteryx.com
+tags:
+- market-size
+- copilot
+- ayx-one
+- penetration
+last_updated: '2026-08-03'
+version: '1.0'

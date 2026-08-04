@@ -1,0 +1,42 @@
+id: supported_machine_count
+name: Supported Machine Count
+description: Monthly count of machines running supported versions by product
+product: account_user
+status: validated
+category: volume
+definition:
+  business: Infrastructure health metric for deployment management and support planning
+  technical: From MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW, supported machines
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    PRODUCT_ID,
+    TOTAL_MACHINES AS supported_machines,
+    PCT_SUPPORTED_MACHINE,
+    LAG(TOTAL_MACHINES) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH) AS prev_month_machines,
+    ROUND((TOTAL_MACHINES - LAG(TOTAL_MACHINES) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH)) /
+          NULLIF(LAG(TOTAL_MACHINES) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH), 0) * 100, 2) AS mom_growth_pct
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+  WHERE SUPPORTED_UNSUPPORTED = 'Supported'
+  ORDER BY MONTH DESC, PRODUCT_ID
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters:
+- SUPPORTED_UNSUPPORTED = 'Supported'
+depends_on: []
+related_metrics:
+- account_user_001
+- account_user_008
+maintainer: analytics@alteryx.com
+tags:
+- volume
+- account_user
+last_updated: '2026-08-03'
+version: '1.0'

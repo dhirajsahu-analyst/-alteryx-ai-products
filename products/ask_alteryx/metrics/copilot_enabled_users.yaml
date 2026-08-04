@@ -1,0 +1,32 @@
+id: copilot_enabled_users
+name: Copilot Enabled Users
+description: Count of users who have Copilot feature flag enabled in their account
+product: ask_alteryx
+status: validated
+category: volume
+definition:
+  business: Count of users who have Copilot feature flag enabled in their account
+  technical: '[''COPILOT_ENABLED_USERS''] from COPILOT_ELIGBLE_USERS_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT COPILOT_ENABLED_USERS as enabled_users_count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ELIGBLE_USERS_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- copilot_enabled_accounts
+- copilot_active_users
+maintainer: analytics@alteryx.com
+tags:
+- volume
+- copilot
+- feature-flag
+- enabled-base
+last_updated: '2026-08-03'
+version: '1.0'

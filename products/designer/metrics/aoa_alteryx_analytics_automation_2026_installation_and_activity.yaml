@@ -1,0 +1,43 @@
+id: aoa_alteryx_analytics_automation_2026_installation_and_activity
+name: AOA (Alteryx Analytics Automation) 2026 Installation and Activity
+description: Designer 2026 local client downloads, activations, and feature adoption
+product: designer
+status: validated
+category: usage
+definition:
+  business: Track Designer 2026 adoption on local machines and engagement with core features
+  technical: From AOA_ON_DESIGNER_2026_AND_ACTIVITIES_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    AOA_INSTALL_USERS,
+    AOA_USERS_ON_2026,
+    ROUND(AOA_USERS_ON_2026 / NULLIF(AOA_INSTALL_USERS, 0) * 100, 2) AS upgrade_rate_pct,
+    USERS_CREATED_WORKFLOW,
+    ROUND(USERS_CREATED_WORKFLOW / NULLIF(AOA_USERS_ON_2026, 0) * 100, 2) AS pct_created_workflow,
+    USERS_RUN_WORKFLOW,
+    ROUND(USERS_RUN_WORKFLOW / NULLIF(AOA_USERS_ON_2026, 0) * 100, 2) AS pct_ran_workflow,
+    USERS_RUN_PLAN,
+    ROUND(USERS_RUN_PLAN / NULLIF(AOA_USERS_ON_2026, 0) * 100, 2) AS pct_ran_plan,
+    USERS_CREATED_CONNECTION,
+    USERS_CREATED_DATASET
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.AOA_ON_DESIGNER_2026_AND_ACTIVITIES_VIEW
+  LIMIT 1
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- designer_001
+- designer_007
+maintainer: analytics@alteryx.com
+tags:
+- usage
+- designer
+last_updated: '2026-08-03'
+version: '1.0'

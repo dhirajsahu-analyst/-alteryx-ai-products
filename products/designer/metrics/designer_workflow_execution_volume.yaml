@@ -1,0 +1,45 @@
+id: designer_workflow_execution_volume
+name: Designer Workflow Execution Volume
+description: Monthly count of Designer workflows executed, broken down by product, OS, and features
+product: designer
+status: validated
+category: usage
+definition:
+  business: Engagement metric showing Designer user activity and feature adoption
+  technical: Aggregated from ENGINE_DESIGNER_SERVER_RUN_WITH_ASSET_TYPE_VIEW with volume analysis
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    PRODUCT_NAME,
+    PRODUCT_VERSION,
+    WORKFLOW_TYPE,
+    COUNT(DISTINCT PAYLOAD_ID) AS workflow_executions,
+    COUNT(DISTINCT MACHINE_ID_DECODED) AS unique_machines,
+    COUNT(DISTINCT USER_EMAIL) AS unique_users,
+    ROUND(AVG(DURATION_NUM), 2) AS avg_duration_seconds,
+    ROUND(SUM(DURATION_NUM) / 60.0, 2) AS total_compute_minutes
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ENGINE_DESIGNER_SERVER_RUN_WITH_ASSET_TYPE_VIEW
+  WHERE PRODUCT_NAME = 'Designer'
+  GROUP BY MONTH, PRODUCT_NAME, PRODUCT_VERSION, WORKFLOW_TYPE
+  ORDER BY MONTH DESC, workflow_executions DESC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters:
+- PRODUCT_NAME = 'Designer'
+depends_on: []
+related_metrics:
+- designer_008
+- designer_009
+maintainer: analytics@alteryx.com
+tags:
+- usage
+- designer
+last_updated: '2026-08-03'
+version: '1.0'

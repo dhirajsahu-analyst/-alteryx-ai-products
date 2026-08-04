@@ -1,0 +1,42 @@
+id: trial_monthly_signups
+name: Trial Monthly Signups
+description: Monthly trial registration count with conversion funnel breakdown
+product: trial
+status: validated
+category: volume
+definition:
+  business: Monthly demand metric for trial program capacity and sales pipeline planning
+  technical: 'From TRIAL_FUNNEL_METRICS_MONTHLY_VIEW: TOTAL_TRIAL_REGISTRATION'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    RESPONSE_MONTH,
+    TOTAL_TRIAL_REGISTRATION,
+    QL,
+    SAL,
+    PIPELINE,
+    CLOSED_WON,
+    LAG(TOTAL_TRIAL_REGISTRATION) OVER (ORDER BY RESPONSE_MONTH) AS prev_month_signups,
+    ROUND((TOTAL_TRIAL_REGISTRATION - LAG(TOTAL_TRIAL_REGISTRATION) OVER (ORDER BY RESPONSE_MONTH)) /
+          NULLIF(LAG(TOTAL_TRIAL_REGISTRATION) OVER (ORDER BY RESPONSE_MONTH), 0) * 100, 2) AS mom_growth_pct
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.TRIAL_FUNNEL_METRICS_MONTHLY_VIEW
+  ORDER BY RESPONSE_MONTH DESC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- trial_001
+- trial_006
+maintainer: analytics@alteryx.com
+tags:
+- volume
+- trial
+last_updated: '2026-08-03'
+version: '1.0'

@@ -1,0 +1,1488 @@
+id: plans_daily_user_granular
+name: Plans Daily User Granular
+description: Granular daily user metrics for Plans
+product: plans
+status: validated
+category: product_metric
+definition:
+  business: Plans Daily User Granular - Granular daily user metrics for Plans
+  technical: Query from PLANS_DAILY_USER_GRANULAR_AV
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables:
+  - TASK_CREATED_ACTIVITY
+  - RUNS_LATEST
+  - TASK_DELETED_ACTIVITY
+  - PLANS_FACT
+  - PLAN_NODES_LATEST
+  - ACTIVITY_AGG
+  - PLAN_CREATED_ACTIVITY
+  - PLAN_EDITED_ACTIVITY
+  - ALL_ACTIVITY
+  - RUN_ACTIVITY
+  - TASK_UPDATED_ACTIVITY
+  - DISCOVERY_PRODUCT_MANAGEMENT
+sql_template: |-
+  SELECT *
+      FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
+  ),
+
+  PLAN_NODES_LATEST AS (
+      SELECT
+          N.ID                                           AS PLAN_NODE_ID,
+          N.PLAN_ID                                      AS PLAN_ID,
+          N.CREATED_BY                                   AS TASK_CREATED_BY_USER_ID,
+          N.UPDATED_BY                                   AS TASK_UPDATED_BY_USER_ID,
+          TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT)             AS TASK_CREATED_AT,
+          TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT)             AS TASK_UPDATED_AT,
+          TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT)             AS TASK_DELETED_AT
+      FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANNODES N
+      QUALIFY ROW_NUMBER() OVER (
+          PARTITION BY N.ID
+          ORDER BY
+              TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT) DESC NULLS LAST,
+              TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT) DESC NULLS LAST,
+              TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT) DESC NULLS LAST
+      ) = 1
+  ),
+
+  RUNS_LATEST AS (
+      SELECT
+          R.ID                                           AS PLAN_RUN_ID,
+          R.PLAN_SNAPSHOT_ID,
+          R.CREATED_BY                                   AS RUN_CREATED_BY_USER_ID,
+          TRY_TO_TIMESTAMP_NTZ(R.CREATED_AT)             AS RUN_CREATED_AT,
+          TRY_TO_TIMESTAMP_NTZ(R.UPDATED_AT)             AS RUN_UPDATED_AT,
+          TRY_TO_TIMESTAMP_NTZ(R.DELETED_AT)             AS RUN_DELETED_AT,
+          TRY_TO_TIMESTAMP_NTZ(R.STARTED_AT)             AS RUN_STARTED_AT,
+          TRY_TO_TIMESTAMP_NTZ(R.FINISHED_AT)            AS RUN_FINISHED_AT,
+          R.STATUS,
+          LOWER(TRIM(R.RANFROM))                         AS RUN_SOURCE
+      FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANSNAPSHOTRUNS R
+      QUALIFY ROW_NUMBER() OVER (
+          PARTITION BY R.ID
+          ORDER BY
+              TRY_TO_TIMESTAMP_NTZ(R.UPDATED_AT) DESC NULLS LAST,
+              TRY_TO_TIMESTAMP_NTZ(R.DELETED_AT) DESC NULLS LAST,
+              TRY_TO_TIMESTAMP_NTZ(R.CREATED_AT) DESC NULLS LAST
+      ) = 1
+  ),
+
+  /* One record for the original plan creator on the creation date. */
+  PLAN_CREATED_ACTIVITY AS (
+      SELECT
+          DATE(F.PLAN_CREATED_AT)                        AS ACTIVITY_DATE,
+          F.USER_ID                                      AS ACTIVITY_USER_ID,
+          F.WORKSPACE_ID,
+          F.PLAN_ID,
+          1                                              AS PLAN_CREATED_COUNT,
+          0                                              AS PLAN_EDITED_COUNT,
+          0                                              AS TASK_CREATED_COUNT,
+          0                                              AS TASK_UPDATED_COUNT,
+          0                                              AS TASK_DELETED_COUNT,
+          0                                              AS PLAN_RUN_COUNT,
+          0                                              AS COMPLETED_PLAN_RUN_COUNT,
+          0                                              AS INPROGRESS_PLAN_RUN_COUNT,
+          0                                              AS CREATED_PLAN_RUN_COUNT,
+          0                                              AS CANCELLED_PLAN_RUN_COUNT,
+          0                                              AS FAILED_PLAN_RUN_COUNT,
+          0                                              AS MANUAL_PLAN_RUN_COUNT,
+          0                                              AS SCHEDULED_PLAN_RUN_COUNT,
+          0                                              AS API_PLAN_RUN_COUNT,
+          0                                              AS AUTOMATED_PLAN_RUN_COUNT,
+          CAST(NULL AS TIMESTAMP_NTZ)                    AS FIRST_RUN_AT,
+          CAST(NULL AS TIMESTAMP_NTZ)                    AS LAST_RUN_AT
+      FROM PLANS_FACT F
+      WHERE F.USER_ID IS NOT NULL
+  ),
+
+  /* A plan edit is counted only when update time is later than creation time. */
+  PLAN_EDITED_ACTIVITY AS (
+      SELECT
+          DATE(F.PLAN_UPDATED_AT)                        AS ACTIVITY_DATE,
+          F.PLAN_UPDATED_BY                              AS ACTIVITY_USER_ID,
+          F.WORKSPACE_ID,
+          F.PLAN_ID,
+          0                                              AS PLAN_CREATED_COUNT,
+          1                                              AS PLAN_EDITED_COUNT,
+          0                                              AS TASK_CREATED_COUNT,
+          0                                              AS TASK_UPDATED_COUNT,
+          0                                              AS TASK_DELETED_COUNT,
+          0                                              AS PLAN_RUN_COUNT,
+          0                                              AS COMPLETED_PLAN_RUN_COUNT,
+          0                                              AS INPROGRESS_PLAN_RUN_COUNT,
+          0                                              AS CREATED_PLAN_RUN_COUNT,
+          0                                              AS CANCELLED_PLAN_RUN_COUNT,
+          0                                              AS FAILED_PLAN_RUN_COUNT,
+          0                                              AS MANUAL_PLAN_RUN_COUNT,
+          0                                              AS SCHEDULED_PLAN_RUN_COUNT,
+          0                                              AS API_PLAN_RUN_COUNT,
+          0                                              AS AUTOMATED_PLAN_RUN_COUNT,
+          CAST(NULL AS TIMESTAMP_NTZ)                    AS FIRST_RUN_AT,
+          CAST(NULL AS TIMESTAMP_NTZ)                    AS LAST_RUN_AT
+      FROM PLANS_FACT F
+      WHERE F.PLAN_UPDATED_BY IS NOT NULL
+        AND F.PLAN_UPDATED_AT IS NOT NULL
+        AND F.PLAN_UPDATED_AT > F.PLAN_CREATED_AT
+  ),
+
+  TASK_CREATED_ACTIVITY AS (
+      SELECT
+          DATE(N.TASK_CREATED_AT)                        AS ACTIVITY_DATE,
+          N.TASK_CREATED_BY_USER_ID                      AS ACTIVITY_USER_ID,
+          F.WORKSPACE_ID,
+          N.PLAN_ID,
+          0 AS PLAN_CREATED_COUNT,
+          0 AS PLAN_EDITED_COUNT,
+          1 AS TASK_CREATED_COUNT,
+          0 AS TASK_UPDATED_COUNT,
+          0 AS TASK_DELETED_COUNT,
+          0 AS PLAN_RUN_COUNT,
+          0 AS COMPLETED_PLAN_RUN_COUNT,
+          0 AS INPROGRESS_PLAN_RUN_COUNT,
+          0 AS CREATED_PLAN_RUN_COUNT,
+          0 AS CANCELLED_PLAN_RUN_COUNT,
+          0 AS FAILED_PLAN_RUN_COUNT,
+          0 AS MANUAL_PLAN_RUN_COUNT,
+          0 AS SCHEDULED_PLAN_RUN_COUNT,
+          0 AS API_PLAN_RUN_COUNT,
+          0 AS AUTOMATED_PLAN_RUN_COUNT,
+          CAST(NULL AS TIMESTAMP_NTZ) AS FIRST_RUN_AT,
+          CAST(NULL AS TIMESTAMP_NTZ) AS LAST_RUN_AT
+      FROM PLAN_NODES_LATEST N
+      JOIN PLANS_FACT F
+        ON N.PLAN_ID = F.PLAN_ID
+      WHERE N.TASK_CREATED_BY_USER_ID IS NOT NULL
+        AND N.TASK_CREATED_AT IS NOT NULL
+  ),
+
+  /* Avoid counting creation itself as a separate task update. */
+  TASK_UPDATED_ACTIVITY AS (
+      SELECT
+          DATE(N.TASK_UPDATED_AT)                        AS ACTIVITY_DATE,
+          N.TASK_UPDATED_BY_USER_ID                      AS ACTIVITY_USER_ID,
+          F.WORKSPACE_ID,
+          N.PLAN_ID,
+          0 AS PLAN_CREATED_COUNT,
+          0 AS PLAN_EDITED_COUNT,
+          0 AS TASK_CREATED_COUNT,
+          1 AS TASK_UPDATED_COUNT,
+          0 AS TASK_DELETED_COUNT,
+          0 AS PLAN_RUN_COUNT,
+          0 AS COMPLETED_PLAN_RUN_COUNT,
+          0 AS INPROGRESS_PLAN_RUN_COUNT,
+          0 AS CREATED_PLAN_RUN_COUNT,
+          0 AS CANCELLED_PLAN_RUN_COUNT,
+          0 AS FAILED_PLAN_RUN_COUNT,
+          0 AS MANUAL_PLAN_RUN_COUNT,
+          0 AS SCHEDULED_PLAN_RUN_COUNT,
+          0 AS API_PLAN_RUN_COUNT,
+          0 AS AUTOMATED_PLAN_RUN_COUNT,
+          CAST(NULL AS TIMESTAMP_NTZ) AS FIRST_RUN_AT,
+          CAST(NULL AS TIMESTAMP_NTZ) AS LAST_RUN_AT
+      FROM PLAN_NODES_LATEST N
+      JOIN PLANS_FACT F
+        ON N.PLAN_ID = F.PLAN_ID
+      WHERE N.TASK_UPDATED_BY_USER_ID IS NOT NULL
+        AND N.TASK_UPDATED_AT IS NOT NULL
+        AND N.TASK_UPDATED_AT > N.TASK_CREATED_AT
+  ),
+
+  /* No DELETED_BY field exists in the supplied model; UPDATED_BY is used. */
+  TASK_DELETED_ACTIVITY AS (
+      SELECT
+          DATE(N.TASK_DELETED_AT)                        AS ACTIVITY_DATE,
+          N.TASK_UPDATED_BY_USER_ID                      AS ACTIVITY_USER_ID,
+          F.WORKSPACE_ID,
+          N.PLAN_ID,
+          0 AS PLAN_CREATED_COUNT,
+          0 AS PLAN_EDITED_COUNT,
+          0 AS TASK_CREATED_COUNT,
+          0 AS TASK_UPDATED_COUNT,
+          1 AS TASK_DELETED_COUNT,
+          0 AS PLAN_RUN_COUNT,
+          0 AS COMPLETED_PLAN_RUN_COUNT,
+          0 AS INPROGRESS_PLAN_RUN_COUNT,
+          0 AS CREATED_PLAN_RUN_COUNT,
+          0 AS CANCELLED_PLAN_RUN_COUNT,
+          0 AS FAILED_PLAN_RUN_COUNT,
+          0 AS MANUAL_PLAN_RUN_COUNT,
+          0 AS SCHEDULED_PLAN_RUN_COUNT,
+          0 AS API_PLAN_RUN_COUNT,
+          0 AS AUTOMATED_PLAN_RUN_COUNT,
+          CAST(NULL AS TIMESTAMP_NTZ) AS FIRST_RUN_AT,
+          CAST(NULL AS TIMESTAMP_NTZ) AS LAST_RUN_AT
+      FROM PLAN_NODES_LATEST N
+      JOIN PLANS_FACT F
+        ON N.PLAN_ID = F.PLAN_ID
+      WHERE N.TASK_UPDATED_BY_USER_ID IS NOT NULL
+        AND N.TASK_DELETED_AT IS NOT NULL
+  ),
+
+  RUN_ACTIVITY AS (
+      SELECT
+          DATE(R.RUN_CREATED_AT)                         AS ACTIVITY_DATE,
+          R.RUN_CREATED_BY_USER_ID                       AS ACTIVITY_USER_ID,
+          F.WORKSPACE_ID,
+          F.PLAN_ID,
+          0 AS PLAN_CREATED_COUNT,
+          0 AS PLAN_EDITED_COUNT,
+          0 AS TASK_CREATED_COUNT,
+          0 AS TASK_UPDATED_COUNT,
+          0 AS TASK_DELETED_COUNT,
+          1 AS PLAN_RUN_COUNT,
+          IFF(R.STATUS = 'Complete',   1, 0) AS COMPLETED_PLAN_RUN_COUNT,
+          IFF(R.STATUS = 'InProgress', 1, 0) AS INPROGRESS_PLAN_RUN_COUNT,
+          IFF(R.STATUS = 'Created',    1, 0) AS CREATED_PLAN_RUN_COUNT,
+          IFF(R.STATUS = 'Canceled',   1, 0) AS CANCELLED_PLAN_RUN_COUNT,
+          IFF(R.STATUS = 'Failed',     1, 0) AS FAILED_PLAN_RUN_COUNT,
+          IFF(R.RUN_SOURCE = 'ui',       1, 0) AS MANUAL_PLAN_RUN_COUNT,
+          IFF(R.RUN_SOURCE = 'schedule', 1, 0) AS SCHEDULED_PLAN_RUN_COUNT,
+          IFF(R.RUN_SOURCE = 'api',      1, 0) AS API_PLAN_RUN_COUNT,
+          IFF(R.RUN_SOURCE IN ('api', 'schedule'), 1, 0) AS AUTOMATED_PLAN_RUN_COUNT,
+          R.RUN_CREATED_AT                              AS FIRST_RUN_AT,
+          R.RUN_CREATED_AT                              AS LAST_RUN_AT
+      FROM RUNS_LATEST R
+      /* Temporary relationship retained exactly as requested. */
+      JOIN PLANS_FACT F
+        ON TRIM(TO_VARCHAR(F.PLAN_ID)) = TRIM(TO_VARCHAR(R.PLAN_SNAPSHOT_ID))
+      WHERE R.RUN_CREATED_BY_USER_ID IS NOT NULL
+        AND R.RUN_CREATED_AT IS NOT NULL
+        AND R.RUN_DELETED_AT IS NULL
+  ),
+
+  ALL_ACTIVITY AS (
+      SELECT * FROM PLAN_CREATED_ACTIVITY
+      UNION ALL SELECT * FROM PLAN_EDITED_ACTIVITY
+      UNION ALL SELECT * FROM TASK_CREATED_ACTIVITY
+      UNION ALL SELECT * FROM TASK_UPDATED_ACTIVITY
+      UNION ALL SELECT * FROM TASK_DELETED_ACTIVITY
+      UNION ALL SELECT * FROM RUN_ACTIVITY
+  ),
+
+  ACTIVITY_AGG AS (
+      SELECT
+          ACTIVITY_DATE,
+          ACTIVITY_USER_ID,
+          WORKSPACE_ID,
+          PLAN_ID,
+
+          SUM(PLAN_CREATED_COUNT)                       AS PLAN_CREATED_COUNT,
+          SUM(PLAN_EDITED_COUNT)                        AS PLAN_EDITED_COUNT,
+          SUM(TASK_CREATED_COUNT)                       AS TASK_CREATED_COUNT,
+          SUM(TASK_UPDATED_COUNT)                       AS TASK_UPDATED_COUNT,
+          SUM(TASK_DELETED_COUNT)                       AS TASK_DELETED_COUNT,
+          SUM(PLAN_RUN_COUNT)                           AS PLAN_RUN_COUNT,
+          SUM(COMPLETED_PLAN_RUN_COUNT)                 AS COMPLETED_PLAN_RUN_COUNT,
+          SUM(INPROGRESS_PLAN_RUN_COUNT)                AS INPROGRESS_PLAN_RUN_COUNT,
+          SUM(CREATED_PLAN_RUN_COUNT)                   AS CREATED_PLAN_RUN_COUNT,
+          SUM(CANCELLED_PLAN_RUN_COUNT)                 AS CANCELLED_PLAN_RUN_COUNT,
+          SUM(FAILED_PLAN_RUN_COUNT)                    AS FAILED_PLAN_RUN_COUNT,
+          SUM(MANUAL_PLAN_RUN_COUNT)                    AS MANUAL_PLAN_RUN_COUNT,
+          SUM(SCHEDULED_PLAN_RUN_COUNT)                 AS SCHEDULED_PLAN_RUN_COUNT,
+          SUM(API_PLAN_RUN_COUNT)                       AS API_PLAN_RUN_COUNT,
+          SUM(AUTOMATED_PLAN_RUN_COUNT)                 AS AUTOMATED_PLAN_RUN_COUNT,
+          MIN(FIRST_RUN_AT)                             AS FIRST_RUN_AT,
+          MAX(LAST_RUN_AT)                              AS LAST_RUN_AT
+      FROM ALL_ACTIVITY
+      WHERE ACTIVITY_DATE IS NOT NULL
+        AND ACTIVITY_USER_ID IS NOT NULL
+        AND WORKSPACE_ID IS NOT NULL
+        AND PLAN_ID IS NOT NULL
+      GROUP BY 1,2,3,4
+  ),
+
+  USERS_DAILY AS (
+      SELECT *
+      FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_AT
+  )
+
+  SELECT
+      A.ACTIVITY_DATE,
+      A.ACTIVITY_USER_ID                               AS USER_ID,
+      U.USER_ID_RAW,
+      U.USER_EMAIL,
+      A.WORKSPACE_ID,
+      U.WORKSPACE_ID_RAW,
+      U.PIPELINE_REGION,
+      U.BILLING_ACCOUNT_ID,
+      U.BILLING_ACCOUNT_ID_RAW,
+      U.SFDC_ACCOUNT_ID,
+      U.ACCOUNT_CID,
+      U.BILLING_ACCOUNT_NAME,
+      U.NAMED_COMPANY,
+      U.LICENSE_TYPE,
+      U.ACCOUNT_EDITION,
+      U.PRICING_AND_PACKAGING,
+      U.STATUS,
+      U.ACTIVATION_DATE,
+
+      A.PLAN_ID,
+      F.PLAN_NAME,
+      F.PLAN_CREATED_AT,
+      F.PLAN_UPDATED_AT,
+      F.PLAN_DELETED_AT,
+      F.IS_PLAN_DELETED,
+      F.USER_ID                                        AS PLAN_CREATED_BY_USER_ID,
+      F.PLAN_UPDATED_BY                                AS PLAN_LAST_UPDATED_BY_USER_ID,
+
+      IFF(A.PLAN_CREATED_COUNT > 0, 1, 0)              AS IS_PLAN_CREATOR,
+      IFF(A.PLAN_EDITED_COUNT > 0, 1, 0)               AS IS_PLAN_EDITOR,
+      IFF(
+          A.TASK_CREATED_COUNT + A.TASK_UPDATED_COUNT + A.TASK_DELETED_COUNT > 0,
+          1, 0
+      )                                                AS IS_TASK_CONTRIBUTOR,
+      IFF(A.PLAN_RUN_COUNT > 0, 1, 0)                  AS IS_PLAN_RUNNER,
+      IFF(
+          A.PLAN_EDITED_COUNT
+          + A.TASK_CREATED_COUNT
+          + A.TASK_UPDATED_COUNT
+          + A.TASK_DELETED_COUNT > 0,
+          1, 0
+      )                                                AS IS_PLAN_EDITOR_PRIMARY,
+
+      A.PLAN_CREATED_COUNT,
+      A.PLAN_EDITED_COUNT,
+      A.TASK_CREATED_COUNT,
+      A.TASK_UPDATED_COUNT,
+      A.TASK_DELETED_COUNT,
+      A.PLAN_RUN_COUNT,
+      A.COMPLETED_PLAN_RUN_COUNT,
+      A.INPROGRESS_PLAN_RUN_COUNT,
+      A.CREATED_PLAN_RUN_COUNT,
+      A.CANCELLED_PLAN_RUN_COUNT,
+      A.FAILED_PLAN_RUN_COUNT,
+      A.MANUAL_PLAN_RUN_COUNT,
+      A.SCHEDULED_PLAN_RUN_COUNT,
+      A.API_PLAN_RUN_COUNT,
+      A.AUTOMATED_PLAN_RUN_COUNT,
+      A.FIRST_RUN_AT,
+      A.LAST_RUN_AT,
+
+      F.CURRENT_TASK_COUNT,
+      F.TOTAL_TASKS_EVER,
+      F.CURRENT_WORKFLOW_TASK_COUNT,
+      F.CURRENT_FLOW_TASK_COUNT,
+      F.CURRENT_HTTP_TASK_COUNT,
+      F.CURRENT_EMAIL_TASK_COUNT,
+      F.CURRENT_AI_DATASET_TASK_COUNT,
+      F.CURRENT_CEFD_TASK_COUNT,
+      F.CURRENT_ML_TASK_COUNT,
+      F.CURRENT_APPROVAL_TASK_COUNT,
+      F.CURRENT_CONDITION_TASK_COUNT,
+      F.CURRENT_DELAY_TASK_COUNT,
+      F.CURRENT_LI_PROJECT_REPLAY_TASK_COUNT,
+      F.CURRENT_ML_PROJECT_UPDATE_TASK_COUNT,
+      F.CURRENT_REPORTING_GENERATE_TASK_COUNT,
+      F.CURRENT_STORAGE_TASK_COUNT
+
+  FROM ACTIVITY_AGG A
+  JOIN PLANS_FACT F
+    ON A.PLAN_ID = F.PLAN_ID
+  LEFT JOIN USERS_DAILY U
+    ON A.ACTIVITY_DATE = U.DATE
+   AND A.ACTIVITY_USER_ID = U.USER_ID
+   AND A.WORKSPACE_ID = U.WORKSPACE_ID;
+queries:
+- name: base
+  description: Base metric query
+  query: |-
+    SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
+    ),
+
+    PLAN_NODES_LATEST AS (
+        SELECT
+            N.ID                                           AS PLAN_NODE_ID,
+            N.PLAN_ID                                      AS PLAN_ID,
+            N.CREATED_BY                                   AS TASK_CREATED_BY_USER_ID,
+            N.UPDATED_BY                                   AS TASK_UPDATED_BY_USER_ID,
+            TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT)             AS TASK_CREATED_AT,
+            TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT)             AS TASK_UPDATED_AT,
+            TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT)             AS TASK_DELETED_AT
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANNODES N
+        QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY N.ID
+            ORDER BY
+                TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT) DESC NULLS LAST
+        ) = 1
+    ),
+
+    RUNS_LATEST AS (
+        SELECT
+            R.ID                                           AS PLAN_RUN_ID,
+            R.PLAN_SNAPSHOT_ID,
+            R.CREATED_BY                                   AS RUN_CREATED_BY_USER_ID,
+            TRY_TO_TIMESTAMP_NTZ(R.CREATED_AT)             AS RUN_CREATED_AT,
+            TRY_TO_TIMESTAMP_NTZ(R.UPDATED_AT)             AS RUN_UPDATED_AT,
+            TRY_TO_TIMESTAMP_NTZ(R.DELETED_AT)             AS RUN_DELETED_AT,
+            TRY_TO_TIMESTAMP_NTZ(R.STARTED_AT)             AS RUN_STARTED_AT,
+            TRY_TO_TIMESTAMP_NTZ(R.FINISHED_AT)            AS RUN_FINISHED_AT,
+            R.STATUS,
+            LOWER(TRIM(R.RANFROM))                         AS RUN_SOURCE
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANSNAPSHOTRUNS R
+        QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY R.ID
+            ORDER BY
+                TRY_TO_TIMESTAMP_NTZ(R.UPDATED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(R.DELETED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(R.CREATED_AT) DESC NULLS LAST
+        ) = 1
+    ),
+
+    /* One record for the original plan creator on the creation date. */
+    PLAN_CREATED_ACTIVITY AS (
+        SELECT
+            DATE(F.PLAN_CREATED_AT)                        AS ACTIVITY_DATE,
+            F.USER_ID                                      AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            F.PLAN_ID,
+            1                                              AS PLAN_CREATED_COUNT,
+            0                                              AS PLAN_EDITED_COUNT,
+            0                                              AS TASK_CREATED_COUNT,
+            0                                              AS TASK_UPDATED_COUNT,
+            0                                              AS TASK_DELETED_COUNT,
+            0                                              AS PLAN_RUN_COUNT,
+            0                                              AS COMPLETED_PLAN_RUN_COUNT,
+            0                                              AS INPROGRESS_PLAN_RUN_COUNT,
+            0                                              AS CREATED_PLAN_RUN_COUNT,
+            0                                              AS CANCELLED_PLAN_RUN_COUNT,
+            0                                              AS FAILED_PLAN_RUN_COUNT,
+            0                                              AS MANUAL_PLAN_RUN_COUNT,
+            0                                              AS SCHEDULED_PLAN_RUN_COUNT,
+            0                                              AS API_PLAN_RUN_COUNT,
+            0                                              AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ)                    AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ)                    AS LAST_RUN_AT
+        FROM PLANS_FACT F
+        WHERE F.USER_ID IS NOT NULL
+    ),
+
+    /* A plan edit is counted only when update time is later than creation time. */
+    PLAN_EDITED_ACTIVITY AS (
+        SELECT
+            DATE(F.PLAN_UPDATED_AT)                        AS ACTIVITY_DATE,
+            F.PLAN_UPDATED_BY                              AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            F.PLAN_ID,
+            0                                              AS PLAN_CREATED_COUNT,
+            1                                              AS PLAN_EDITED_COUNT,
+            0                                              AS TASK_CREATED_COUNT,
+            0                                              AS TASK_UPDATED_COUNT,
+            0                                              AS TASK_DELETED_COUNT,
+            0                                              AS PLAN_RUN_COUNT,
+            0                                              AS COMPLETED_PLAN_RUN_COUNT,
+            0                                              AS INPROGRESS_PLAN_RUN_COUNT,
+            0                                              AS CREATED_PLAN_RUN_COUNT,
+            0                                              AS CANCELLED_PLAN_RUN_COUNT,
+            0                                              AS FAILED_PLAN_RUN_COUNT,
+            0                                              AS MANUAL_PLAN_RUN_COUNT,
+            0                                              AS SCHEDULED_PLAN_RUN_COUNT,
+            0                                              AS API_PLAN_RUN_COUNT,
+            0                                              AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ)                    AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ)                    AS LAST_RUN_AT
+        FROM PLANS_FACT F
+        WHERE F.PLAN_UPDATED_BY IS NOT NULL
+          AND F.PLAN_UPDATED_AT IS NOT NULL
+          AND F.PLAN_UPDATED_AT > F.PLAN_CREATED_AT
+    ),
+
+    TASK_CREATED_ACTIVITY AS (
+        SELECT
+            DATE(N.TASK_CREATED_AT)                        AS ACTIVITY_DATE,
+            N.TASK_CREATED_BY_USER_ID                      AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            N.PLAN_ID,
+            0 AS PLAN_CREATED_COUNT,
+            0 AS PLAN_EDITED_COUNT,
+            1 AS TASK_CREATED_COUNT,
+            0 AS TASK_UPDATED_COUNT,
+            0 AS TASK_DELETED_COUNT,
+            0 AS PLAN_RUN_COUNT,
+            0 AS COMPLETED_PLAN_RUN_COUNT,
+            0 AS INPROGRESS_PLAN_RUN_COUNT,
+            0 AS CREATED_PLAN_RUN_COUNT,
+            0 AS CANCELLED_PLAN_RUN_COUNT,
+            0 AS FAILED_PLAN_RUN_COUNT,
+            0 AS MANUAL_PLAN_RUN_COUNT,
+            0 AS SCHEDULED_PLAN_RUN_COUNT,
+            0 AS API_PLAN_RUN_COUNT,
+            0 AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS LAST_RUN_AT
+        FROM PLAN_NODES_LATEST N
+        JOIN PLANS_FACT F
+          ON N.PLAN_ID = F.PLAN_ID
+        WHERE N.TASK_CREATED_BY_USER_ID IS NOT NULL
+          AND N.TASK_CREATED_AT IS NOT NULL
+    ),
+
+    /* Avoid counting creation itself as a separate task update. */
+    TASK_UPDATED_ACTIVITY AS (
+        SELECT
+            DATE(N.TASK_UPDATED_AT)                        AS ACTIVITY_DATE,
+            N.TASK_UPDATED_BY_USER_ID                      AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            N.PLAN_ID,
+            0 AS PLAN_CREATED_COUNT,
+            0 AS PLAN_EDITED_COUNT,
+            0 AS TASK_CREATED_COUNT,
+            1 AS TASK_UPDATED_COUNT,
+            0 AS TASK_DELETED_COUNT,
+            0 AS PLAN_RUN_COUNT,
+            0 AS COMPLETED_PLAN_RUN_COUNT,
+            0 AS INPROGRESS_PLAN_RUN_COUNT,
+            0 AS CREATED_PLAN_RUN_COUNT,
+            0 AS CANCELLED_PLAN_RUN_COUNT,
+            0 AS FAILED_PLAN_RUN_COUNT,
+            0 AS MANUAL_PLAN_RUN_COUNT,
+            0 AS SCHEDULED_PLAN_RUN_COUNT,
+            0 AS API_PLAN_RUN_COUNT,
+            0 AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS LAST_RUN_AT
+        FROM PLAN_NODES_LATEST N
+        JOIN PLANS_FACT F
+          ON N.PLAN_ID = F.PLAN_ID
+        WHERE N.TASK_UPDATED_BY_USER_ID IS NOT NULL
+          AND N.TASK_UPDATED_AT IS NOT NULL
+          AND N.TASK_UPDATED_AT > N.TASK_CREATED_AT
+    ),
+
+    /* No DELETED_BY field exists in the supplied model; UPDATED_BY is used. */
+    TASK_DELETED_ACTIVITY AS (
+        SELECT
+            DATE(N.TASK_DELETED_AT)                        AS ACTIVITY_DATE,
+            N.TASK_UPDATED_BY_USER_ID                      AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            N.PLAN_ID,
+            0 AS PLAN_CREATED_COUNT,
+            0 AS PLAN_EDITED_COUNT,
+            0 AS TASK_CREATED_COUNT,
+            0 AS TASK_UPDATED_COUNT,
+            1 AS TASK_DELETED_COUNT,
+            0 AS PLAN_RUN_COUNT,
+            0 AS COMPLETED_PLAN_RUN_COUNT,
+            0 AS INPROGRESS_PLAN_RUN_COUNT,
+            0 AS CREATED_PLAN_RUN_COUNT,
+            0 AS CANCELLED_PLAN_RUN_COUNT,
+            0 AS FAILED_PLAN_RUN_COUNT,
+            0 AS MANUAL_PLAN_RUN_COUNT,
+            0 AS SCHEDULED_PLAN_RUN_COUNT,
+            0 AS API_PLAN_RUN_COUNT,
+            0 AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS LAST_RUN_AT
+        FROM PLAN_NODES_LATEST N
+        JOIN PLANS_FACT F
+          ON N.PLAN_ID = F.PLAN_ID
+        WHERE N.TASK_UPDATED_BY_USER_ID IS NOT NULL
+          AND N.TASK_DELETED_AT IS NOT NULL
+    ),
+
+    RUN_ACTIVITY AS (
+        SELECT
+            DATE(R.RUN_CREATED_AT)                         AS ACTIVITY_DATE,
+            R.RUN_CREATED_BY_USER_ID                       AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            F.PLAN_ID,
+            0 AS PLAN_CREATED_COUNT,
+            0 AS PLAN_EDITED_COUNT,
+            0 AS TASK_CREATED_COUNT,
+            0 AS TASK_UPDATED_COUNT,
+            0 AS TASK_DELETED_COUNT,
+            1 AS PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'Complete',   1, 0) AS COMPLETED_PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'InProgress', 1, 0) AS INPROGRESS_PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'Created',    1, 0) AS CREATED_PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'Canceled',   1, 0) AS CANCELLED_PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'Failed',     1, 0) AS FAILED_PLAN_RUN_COUNT,
+            IFF(R.RUN_SOURCE = 'ui',       1, 0) AS MANUAL_PLAN_RUN_COUNT,
+            IFF(R.RUN_SOURCE = 'schedule', 1, 0) AS SCHEDULED_PLAN_RUN_COUNT,
+            IFF(R.RUN_SOURCE = 'api',      1, 0) AS API_PLAN_RUN_COUNT,
+            IFF(R.RUN_SOURCE IN ('api', 'schedule'), 1, 0) AS AUTOMATED_PLAN_RUN_COUNT,
+            R.RUN_CREATED_AT                              AS FIRST_RUN_AT,
+            R.RUN_CREATED_AT                              AS LAST_RUN_AT
+        FROM RUNS_LATEST R
+        /* Temporary relationship retained exactly as requested. */
+        JOIN PLANS_FACT F
+          ON TRIM(TO_VARCHAR(F.PLAN_ID)) = TRIM(TO_VARCHAR(R.PLAN_SNAPSHOT_ID))
+        WHERE R.RUN_CREATED_BY_USER_ID IS NOT NULL
+          AND R.RUN_CREATED_AT IS NOT NULL
+          AND R.RUN_DELETED_AT IS NULL
+    ),
+
+    ALL_ACTIVITY AS (
+        SELECT * FROM PLAN_CREATED_ACTIVITY
+        UNION ALL SELECT * FROM PLAN_EDITED_ACTIVITY
+        UNION ALL SELECT * FROM TASK_CREATED_ACTIVITY
+        UNION ALL SELECT * FROM TASK_UPDATED_ACTIVITY
+        UNION ALL SELECT * FROM TASK_DELETED_ACTIVITY
+        UNION ALL SELECT * FROM RUN_ACTIVITY
+    ),
+
+    ACTIVITY_AGG AS (
+        SELECT
+            ACTIVITY_DATE,
+            ACTIVITY_USER_ID,
+            WORKSPACE_ID,
+            PLAN_ID,
+
+            SUM(PLAN_CREATED_COUNT)                       AS PLAN_CREATED_COUNT,
+            SUM(PLAN_EDITED_COUNT)                        AS PLAN_EDITED_COUNT,
+            SUM(TASK_CREATED_COUNT)                       AS TASK_CREATED_COUNT,
+            SUM(TASK_UPDATED_COUNT)                       AS TASK_UPDATED_COUNT,
+            SUM(TASK_DELETED_COUNT)                       AS TASK_DELETED_COUNT,
+            SUM(PLAN_RUN_COUNT)                           AS PLAN_RUN_COUNT,
+            SUM(COMPLETED_PLAN_RUN_COUNT)                 AS COMPLETED_PLAN_RUN_COUNT,
+            SUM(INPROGRESS_PLAN_RUN_COUNT)                AS INPROGRESS_PLAN_RUN_COUNT,
+            SUM(CREATED_PLAN_RUN_COUNT)                   AS CREATED_PLAN_RUN_COUNT,
+            SUM(CANCELLED_PLAN_RUN_COUNT)                 AS CANCELLED_PLAN_RUN_COUNT,
+            SUM(FAILED_PLAN_RUN_COUNT)                    AS FAILED_PLAN_RUN_COUNT,
+            SUM(MANUAL_PLAN_RUN_COUNT)                    AS MANUAL_PLAN_RUN_COUNT,
+            SUM(SCHEDULED_PLAN_RUN_COUNT)                 AS SCHEDULED_PLAN_RUN_COUNT,
+            SUM(API_PLAN_RUN_COUNT)                       AS API_PLAN_RUN_COUNT,
+            SUM(AUTOMATED_PLAN_RUN_COUNT)                 AS AUTOMATED_PLAN_RUN_COUNT,
+            MIN(FIRST_RUN_AT)                             AS FIRST_RUN_AT,
+            MAX(LAST_RUN_AT)                              AS LAST_RUN_AT
+        FROM ALL_ACTIVITY
+        WHERE ACTIVITY_DATE IS NOT NULL
+          AND ACTIVITY_USER_ID IS NOT NULL
+          AND WORKSPACE_ID IS NOT NULL
+          AND PLAN_ID IS NOT NULL
+        GROUP BY 1,2,3,4
+    ),
+
+    USERS_DAILY AS (
+        SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_AT
+    )
+
+    SELECT
+        A.ACTIVITY_DATE,
+        A.ACTIVITY_USER_ID                               AS USER_ID,
+        U.USER_ID_RAW,
+        U.USER_EMAIL,
+        A.WORKSPACE_ID,
+        U.WORKSPACE_ID_RAW,
+        U.PIPELINE_REGION,
+        U.BILLING_ACCOUNT_ID,
+        U.BILLING_ACCOUNT_ID_RAW,
+        U.SFDC_ACCOUNT_ID,
+        U.ACCOUNT_CID,
+        U.BILLING_ACCOUNT_NAME,
+        U.NAMED_COMPANY,
+        U.LICENSE_TYPE,
+        U.ACCOUNT_EDITION,
+        U.PRICING_AND_PACKAGING,
+        U.STATUS,
+        U.ACTIVATION_DATE,
+
+        A.PLAN_ID,
+        F.PLAN_NAME,
+        F.PLAN_CREATED_AT,
+        F.PLAN_UPDATED_AT,
+        F.PLAN_DELETED_AT,
+        F.IS_PLAN_DELETED,
+        F.USER_ID                                        AS PLAN_CREATED_BY_USER_ID,
+        F.PLAN_UPDATED_BY                                AS PLAN_LAST_UPDATED_BY_USER_ID,
+
+        IFF(A.PLAN_CREATED_COUNT > 0, 1, 0)              AS IS_PLAN_CREATOR,
+        IFF(A.PLAN_EDITED_COUNT > 0, 1, 0)               AS IS_PLAN_EDITOR,
+        IFF(
+            A.TASK_CREATED_COUNT + A.TASK_UPDATED_COUNT + A.TASK_DELETED_COUNT > 0,
+            1, 0
+        )                                                AS IS_TASK_CONTRIBUTOR,
+        IFF(A.PLAN_RUN_COUNT > 0, 1, 0)                  AS IS_PLAN_RUNNER,
+        IFF(
+            A.PLAN_EDITED_COUNT
+            + A.TASK_CREATED_COUNT
+            + A.TASK_UPDATED_COUNT
+            + A.TASK_DELETED_COUNT > 0,
+            1, 0
+        )                                                AS IS_PLAN_EDITOR_PRIMARY,
+
+        A.PLAN_CREATED_COUNT,
+        A.PLAN_EDITED_COUNT,
+        A.TASK_CREATED_COUNT,
+        A.TASK_UPDATED_COUNT,
+        A.TASK_DELETED_COUNT,
+        A.PLAN_RUN_COUNT,
+        A.COMPLETED_PLAN_RUN_COUNT,
+        A.INPROGRESS_PLAN_RUN_COUNT,
+        A.CREATED_PLAN_RUN_COUNT,
+        A.CANCELLED_PLAN_RUN_COUNT,
+        A.FAILED_PLAN_RUN_COUNT,
+        A.MANUAL_PLAN_RUN_COUNT,
+        A.SCHEDULED_PLAN_RUN_COUNT,
+        A.API_PLAN_RUN_COUNT,
+        A.AUTOMATED_PLAN_RUN_COUNT,
+        A.FIRST_RUN_AT,
+        A.LAST_RUN_AT,
+
+        F.CURRENT_TASK_COUNT,
+        F.TOTAL_TASKS_EVER,
+        F.CURRENT_WORKFLOW_TASK_COUNT,
+        F.CURRENT_FLOW_TASK_COUNT,
+        F.CURRENT_HTTP_TASK_COUNT,
+        F.CURRENT_EMAIL_TASK_COUNT,
+        F.CURRENT_AI_DATASET_TASK_COUNT,
+        F.CURRENT_CEFD_TASK_COUNT,
+        F.CURRENT_ML_TASK_COUNT,
+        F.CURRENT_APPROVAL_TASK_COUNT,
+        F.CURRENT_CONDITION_TASK_COUNT,
+        F.CURRENT_DELAY_TASK_COUNT,
+        F.CURRENT_LI_PROJECT_REPLAY_TASK_COUNT,
+        F.CURRENT_ML_PROJECT_UPDATE_TASK_COUNT,
+        F.CURRENT_REPORTING_GENERATE_TASK_COUNT,
+        F.CURRENT_STORAGE_TASK_COUNT
+
+    FROM ACTIVITY_AGG A
+    JOIN PLANS_FACT F
+      ON A.PLAN_ID = F.PLAN_ID
+    LEFT JOIN USERS_DAILY U
+      ON A.ACTIVITY_DATE = U.DATE
+     AND A.ACTIVITY_USER_ID = U.USER_ID
+     AND A.WORKSPACE_ID = U.WORKSPACE_ID;
+- name: daily
+  description: Daily metrics
+  query: |-
+    SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
+    ),
+
+    PLAN_NODES_LATEST AS (
+        SELECT
+            N.ID                                           AS PLAN_NODE_ID,
+            N.PLAN_ID                                      AS PLAN_ID,
+            N.CREATED_BY                                   AS TASK_CREATED_BY_USER_ID,
+            N.UPDATED_BY                                   AS TASK_UPDATED_BY_USER_ID,
+            TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT)             AS TASK_CREATED_AT,
+            TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT)             AS TASK_UPDATED_AT,
+            TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT)             AS TASK_DELETED_AT
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANNODES N
+        QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY N.ID
+            ORDER BY
+                TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT) DESC NULLS LAST
+        ) = 1
+    ),
+
+    RUNS_LATEST AS (
+        SELECT
+            R.ID                                           AS PLAN_RUN_ID,
+            R.PLAN_SNAPSHOT_ID,
+            R.CREATED_BY                                   AS RUN_CREATED_BY_USER_ID,
+            TRY_TO_TIMESTAMP_NTZ(R.CREATED_AT)             AS RUN_CREATED_AT,
+            TRY_TO_TIMESTAMP_NTZ(R.UPDATED_AT)             AS RUN_UPDATED_AT,
+            TRY_TO_TIMESTAMP_NTZ(R.DELETED_AT)             AS RUN_DELETED_AT,
+            TRY_TO_TIMESTAMP_NTZ(R.STARTED_AT)             AS RUN_STARTED_AT,
+            TRY_TO_TIMESTAMP_NTZ(R.FINISHED_AT)            AS RUN_FINISHED_AT,
+            R.STATUS,
+            LOWER(TRIM(R.RANFROM))                         AS RUN_SOURCE
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANSNAPSHOTRUNS R
+        QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY R.ID
+            ORDER BY
+                TRY_TO_TIMESTAMP_NTZ(R.UPDATED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(R.DELETED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(R.CREATED_AT) DESC NULLS LAST
+        ) = 1
+    ),
+
+    /* One record for the original plan creator on the creation date. */
+    PLAN_CREATED_ACTIVITY AS (
+        SELECT
+            DATE(F.PLAN_CREATED_AT)                        AS ACTIVITY_DATE,
+            F.USER_ID                                      AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            F.PLAN_ID,
+            1                                              AS PLAN_CREATED_COUNT,
+            0                                              AS PLAN_EDITED_COUNT,
+            0                                              AS TASK_CREATED_COUNT,
+            0                                              AS TASK_UPDATED_COUNT,
+            0                                              AS TASK_DELETED_COUNT,
+            0                                              AS PLAN_RUN_COUNT,
+            0                                              AS COMPLETED_PLAN_RUN_COUNT,
+            0                                              AS INPROGRESS_PLAN_RUN_COUNT,
+            0                                              AS CREATED_PLAN_RUN_COUNT,
+            0                                              AS CANCELLED_PLAN_RUN_COUNT,
+            0                                              AS FAILED_PLAN_RUN_COUNT,
+            0                                              AS MANUAL_PLAN_RUN_COUNT,
+            0                                              AS SCHEDULED_PLAN_RUN_COUNT,
+            0                                              AS API_PLAN_RUN_COUNT,
+            0                                              AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ)                    AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ)                    AS LAST_RUN_AT
+        FROM PLANS_FACT F
+        WHERE F.USER_ID IS NOT NULL
+    ),
+
+    /* A plan edit is counted only when update time is later than creation time. */
+    PLAN_EDITED_ACTIVITY AS (
+        SELECT
+            DATE(F.PLAN_UPDATED_AT)                        AS ACTIVITY_DATE,
+            F.PLAN_UPDATED_BY                              AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            F.PLAN_ID,
+            0                                              AS PLAN_CREATED_COUNT,
+            1                                              AS PLAN_EDITED_COUNT,
+            0                                              AS TASK_CREATED_COUNT,
+            0                                              AS TASK_UPDATED_COUNT,
+            0                                              AS TASK_DELETED_COUNT,
+            0                                              AS PLAN_RUN_COUNT,
+            0                                              AS COMPLETED_PLAN_RUN_COUNT,
+            0                                              AS INPROGRESS_PLAN_RUN_COUNT,
+            0                                              AS CREATED_PLAN_RUN_COUNT,
+            0                                              AS CANCELLED_PLAN_RUN_COUNT,
+            0                                              AS FAILED_PLAN_RUN_COUNT,
+            0                                              AS MANUAL_PLAN_RUN_COUNT,
+            0                                              AS SCHEDULED_PLAN_RUN_COUNT,
+            0                                              AS API_PLAN_RUN_COUNT,
+            0                                              AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ)                    AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ)                    AS LAST_RUN_AT
+        FROM PLANS_FACT F
+        WHERE F.PLAN_UPDATED_BY IS NOT NULL
+          AND F.PLAN_UPDATED_AT IS NOT NULL
+          AND F.PLAN_UPDATED_AT > F.PLAN_CREATED_AT
+    ),
+
+    TASK_CREATED_ACTIVITY AS (
+        SELECT
+            DATE(N.TASK_CREATED_AT)                        AS ACTIVITY_DATE,
+            N.TASK_CREATED_BY_USER_ID                      AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            N.PLAN_ID,
+            0 AS PLAN_CREATED_COUNT,
+            0 AS PLAN_EDITED_COUNT,
+            1 AS TASK_CREATED_COUNT,
+            0 AS TASK_UPDATED_COUNT,
+            0 AS TASK_DELETED_COUNT,
+            0 AS PLAN_RUN_COUNT,
+            0 AS COMPLETED_PLAN_RUN_COUNT,
+            0 AS INPROGRESS_PLAN_RUN_COUNT,
+            0 AS CREATED_PLAN_RUN_COUNT,
+            0 AS CANCELLED_PLAN_RUN_COUNT,
+            0 AS FAILED_PLAN_RUN_COUNT,
+            0 AS MANUAL_PLAN_RUN_COUNT,
+            0 AS SCHEDULED_PLAN_RUN_COUNT,
+            0 AS API_PLAN_RUN_COUNT,
+            0 AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS LAST_RUN_AT
+        FROM PLAN_NODES_LATEST N
+        JOIN PLANS_FACT F
+          ON N.PLAN_ID = F.PLAN_ID
+        WHERE N.TASK_CREATED_BY_USER_ID IS NOT NULL
+          AND N.TASK_CREATED_AT IS NOT NULL
+    ),
+
+    /* Avoid counting creation itself as a separate task update. */
+    TASK_UPDATED_ACTIVITY AS (
+        SELECT
+            DATE(N.TASK_UPDATED_AT)                        AS ACTIVITY_DATE,
+            N.TASK_UPDATED_BY_USER_ID                      AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            N.PLAN_ID,
+            0 AS PLAN_CREATED_COUNT,
+            0 AS PLAN_EDITED_COUNT,
+            0 AS TASK_CREATED_COUNT,
+            1 AS TASK_UPDATED_COUNT,
+            0 AS TASK_DELETED_COUNT,
+            0 AS PLAN_RUN_COUNT,
+            0 AS COMPLETED_PLAN_RUN_COUNT,
+            0 AS INPROGRESS_PLAN_RUN_COUNT,
+            0 AS CREATED_PLAN_RUN_COUNT,
+            0 AS CANCELLED_PLAN_RUN_COUNT,
+            0 AS FAILED_PLAN_RUN_COUNT,
+            0 AS MANUAL_PLAN_RUN_COUNT,
+            0 AS SCHEDULED_PLAN_RUN_COUNT,
+            0 AS API_PLAN_RUN_COUNT,
+            0 AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS LAST_RUN_AT
+        FROM PLAN_NODES_LATEST N
+        JOIN PLANS_FACT F
+          ON N.PLAN_ID = F.PLAN_ID
+        WHERE N.TASK_UPDATED_BY_USER_ID IS NOT NULL
+          AND N.TASK_UPDATED_AT IS NOT NULL
+          AND N.TASK_UPDATED_AT > N.TASK_CREATED_AT
+    ),
+
+    /* No DELETED_BY field exists in the supplied model; UPDATED_BY is used. */
+    TASK_DELETED_ACTIVITY AS (
+        SELECT
+            DATE(N.TASK_DELETED_AT)                        AS ACTIVITY_DATE,
+            N.TASK_UPDATED_BY_USER_ID                      AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            N.PLAN_ID,
+            0 AS PLAN_CREATED_COUNT,
+            0 AS PLAN_EDITED_COUNT,
+            0 AS TASK_CREATED_COUNT,
+            0 AS TASK_UPDATED_COUNT,
+            1 AS TASK_DELETED_COUNT,
+            0 AS PLAN_RUN_COUNT,
+            0 AS COMPLETED_PLAN_RUN_COUNT,
+            0 AS INPROGRESS_PLAN_RUN_COUNT,
+            0 AS CREATED_PLAN_RUN_COUNT,
+            0 AS CANCELLED_PLAN_RUN_COUNT,
+            0 AS FAILED_PLAN_RUN_COUNT,
+            0 AS MANUAL_PLAN_RUN_COUNT,
+            0 AS SCHEDULED_PLAN_RUN_COUNT,
+            0 AS API_PLAN_RUN_COUNT,
+            0 AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS LAST_RUN_AT
+        FROM PLAN_NODES_LATEST N
+        JOIN PLANS_FACT F
+          ON N.PLAN_ID = F.PLAN_ID
+        WHERE N.TASK_UPDATED_BY_USER_ID IS NOT NULL
+          AND N.TASK_DELETED_AT IS NOT NULL
+    ),
+
+    RUN_ACTIVITY AS (
+        SELECT
+            DATE(R.RUN_CREATED_AT)                         AS ACTIVITY_DATE,
+            R.RUN_CREATED_BY_USER_ID                       AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            F.PLAN_ID,
+            0 AS PLAN_CREATED_COUNT,
+            0 AS PLAN_EDITED_COUNT,
+            0 AS TASK_CREATED_COUNT,
+            0 AS TASK_UPDATED_COUNT,
+            0 AS TASK_DELETED_COUNT,
+            1 AS PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'Complete',   1, 0) AS COMPLETED_PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'InProgress', 1, 0) AS INPROGRESS_PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'Created',    1, 0) AS CREATED_PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'Canceled',   1, 0) AS CANCELLED_PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'Failed',     1, 0) AS FAILED_PLAN_RUN_COUNT,
+            IFF(R.RUN_SOURCE = 'ui',       1, 0) AS MANUAL_PLAN_RUN_COUNT,
+            IFF(R.RUN_SOURCE = 'schedule', 1, 0) AS SCHEDULED_PLAN_RUN_COUNT,
+            IFF(R.RUN_SOURCE = 'api',      1, 0) AS API_PLAN_RUN_COUNT,
+            IFF(R.RUN_SOURCE IN ('api', 'schedule'), 1, 0) AS AUTOMATED_PLAN_RUN_COUNT,
+            R.RUN_CREATED_AT                              AS FIRST_RUN_AT,
+            R.RUN_CREATED_AT                              AS LAST_RUN_AT
+        FROM RUNS_LATEST R
+        /* Temporary relationship retained exactly as requested. */
+        JOIN PLANS_FACT F
+          ON TRIM(TO_VARCHAR(F.PLAN_ID)) = TRIM(TO_VARCHAR(R.PLAN_SNAPSHOT_ID))
+        WHERE R.RUN_CREATED_BY_USER_ID IS NOT NULL
+          AND R.RUN_CREATED_AT IS NOT NULL
+          AND R.RUN_DELETED_AT IS NULL
+    ),
+
+    ALL_ACTIVITY AS (
+        SELECT * FROM PLAN_CREATED_ACTIVITY
+        UNION ALL SELECT * FROM PLAN_EDITED_ACTIVITY
+        UNION ALL SELECT * FROM TASK_CREATED_ACTIVITY
+        UNION ALL SELECT * FROM TASK_UPDATED_ACTIVITY
+        UNION ALL SELECT * FROM TASK_DELETED_ACTIVITY
+        UNION ALL SELECT * FROM RUN_ACTIVITY
+    ),
+
+    ACTIVITY_AGG AS (
+        SELECT
+            ACTIVITY_DATE,
+            ACTIVITY_USER_ID,
+            WORKSPACE_ID,
+            PLAN_ID,
+
+            SUM(PLAN_CREATED_COUNT)                       AS PLAN_CREATED_COUNT,
+            SUM(PLAN_EDITED_COUNT)                        AS PLAN_EDITED_COUNT,
+            SUM(TASK_CREATED_COUNT)                       AS TASK_CREATED_COUNT,
+            SUM(TASK_UPDATED_COUNT)                       AS TASK_UPDATED_COUNT,
+            SUM(TASK_DELETED_COUNT)                       AS TASK_DELETED_COUNT,
+            SUM(PLAN_RUN_COUNT)                           AS PLAN_RUN_COUNT,
+            SUM(COMPLETED_PLAN_RUN_COUNT)                 AS COMPLETED_PLAN_RUN_COUNT,
+            SUM(INPROGRESS_PLAN_RUN_COUNT)                AS INPROGRESS_PLAN_RUN_COUNT,
+            SUM(CREATED_PLAN_RUN_COUNT)                   AS CREATED_PLAN_RUN_COUNT,
+            SUM(CANCELLED_PLAN_RUN_COUNT)                 AS CANCELLED_PLAN_RUN_COUNT,
+            SUM(FAILED_PLAN_RUN_COUNT)                    AS FAILED_PLAN_RUN_COUNT,
+            SUM(MANUAL_PLAN_RUN_COUNT)                    AS MANUAL_PLAN_RUN_COUNT,
+            SUM(SCHEDULED_PLAN_RUN_COUNT)                 AS SCHEDULED_PLAN_RUN_COUNT,
+            SUM(API_PLAN_RUN_COUNT)                       AS API_PLAN_RUN_COUNT,
+            SUM(AUTOMATED_PLAN_RUN_COUNT)                 AS AUTOMATED_PLAN_RUN_COUNT,
+            MIN(FIRST_RUN_AT)                             AS FIRST_RUN_AT,
+            MAX(LAST_RUN_AT)                              AS LAST_RUN_AT
+        FROM ALL_ACTIVITY
+        WHERE ACTIVITY_DATE IS NOT NULL
+          AND ACTIVITY_USER_ID IS NOT NULL
+          AND WORKSPACE_ID IS NOT NULL
+          AND PLAN_ID IS NOT NULL
+        GROUP BY 1,2,3,4
+    ),
+
+    USERS_DAILY AS (
+        SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_AT
+    )
+
+    SELECT
+        A.ACTIVITY_DATE,
+        A.ACTIVITY_USER_ID                               AS USER_ID,
+        U.USER_ID_RAW,
+        U.USER_EMAIL,
+        A.WORKSPACE_ID,
+        U.WORKSPACE_ID_RAW,
+        U.PIPELINE_REGION,
+        U.BILLING_ACCOUNT_ID,
+        U.BILLING_ACCOUNT_ID_RAW,
+        U.SFDC_ACCOUNT_ID,
+        U.ACCOUNT_CID,
+        U.BILLING_ACCOUNT_NAME,
+        U.NAMED_COMPANY,
+        U.LICENSE_TYPE,
+        U.ACCOUNT_EDITION,
+        U.PRICING_AND_PACKAGING,
+        U.STATUS,
+        U.ACTIVATION_DATE,
+
+        A.PLAN_ID,
+        F.PLAN_NAME,
+        F.PLAN_CREATED_AT,
+        F.PLAN_UPDATED_AT,
+        F.PLAN_DELETED_AT,
+        F.IS_PLAN_DELETED,
+        F.USER_ID                                        AS PLAN_CREATED_BY_USER_ID,
+        F.PLAN_UPDATED_BY                                AS PLAN_LAST_UPDATED_BY_USER_ID,
+
+        IFF(A.PLAN_CREATED_COUNT > 0, 1, 0)              AS IS_PLAN_CREATOR,
+        IFF(A.PLAN_EDITED_COUNT > 0, 1, 0)               AS IS_PLAN_EDITOR,
+        IFF(
+            A.TASK_CREATED_COUNT + A.TASK_UPDATED_COUNT + A.TASK_DELETED_COUNT > 0,
+            1, 0
+        )                                                AS IS_TASK_CONTRIBUTOR,
+        IFF(A.PLAN_RUN_COUNT > 0, 1, 0)                  AS IS_PLAN_RUNNER,
+        IFF(
+            A.PLAN_EDITED_COUNT
+            + A.TASK_CREATED_COUNT
+            + A.TASK_UPDATED_COUNT
+            + A.TASK_DELETED_COUNT > 0,
+            1, 0
+        )                                                AS IS_PLAN_EDITOR_PRIMARY,
+
+        A.PLAN_CREATED_COUNT,
+        A.PLAN_EDITED_COUNT,
+        A.TASK_CREATED_COUNT,
+        A.TASK_UPDATED_COUNT,
+        A.TASK_DELETED_COUNT,
+        A.PLAN_RUN_COUNT,
+        A.COMPLETED_PLAN_RUN_COUNT,
+        A.INPROGRESS_PLAN_RUN_COUNT,
+        A.CREATED_PLAN_RUN_COUNT,
+        A.CANCELLED_PLAN_RUN_COUNT,
+        A.FAILED_PLAN_RUN_COUNT,
+        A.MANUAL_PLAN_RUN_COUNT,
+        A.SCHEDULED_PLAN_RUN_COUNT,
+        A.API_PLAN_RUN_COUNT,
+        A.AUTOMATED_PLAN_RUN_COUNT,
+        A.FIRST_RUN_AT,
+        A.LAST_RUN_AT,
+
+        F.CURRENT_TASK_COUNT,
+        F.TOTAL_TASKS_EVER,
+        F.CURRENT_WORKFLOW_TASK_COUNT,
+        F.CURRENT_FLOW_TASK_COUNT,
+        F.CURRENT_HTTP_TASK_COUNT,
+        F.CURRENT_EMAIL_TASK_COUNT,
+        F.CURRENT_AI_DATASET_TASK_COUNT,
+        F.CURRENT_CEFD_TASK_COUNT,
+        F.CURRENT_ML_TASK_COUNT,
+        F.CURRENT_APPROVAL_TASK_COUNT,
+        F.CURRENT_CONDITION_TASK_COUNT,
+        F.CURRENT_DELAY_TASK_COUNT,
+        F.CURRENT_LI_PROJECT_REPLAY_TASK_COUNT,
+        F.CURRENT_ML_PROJECT_UPDATE_TASK_COUNT,
+        F.CURRENT_REPORTING_GENERATE_TASK_COUNT,
+        F.CURRENT_STORAGE_TASK_COUNT
+
+    FROM ACTIVITY_AGG A
+    JOIN PLANS_FACT F
+      ON A.PLAN_ID = F.PLAN_ID
+    LEFT JOIN USERS_DAILY U
+      ON A.ACTIVITY_DATE = U.DATE
+     AND A.ACTIVITY_USER_ID = U.USER_ID
+     AND A.WORKSPACE_ID = U.WORKSPACE_ID;
+- name: monthly
+  description: Monthly aggregated metrics
+  query: |-
+    SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
+    ),
+
+    PLAN_NODES_LATEST AS (
+        SELECT
+            N.ID                                           AS PLAN_NODE_ID,
+            N.PLAN_ID                                      AS PLAN_ID,
+            N.CREATED_BY                                   AS TASK_CREATED_BY_USER_ID,
+            N.UPDATED_BY                                   AS TASK_UPDATED_BY_USER_ID,
+            TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT)             AS TASK_CREATED_AT,
+            TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT)             AS TASK_UPDATED_AT,
+            TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT)             AS TASK_DELETED_AT
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANNODES N
+        QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY N.ID
+            ORDER BY
+                TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT) DESC NULLS LAST
+        ) = 1
+    ),
+
+    RUNS_LATEST AS (
+        SELECT
+            R.ID                                           AS PLAN_RUN_ID,
+            R.PLAN_SNAPSHOT_ID,
+            R.CREATED_BY                                   AS RUN_CREATED_BY_USER_ID,
+            TRY_TO_TIMESTAMP_NTZ(R.CREATED_AT)             AS RUN_CREATED_AT,
+            TRY_TO_TIMESTAMP_NTZ(R.UPDATED_AT)             AS RUN_UPDATED_AT,
+            TRY_TO_TIMESTAMP_NTZ(R.DELETED_AT)             AS RUN_DELETED_AT,
+            TRY_TO_TIMESTAMP_NTZ(R.STARTED_AT)             AS RUN_STARTED_AT,
+            TRY_TO_TIMESTAMP_NTZ(R.FINISHED_AT)            AS RUN_FINISHED_AT,
+            R.STATUS,
+            LOWER(TRIM(R.RANFROM))                         AS RUN_SOURCE
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANSNAPSHOTRUNS R
+        QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY R.ID
+            ORDER BY
+                TRY_TO_TIMESTAMP_NTZ(R.UPDATED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(R.DELETED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(R.CREATED_AT) DESC NULLS LAST
+        ) = 1
+    ),
+
+    /* One record for the original plan creator on the creation date. */
+    PLAN_CREATED_ACTIVITY AS (
+        SELECT
+            DATE(F.PLAN_CREATED_AT)                        AS ACTIVITY_DATE,
+            F.USER_ID                                      AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            F.PLAN_ID,
+            1                                              AS PLAN_CREATED_COUNT,
+            0                                              AS PLAN_EDITED_COUNT,
+            0                                              AS TASK_CREATED_COUNT,
+            0                                              AS TASK_UPDATED_COUNT,
+            0                                              AS TASK_DELETED_COUNT,
+            0                                              AS PLAN_RUN_COUNT,
+            0                                              AS COMPLETED_PLAN_RUN_COUNT,
+            0                                              AS INPROGRESS_PLAN_RUN_COUNT,
+            0                                              AS CREATED_PLAN_RUN_COUNT,
+            0                                              AS CANCELLED_PLAN_RUN_COUNT,
+            0                                              AS FAILED_PLAN_RUN_COUNT,
+            0                                              AS MANUAL_PLAN_RUN_COUNT,
+            0                                              AS SCHEDULED_PLAN_RUN_COUNT,
+            0                                              AS API_PLAN_RUN_COUNT,
+            0                                              AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ)                    AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ)                    AS LAST_RUN_AT
+        FROM PLANS_FACT F
+        WHERE F.USER_ID IS NOT NULL
+    ),
+
+    /* A plan edit is counted only when update time is later than creation time. */
+    PLAN_EDITED_ACTIVITY AS (
+        SELECT
+            DATE(F.PLAN_UPDATED_AT)                        AS ACTIVITY_DATE,
+            F.PLAN_UPDATED_BY                              AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            F.PLAN_ID,
+            0                                              AS PLAN_CREATED_COUNT,
+            1                                              AS PLAN_EDITED_COUNT,
+            0                                              AS TASK_CREATED_COUNT,
+            0                                              AS TASK_UPDATED_COUNT,
+            0                                              AS TASK_DELETED_COUNT,
+            0                                              AS PLAN_RUN_COUNT,
+            0                                              AS COMPLETED_PLAN_RUN_COUNT,
+            0                                              AS INPROGRESS_PLAN_RUN_COUNT,
+            0                                              AS CREATED_PLAN_RUN_COUNT,
+            0                                              AS CANCELLED_PLAN_RUN_COUNT,
+            0                                              AS FAILED_PLAN_RUN_COUNT,
+            0                                              AS MANUAL_PLAN_RUN_COUNT,
+            0                                              AS SCHEDULED_PLAN_RUN_COUNT,
+            0                                              AS API_PLAN_RUN_COUNT,
+            0                                              AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ)                    AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ)                    AS LAST_RUN_AT
+        FROM PLANS_FACT F
+        WHERE F.PLAN_UPDATED_BY IS NOT NULL
+          AND F.PLAN_UPDATED_AT IS NOT NULL
+          AND F.PLAN_UPDATED_AT > F.PLAN_CREATED_AT
+    ),
+
+    TASK_CREATED_ACTIVITY AS (
+        SELECT
+            DATE(N.TASK_CREATED_AT)                        AS ACTIVITY_DATE,
+            N.TASK_CREATED_BY_USER_ID                      AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            N.PLAN_ID,
+            0 AS PLAN_CREATED_COUNT,
+            0 AS PLAN_EDITED_COUNT,
+            1 AS TASK_CREATED_COUNT,
+            0 AS TASK_UPDATED_COUNT,
+            0 AS TASK_DELETED_COUNT,
+            0 AS PLAN_RUN_COUNT,
+            0 AS COMPLETED_PLAN_RUN_COUNT,
+            0 AS INPROGRESS_PLAN_RUN_COUNT,
+            0 AS CREATED_PLAN_RUN_COUNT,
+            0 AS CANCELLED_PLAN_RUN_COUNT,
+            0 AS FAILED_PLAN_RUN_COUNT,
+            0 AS MANUAL_PLAN_RUN_COUNT,
+            0 AS SCHEDULED_PLAN_RUN_COUNT,
+            0 AS API_PLAN_RUN_COUNT,
+            0 AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS LAST_RUN_AT
+        FROM PLAN_NODES_LATEST N
+        JOIN PLANS_FACT F
+          ON N.PLAN_ID = F.PLAN_ID
+        WHERE N.TASK_CREATED_BY_USER_ID IS NOT NULL
+          AND N.TASK_CREATED_AT IS NOT NULL
+    ),
+
+    /* Avoid counting creation itself as a separate task update. */
+    TASK_UPDATED_ACTIVITY AS (
+        SELECT
+            DATE(N.TASK_UPDATED_AT)                        AS ACTIVITY_DATE,
+            N.TASK_UPDATED_BY_USER_ID                      AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            N.PLAN_ID,
+            0 AS PLAN_CREATED_COUNT,
+            0 AS PLAN_EDITED_COUNT,
+            0 AS TASK_CREATED_COUNT,
+            1 AS TASK_UPDATED_COUNT,
+            0 AS TASK_DELETED_COUNT,
+            0 AS PLAN_RUN_COUNT,
+            0 AS COMPLETED_PLAN_RUN_COUNT,
+            0 AS INPROGRESS_PLAN_RUN_COUNT,
+            0 AS CREATED_PLAN_RUN_COUNT,
+            0 AS CANCELLED_PLAN_RUN_COUNT,
+            0 AS FAILED_PLAN_RUN_COUNT,
+            0 AS MANUAL_PLAN_RUN_COUNT,
+            0 AS SCHEDULED_PLAN_RUN_COUNT,
+            0 AS API_PLAN_RUN_COUNT,
+            0 AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS LAST_RUN_AT
+        FROM PLAN_NODES_LATEST N
+        JOIN PLANS_FACT F
+          ON N.PLAN_ID = F.PLAN_ID
+        WHERE N.TASK_UPDATED_BY_USER_ID IS NOT NULL
+          AND N.TASK_UPDATED_AT IS NOT NULL
+          AND N.TASK_UPDATED_AT > N.TASK_CREATED_AT
+    ),
+
+    /* No DELETED_BY field exists in the supplied model; UPDATED_BY is used. */
+    TASK_DELETED_ACTIVITY AS (
+        SELECT
+            DATE(N.TASK_DELETED_AT)                        AS ACTIVITY_DATE,
+            N.TASK_UPDATED_BY_USER_ID                      AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            N.PLAN_ID,
+            0 AS PLAN_CREATED_COUNT,
+            0 AS PLAN_EDITED_COUNT,
+            0 AS TASK_CREATED_COUNT,
+            0 AS TASK_UPDATED_COUNT,
+            1 AS TASK_DELETED_COUNT,
+            0 AS PLAN_RUN_COUNT,
+            0 AS COMPLETED_PLAN_RUN_COUNT,
+            0 AS INPROGRESS_PLAN_RUN_COUNT,
+            0 AS CREATED_PLAN_RUN_COUNT,
+            0 AS CANCELLED_PLAN_RUN_COUNT,
+            0 AS FAILED_PLAN_RUN_COUNT,
+            0 AS MANUAL_PLAN_RUN_COUNT,
+            0 AS SCHEDULED_PLAN_RUN_COUNT,
+            0 AS API_PLAN_RUN_COUNT,
+            0 AS AUTOMATED_PLAN_RUN_COUNT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS FIRST_RUN_AT,
+            CAST(NULL AS TIMESTAMP_NTZ) AS LAST_RUN_AT
+        FROM PLAN_NODES_LATEST N
+        JOIN PLANS_FACT F
+          ON N.PLAN_ID = F.PLAN_ID
+        WHERE N.TASK_UPDATED_BY_USER_ID IS NOT NULL
+          AND N.TASK_DELETED_AT IS NOT NULL
+    ),
+
+    RUN_ACTIVITY AS (
+        SELECT
+            DATE(R.RUN_CREATED_AT)                         AS ACTIVITY_DATE,
+            R.RUN_CREATED_BY_USER_ID                       AS ACTIVITY_USER_ID,
+            F.WORKSPACE_ID,
+            F.PLAN_ID,
+            0 AS PLAN_CREATED_COUNT,
+            0 AS PLAN_EDITED_COUNT,
+            0 AS TASK_CREATED_COUNT,
+            0 AS TASK_UPDATED_COUNT,
+            0 AS TASK_DELETED_COUNT,
+            1 AS PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'Complete',   1, 0) AS COMPLETED_PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'InProgress', 1, 0) AS INPROGRESS_PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'Created',    1, 0) AS CREATED_PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'Canceled',   1, 0) AS CANCELLED_PLAN_RUN_COUNT,
+            IFF(R.STATUS = 'Failed',     1, 0) AS FAILED_PLAN_RUN_COUNT,
+            IFF(R.RUN_SOURCE = 'ui',       1, 0) AS MANUAL_PLAN_RUN_COUNT,
+            IFF(R.RUN_SOURCE = 'schedule', 1, 0) AS SCHEDULED_PLAN_RUN_COUNT,
+            IFF(R.RUN_SOURCE = 'api',      1, 0) AS API_PLAN_RUN_COUNT,
+            IFF(R.RUN_SOURCE IN ('api', 'schedule'), 1, 0) AS AUTOMATED_PLAN_RUN_COUNT,
+            R.RUN_CREATED_AT                              AS FIRST_RUN_AT,
+            R.RUN_CREATED_AT                              AS LAST_RUN_AT
+        FROM RUNS_LATEST R
+        /* Temporary relationship retained exactly as requested. */
+        JOIN PLANS_FACT F
+          ON TRIM(TO_VARCHAR(F.PLAN_ID)) = TRIM(TO_VARCHAR(R.PLAN_SNAPSHOT_ID))
+        WHERE R.RUN_CREATED_BY_USER_ID IS NOT NULL
+          AND R.RUN_CREATED_AT IS NOT NULL
+          AND R.RUN_DELETED_AT IS NULL
+    ),
+
+    ALL_ACTIVITY AS (
+        SELECT * FROM PLAN_CREATED_ACTIVITY
+        UNION ALL SELECT * FROM PLAN_EDITED_ACTIVITY
+        UNION ALL SELECT * FROM TASK_CREATED_ACTIVITY
+        UNION ALL SELECT * FROM TASK_UPDATED_ACTIVITY
+        UNION ALL SELECT * FROM TASK_DELETED_ACTIVITY
+        UNION ALL SELECT * FROM RUN_ACTIVITY
+    ),
+
+    ACTIVITY_AGG AS (
+        SELECT
+            ACTIVITY_DATE,
+            ACTIVITY_USER_ID,
+            WORKSPACE_ID,
+            PLAN_ID,
+
+            SUM(PLAN_CREATED_COUNT)                       AS PLAN_CREATED_COUNT,
+            SUM(PLAN_EDITED_COUNT)                        AS PLAN_EDITED_COUNT,
+            SUM(TASK_CREATED_COUNT)                       AS TASK_CREATED_COUNT,
+            SUM(TASK_UPDATED_COUNT)                       AS TASK_UPDATED_COUNT,
+            SUM(TASK_DELETED_COUNT)                       AS TASK_DELETED_COUNT,
+            SUM(PLAN_RUN_COUNT)                           AS PLAN_RUN_COUNT,
+            SUM(COMPLETED_PLAN_RUN_COUNT)                 AS COMPLETED_PLAN_RUN_COUNT,
+            SUM(INPROGRESS_PLAN_RUN_COUNT)                AS INPROGRESS_PLAN_RUN_COUNT,
+            SUM(CREATED_PLAN_RUN_COUNT)                   AS CREATED_PLAN_RUN_COUNT,
+            SUM(CANCELLED_PLAN_RUN_COUNT)                 AS CANCELLED_PLAN_RUN_COUNT,
+            SUM(FAILED_PLAN_RUN_COUNT)                    AS FAILED_PLAN_RUN_COUNT,
+            SUM(MANUAL_PLAN_RUN_COUNT)                    AS MANUAL_PLAN_RUN_COUNT,
+            SUM(SCHEDULED_PLAN_RUN_COUNT)                 AS SCHEDULED_PLAN_RUN_COUNT,
+            SUM(API_PLAN_RUN_COUNT)                       AS API_PLAN_RUN_COUNT,
+            SUM(AUTOMATED_PLAN_RUN_COUNT)                 AS AUTOMATED_PLAN_RUN_COUNT,
+            MIN(FIRST_RUN_AT)                             AS FIRST_RUN_AT,
+            MAX(LAST_RUN_AT)                              AS LAST_RUN_AT
+        FROM ALL_ACTIVITY
+        WHERE ACTIVITY_DATE IS NOT NULL
+          AND ACTIVITY_USER_ID IS NOT NULL
+          AND WORKSPACE_ID IS NOT NULL
+          AND PLAN_ID IS NOT NULL
+        GROUP BY 1,2,3,4
+    ),
+
+    USERS_DAILY AS (
+        SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_AT
+    )
+
+    SELECT
+        A.ACTIVITY_DATE,
+        A.ACTIVITY_USER_ID                               AS USER_ID,
+        U.USER_ID_RAW,
+        U.USER_EMAIL,
+        A.WORKSPACE_ID,
+        U.WORKSPACE_ID_RAW,
+        U.PIPELINE_REGION,
+        U.BILLING_ACCOUNT_ID,
+        U.BILLING_ACCOUNT_ID_RAW,
+        U.SFDC_ACCOUNT_ID,
+        U.ACCOUNT_CID,
+        U.BILLING_ACCOUNT_NAME,
+        U.NAMED_COMPANY,
+        U.LICENSE_TYPE,
+        U.ACCOUNT_EDITION,
+        U.PRICING_AND_PACKAGING,
+        U.STATUS,
+        U.ACTIVATION_DATE,
+
+        A.PLAN_ID,
+        F.PLAN_NAME,
+        F.PLAN_CREATED_AT,
+        F.PLAN_UPDATED_AT,
+        F.PLAN_DELETED_AT,
+        F.IS_PLAN_DELETED,
+        F.USER_ID                                        AS PLAN_CREATED_BY_USER_ID,
+        F.PLAN_UPDATED_BY                                AS PLAN_LAST_UPDATED_BY_USER_ID,
+
+        IFF(A.PLAN_CREATED_COUNT > 0, 1, 0)              AS IS_PLAN_CREATOR,
+        IFF(A.PLAN_EDITED_COUNT > 0, 1, 0)               AS IS_PLAN_EDITOR,
+        IFF(
+            A.TASK_CREATED_COUNT + A.TASK_UPDATED_COUNT + A.TASK_DELETED_COUNT > 0,
+            1, 0
+        )                                                AS IS_TASK_CONTRIBUTOR,
+        IFF(A.PLAN_RUN_COUNT > 0, 1, 0)                  AS IS_PLAN_RUNNER,
+        IFF(
+            A.PLAN_EDITED_COUNT
+            + A.TASK_CREATED_COUNT
+            + A.TASK_UPDATED_COUNT
+            + A.TASK_DELETED_COUNT > 0,
+            1, 0
+        )                                                AS IS_PLAN_EDITOR_PRIMARY,
+
+        A.PLAN_CREATED_COUNT,
+        A.PLAN_EDITED_COUNT,
+        A.TASK_CREATED_COUNT,
+        A.TASK_UPDATED_COUNT,
+        A.TASK_DELETED_COUNT,
+        A.PLAN_RUN_COUNT,
+        A.COMPLETED_PLAN_RUN_COUNT,
+        A.INPROGRESS_PLAN_RUN_COUNT,
+        A.CREATED_PLAN_RUN_COUNT,
+        A.CANCELLED_PLAN_RUN_COUNT,
+        A.FAILED_PLAN_RUN_COUNT,
+        A.MANUAL_PLAN_RUN_COUNT,
+        A.SCHEDULED_PLAN_RUN_COUNT,
+        A.API_PLAN_RUN_COUNT,
+        A.AUTOMATED_PLAN_RUN_COUNT,
+        A.FIRST_RUN_AT,
+        A.LAST_RUN_AT,
+
+        F.CURRENT_TASK_COUNT,
+        F.TOTAL_TASKS_EVER,
+        F.CURRENT_WORKFLOW_TASK_COUNT,
+        F.CURRENT_FLOW_TASK_COUNT,
+        F.CURRENT_HTTP_TASK_COUNT,
+        F.CURRENT_EMAIL_TASK_COUNT,
+        F.CURRENT_AI_DATASET_TASK_COUNT,
+        F.CURRENT_CEFD_TASK_COUNT,
+        F.CURRENT_ML_TASK_COUNT,
+        F.CURRENT_APPROVAL_TASK_COUNT,
+        F.CURRENT_CONDITION_TASK_COUNT,
+        F.CURRENT_DELAY_TASK_COUNT,
+        F.CURRENT_LI_PROJECT_REPLAY_TASK_COUNT,
+        F.CURRENT_ML_PROJECT_UPDATE_TASK_COUNT,
+        F.CURRENT_REPORTING_GENERATE_TASK_COUNT,
+        F.CURRENT_STORAGE_TASK_COUNT
+
+    FROM ACTIVITY_AGG A
+    JOIN PLANS_FACT F
+      ON A.PLAN_ID = F.PLAN_ID
+    LEFT JOIN USERS_DAILY U
+      ON A.ACTIVITY_DATE = U.DATE
+     AND A.ACTIVITY_USER_ID = U.USER_ID
+     AND A.WORKSPACE_ID = U.WORKSPACE_ID;
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: data-engineering@alteryx.com
+tags:
+- plans
+- product_metric
+last_updated: '2026-08-04'
+version: '1.0'

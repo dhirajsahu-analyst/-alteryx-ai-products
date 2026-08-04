@@ -1,0 +1,34 @@
+id: copilot_user_funnel_health
+name: Copilot User Funnel Health
+description: 'Multi-stage user funnel showing progression: Onboarded → Active → Workflow Users → Engaged'
+product: ask_alteryx
+status: validated
+category: funnel
+definition:
+  business: 'Multi-stage user funnel showing progression: Onboarded → Active → Workflow Users → Engaged'
+  technical: '[''ONBOARDED_USERS'', ''ACTIVE_USERS'', ''USERS_WITH_AT_LEAST_1_WORKFLOW'', ''ENGAGED_USERS''] from COPILOT_USERS_ACTIVITY_FUNNEL_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT ONBOARDED_USERS as stage_0_onboarded, ACTIVE_USERS as stage_1_active, USERS_WITH_AT_LEAST_1_WORKFLOW as stage_2_workflow, ENGAGED_USERS as stage_3_engaged, ROUND(ACTIVE_USERS / ONBOARDED_USERS * 100, 2) as activation_pct, ROUND(ENGAGED_USERS / ONBOARDED_USERS * 100, 2) as engagement_pct FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ACTIVITY_FUNNEL_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on:
+- copilot_onboarded_users
+- copilot_active_users
+- copilot_highly_engaged_users
+related_metrics:
+- copilot_account_funnel_health
+maintainer: analytics@alteryx.com
+tags:
+- funnel
+- copilot
+- health-check
+- multi-stage
+last_updated: '2026-08-03'
+version: '1.0'

@@ -1,0 +1,8 @@
+analytics_lead:
+  email: analytics_team@alteryx.com
+  name: Analytics Data Team
+  review_required: true
+product_owner:
+  approval_required: true
+  email: analytics_team@alteryx.com
+  name: Designer Team

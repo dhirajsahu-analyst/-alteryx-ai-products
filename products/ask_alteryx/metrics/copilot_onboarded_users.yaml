@@ -1,0 +1,32 @@
+id: copilot_onboarded_users
+name: Copilot Onboarded Users
+description: Total count of users who have been onboarded to Copilot (cohort size)
+product: ask_alteryx
+status: validated
+category: volume
+definition:
+  business: Total count of users who have been onboarded to Copilot (cohort size)
+  technical: '[''ONBOARDED_USERS''] from COPILOT_USERS_ACTIVITY_FUNNEL_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT ONBOARDED_USERS as onboarded_users_count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ACTIVITY_FUNNEL_VIEW WHERE ONBOARDED_USERS > 0 LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- ONBOARDED_USERS > 0
+depends_on: []
+related_metrics:
+- copilot_active_users
+maintainer: analytics@alteryx.com
+tags:
+- volume
+- copilot
+- cohort
+- funnel-base
+last_updated: '2026-08-03'
+version: '1.0'

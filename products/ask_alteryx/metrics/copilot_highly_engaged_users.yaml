@@ -1,0 +1,34 @@
+id: copilot_highly_engaged_users
+name: Copilot Highly Engaged Users
+description: Count of Copilot users who meet the definition of highly engaged based on activity threshold
+product: ask_alteryx
+status: validated
+category: engagement
+definition:
+  business: Count of Copilot users who meet the definition of highly engaged based on activity threshold
+  technical: '[''ENGAGED_USERS''] from COPILOT_USERS_ACTIVITY_FUNNEL_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT ENGAGED_USERS as highly_engaged_users_count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ACTIVITY_FUNNEL_VIEW WHERE ENGAGED_USERS > 0 LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- ENGAGED_USERS > 0
+depends_on:
+- copilot_onboarded_users
+related_metrics:
+- copilot_high_activity_accounts
+- copilot_user_engagement_rate
+maintainer: analytics@alteryx.com
+tags:
+- engagement
+- copilot
+- power-users
+- volume
+last_updated: '2026-08-03'
+version: '1.0'

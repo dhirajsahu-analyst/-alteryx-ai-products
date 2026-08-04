@@ -1,0 +1,40 @@
+id: version_adoption_010
+name: Version Support Status Distribution
+description: Monthly count and percentage of accounts by version support status (Supported vs Unsupported)
+product: version_adoption
+status: validated
+category: adoption
+definition:
+  business: Risk assessment metric showing portion of customer base on unsupported versions requiring attention
+  technical: Aggregated from ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    PRODUCT_ID,
+    SUPPORTED_UNSUPPORTED_PREVAILING_VERSION,
+    TOTAL_ACCOUNTS,
+    PCT_SUPPORTED,
+    SUM(TOTAL_ACCOUNTS) OVER (PARTITION BY MONTH, PRODUCT_ID) AS total_accounts_month,
+    ROUND(TOTAL_ACCOUNTS / NULLIF(SUM(TOTAL_ACCOUNTS) OVER (PARTITION BY MONTH, PRODUCT_ID), 0) * 100, 2) AS pct_of_total
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+  ORDER BY MONTH DESC, PRODUCT_ID
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- version_adoption_006
+- version_adoption_003
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- version_adoption
+last_updated: '2026-08-03'
+version: '1.0'

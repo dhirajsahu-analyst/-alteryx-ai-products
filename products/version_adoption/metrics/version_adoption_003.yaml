@@ -1,0 +1,37 @@
+id: version_adoption_003
+name: Designer Supported Version Account Percentage
+description: Monthly percentage of Designer accounts running a supported version of the product
+product: version_adoption
+status: validated
+category: adoption
+definition:
+  business: Tracks account-level upgrade health for Designer, supporting customer success and support prioritization
+  technical: From DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_ACCOUNT_PERCENTAGE_VIEW, DESIGNER_PCT_SUPPORTED column
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    DESIGNER_PCT_SUPPORTED,
+    SERVER_PCT_SUPPORTED,
+    (DESIGNER_PCT_SUPPORTED + SERVER_PCT_SUPPORTED) / 2 AS product_avg_supported_pct
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_ACCOUNT_PERCENTAGE_VIEW
+  ORDER BY MONTH DESC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- version_adoption_004
+- version_adoption_005
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- version_adoption
+last_updated: '2026-08-03'
+version: '1.0'

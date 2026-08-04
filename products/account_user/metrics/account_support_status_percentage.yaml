@@ -1,0 +1,39 @@
+id: account_support_status_percentage
+name: Account Support Status Percentage
+description: Percentage of accounts by support status (Supported vs Unsupported) by product
+product: account_user
+status: validated
+category: adoption
+definition:
+  business: Support health metric tracking upgrade rates and technical debt across customer base
+  technical: Calculated from ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    PRODUCT_ID,
+    SUPPORTED_UNSUPPORTED_PREVAILING_VERSION,
+    ROUND(PCT_SUPPORTED, 2) AS pct_of_total,
+    LAG(PCT_SUPPORTED) OVER (PARTITION BY PRODUCT_ID, SUPPORTED_UNSUPPORTED_PREVAILING_VERSION ORDER BY MONTH) AS prev_month_pct,
+    ROUND(PCT_SUPPORTED - LAG(PCT_SUPPORTED) OVER (PARTITION BY PRODUCT_ID, SUPPORTED_UNSUPPORTED_PREVAILING_VERSION ORDER BY MONTH), 2) AS mom_change_pct
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+  ORDER BY MONTH DESC, PRODUCT_ID
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- account_user_001
+- account_user_002
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- account_user
+last_updated: '2026-08-03'
+version: '1.0'

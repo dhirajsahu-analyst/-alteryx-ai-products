@@ -1,0 +1,40 @@
+id: version_adoption_007
+name: Version Distribution by Account
+description: Pareto distribution of accounts across product versions, showing which versions dominate the customer base
+product: version_adoption
+status: validated
+category: adoption
+definition:
+  business: Identifies dominant versions and their market share, informing support and roadmap decisions
+  technical: From VERSION_RUNNING_SUM_ACCOUNTS_VIEW with cumulative running percentage
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    PRODUCT_ID,
+    PREVAILING_VERSION,
+    TOTAL_ACCOUNTS,
+    RUNNING_PCT_OF_TOTAL,
+    ROW_NUMBER() OVER (PARTITION BY PRODUCT_ID ORDER BY TOTAL_ACCOUNTS DESC) AS version_rank
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.VERSION_RUNNING_SUM_ACCOUNTS_VIEW
+  WHERE RUNNING_PCT_OF_TOTAL <= 80
+  ORDER BY PRODUCT_ID, version_rank
+  LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- RUNNING_PCT_OF_TOTAL <= 80
+depends_on: []
+related_metrics:
+- version_adoption_006
+- version_adoption_008
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- version_adoption
+last_updated: '2026-08-03'
+version: '1.0'

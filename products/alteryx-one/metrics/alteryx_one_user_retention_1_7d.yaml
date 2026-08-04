@@ -1,0 +1,28 @@
+id: alteryx_one_user_retention_1_7d
+name: Alteryx One User Retention 1-7 Days
+description: Percentage of new users active within 1-7 days of activation.
+product: alteryx_one
+status: validated
+category: retention
+definition:
+  business: Percentage of new users active within 1-7 days of activation.
+  technical: From ALTERYX_ONE_USERS_RETENTIONS_BY_BUCKET_DAYS_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT PERCENTAGE_1_TO_7D as retention_rate FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_USERS_RETENTIONS_BY_BUCKET_DAYS_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: analytics@alteryx.com
+tags:
+- retention
+- alteryx-one
+last_updated: '2026-08-03'
+version: '1.0'

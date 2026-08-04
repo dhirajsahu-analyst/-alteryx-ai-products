@@ -1,0 +1,33 @@
+id: copilot_active_accounts
+name: Copilot Active Accounts
+description: Count of customer accounts with active Copilot users
+product: ask_alteryx
+status: validated
+category: volume
+definition:
+  business: Count of customer accounts with active Copilot users
+  technical: '[''ACTIVE_ACCOUNTS''] from COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT ACTIVE_ACCOUNTS as active_accounts_count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW WHERE ACTIVE_ACCOUNTS > 0 LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- ACTIVE_ACCOUNTS > 0
+depends_on: []
+related_metrics:
+- copilot_account_activation_rate
+- copilot_adoption_rate
+maintainer: analytics@alteryx.com
+tags:
+- volume
+- copilot
+- active-accounts
+- key-metric
+last_updated: '2026-08-03'
+version: '1.0'

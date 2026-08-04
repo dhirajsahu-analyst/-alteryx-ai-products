@@ -1,0 +1,43 @@
+id: supported_version_account_count
+name: Supported Version Account Count
+description: Monthly count of accounts running a supported (current) product version
+product: account_user
+status: validated
+category: volume
+definition:
+  business: Baseline account metric for technical support capacity planning and risk management
+  technical: From ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW where SUPPORTED_UNSUPPORTED_PREVAILING_VERSION = 'Supported'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    PRODUCT_ID,
+    TOTAL_ACCOUNTS AS supported_accounts,
+    PCT_SUPPORTED,
+    100 - PCT_SUPPORTED AS pct_unsupported,
+    LAG(TOTAL_ACCOUNTS) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH) AS prev_month_supported,
+    ROUND((TOTAL_ACCOUNTS - LAG(TOTAL_ACCOUNTS) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH)) /
+          NULLIF(LAG(TOTAL_ACCOUNTS) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH), 0) * 100, 2) AS mom_growth_pct
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+  WHERE SUPPORTED_UNSUPPORTED_PREVAILING_VERSION = 'Supported'
+  ORDER BY MONTH DESC, PRODUCT_ID
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters:
+- SUPPORTED_UNSUPPORTED_PREVAILING_VERSION = 'Supported'
+depends_on: []
+related_metrics:
+- account_user_002
+- account_user_003
+maintainer: analytics@alteryx.com
+tags:
+- volume
+- account_user
+last_updated: '2026-08-03'
+version: '1.0'

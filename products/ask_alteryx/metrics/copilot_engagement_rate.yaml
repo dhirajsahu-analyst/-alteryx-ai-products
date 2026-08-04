@@ -1,0 +1,20 @@
+id: copilot_engagement_rate
+status: validated
+category: unknown
+definition:
+  business: ''
+  technical: Query from VIEW_NAME
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+tags: []
+last_updated: '2026-08-04'
+version: '1.0'

@@ -1,0 +1,32 @@
+id: copilot_enabled_accounts
+name: Copilot Enabled Accounts
+description: Count of accounts that have enabled Copilot feature for their users
+product: ask_alteryx
+status: validated
+category: volume
+definition:
+  business: Count of accounts that have enabled Copilot feature for their users
+  technical: '[''COPILOT_ENABLED_USERS''] from COPILOT_ELIGBLE_USERS_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT COUNT(DISTINCT 1) as enabled_accounts_count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ELIGBLE_USERS_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- copilot_enabled_users
+- copilot_active_accounts
+maintainer: analytics@alteryx.com
+tags:
+- volume
+- copilot
+- feature-flag
+- account-level
+last_updated: '2026-08-03'
+version: '1.0'

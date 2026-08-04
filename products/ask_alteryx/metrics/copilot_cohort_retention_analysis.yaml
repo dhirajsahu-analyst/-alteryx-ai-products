@@ -1,0 +1,33 @@
+id: copilot_cohort_retention_analysis
+name: Copilot Cohort Retention Analysis
+description: Multi-period retention tracking for user cohorts activated in each month
+product: ask_alteryx
+status: validated
+category: retention
+definition:
+  business: Multi-period retention tracking for user cohorts activated in each month
+  technical: '[''TOTAL_USERS'', ''RETURNING_RATE_PCT''] from COPILOT_7_15_RETENTION_RATE_VIEW + COPILOT_30_60_RETENTION_RATE_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT 'Week_7_15' as retention_window, RETURNING_RATE_PCT as retention_rate_pct, TOTAL_USERS as cohort_size FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_7_15_RETENTION_RATE_VIEW UNION ALL SELECT 'Week_30_60' as retention_window, RETURNING_RATE_PCT as retention_rate_pct, TOTAL_USERS as cohort_size FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_30_60_RETENTION_RATE_VIEW
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on:
+- copilot_7_15_day_retention
+- copilot_30_60_day_retention
+related_metrics:
+- copilot_retention_decay_rate
+maintainer: analytics@alteryx.com
+tags:
+- retention
+- copilot
+- cohort-analysis
+- multi-period
+last_updated: '2026-08-03'
+version: '1.0'

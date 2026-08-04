@@ -1,0 +1,40 @@
+id: unsupported_user_count
+name: Unsupported User Count
+description: Monthly count of users on unsupported versions by product
+product: account_user
+status: validated
+category: volume
+definition:
+  business: At-risk user metric for support prioritization and customer success engagement
+  technical: From MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW, unsupported users
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    PRODUCT_ID,
+    TOTAL_USERS AS unsupported_users,
+    LAG(TOTAL_USERS) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH) AS prev_month_users,
+    ROUND((TOTAL_USERS - LAG(TOTAL_USERS) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH)), 2) AS user_change
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+  WHERE SUPPORTED_UNSUPPORTED = 'Unsupported'
+  ORDER BY MONTH DESC, PRODUCT_ID
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters:
+- SUPPORTED_UNSUPPORTED = 'Unsupported'
+depends_on: []
+related_metrics:
+- account_user_002
+- account_user_006
+maintainer: analytics@alteryx.com
+tags:
+- volume
+- account_user
+last_updated: '2026-08-03'
+version: '1.0'

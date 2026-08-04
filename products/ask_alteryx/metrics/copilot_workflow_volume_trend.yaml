@@ -1,0 +1,32 @@
+id: copilot_workflow_volume_trend
+name: Copilot Workflow Volume Trend
+description: Month-over-month change in Copilot workflow execution volume
+product: ask_alteryx
+status: validated
+category: usage
+definition:
+  business: Month-over-month change in Copilot workflow execution volume
+  technical: '[''COPILOT_MAPPED_WORKFLOW_RUNS''] from COPILOT_WORKFLOW_DETAILS_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT COPILOT_MAPPED_WORKFLOW_RUNS as current_month_runs FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_WORKFLOW_DETAILS_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on:
+- copilot_workflow_runs
+related_metrics:
+- copilot_workflow_run_growth_rate
+maintainer: analytics@alteryx.com
+tags:
+- usage
+- copilot
+- trend
+- growth
+last_updated: '2026-08-03'
+version: '1.0'

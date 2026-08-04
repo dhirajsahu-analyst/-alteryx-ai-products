@@ -1,0 +1,33 @@
+id: copilot_active_users
+name: Copilot Active Users
+description: Count of users currently using Copilot on a regular basis
+product: ask_alteryx
+status: validated
+category: volume
+definition:
+  business: Count of users currently using Copilot on a regular basis
+  technical: '[''ACTIVE_USERS''] from COPILOT_USERS_ACTIVITY_FUNNEL_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT ACTIVE_USERS as active_users_count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ACTIVITY_FUNNEL_VIEW WHERE ACTIVE_USERS > 0 LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- ACTIVE_USERS > 0
+depends_on: []
+related_metrics:
+- copilot_adoption_rate
+- copilot_user_activation_rate
+maintainer: analytics@alteryx.com
+tags:
+- volume
+- copilot
+- active-base
+- key-metric
+last_updated: '2026-08-03'
+version: '1.0'

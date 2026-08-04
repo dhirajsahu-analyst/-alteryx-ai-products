@@ -1,0 +1,57 @@
+# Alteryx One Regression Tests
+
+## Test Suite: Active Users Metric
+
+```yaml
+test_active_users_latest_month:
+  query: |
+    SELECT MONTHLY_ACTIVE_USER
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ACTIVE_USERS_VIEW
+    WHERE YEAR_MONTH = DATE_TRUNC('MONTH', CURRENT_DATE())
+  validation:
+    - result_count: 1
+    - column_count: 5
+    - metric_value_gt: 0
+
+test_active_users_no_nulls:
+  query: |
+    SELECT COUNT(*) as null_count
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ACTIVE_USERS_VIEW
+    WHERE MONTHLY_ACTIVE_USER IS NULL
+  validation:
+    - result: 0
+
+test_activation_funnel_rates:
+  query: |
+    SELECT
+      PERCENTAGE_AVAILABLE_SEATS,
+      PERCENTAGE_INVITED_USERS,
+      PERCENTAGE_ACTIVATED_USERS
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ACTIVATION_FUNNEL_VIEW
+    WHERE YEAR_MONTH = DATE_TRUNC('MONTH', CURRENT_DATE())
+  validation:
+    - column_values_between: [0, 100]  # Percentages
+    - no_nulls: true
+```
+
+## Test Suite: Retention Cohorts
+
+```yaml
+test_retention_cohort_grain:
+  query: |
+    SELECT COHORT_MONTH, COUNT(DISTINCT SEGMENT) as segment_count
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_USERS_RETENTIONS_VIEW
+    WHERE COHORT_MONTH >= DATEADD('MONTH', -12, CURRENT_DATE())
+    GROUP BY COHORT_MONTH
+  validation:
+    - segment_count_gte: 1  # At least one segment per cohort
+
+test_retention_percentages_valid:
+  query: |
+    SELECT
+      COUNT(*) as row_count,
+      SUM(CASE WHEN PERCENTAGE_1_TO_7D BETWEEN 0 AND 100 THEN 1 ELSE 0 END) as valid_pct_count
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_USERS_RETENTIONS_VIEW
+  validation:
+    - all_percentages_valid: true  # row_count == valid_pct_count
+```

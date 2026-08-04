@@ -1,0 +1,32 @@
+id: copilot_workflow_runs
+name: Copilot Workflow Runs
+description: Total count of workflows executed with Copilot assistance
+product: ask_alteryx
+status: validated
+category: usage
+definition:
+  business: Total count of workflows executed with Copilot assistance
+  technical: '[''COPILOT_MAPPED_WORKFLOW_RUNS''] from COPILOT_WORKFLOW_DETAILS_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT COPILOT_MAPPED_WORKFLOW_RUNS as workflow_runs_count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_WORKFLOW_DETAILS_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- copilot_percent_total_workflows
+- copilot_workflow_volume_trend
+maintainer: analytics@alteryx.com
+tags:
+- usage
+- copilot
+- workflow-volume
+- key-metric
+last_updated: '2026-08-03'
+version: '1.0'

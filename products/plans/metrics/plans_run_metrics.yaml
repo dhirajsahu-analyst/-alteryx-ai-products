@@ -1,0 +1,293 @@
+id: plans_run_metrics
+name: Plans Run Metrics
+description: Metrics related to Plans runs
+product: plans
+status: validated
+category: product_metric
+definition:
+  business: Plans Run Metrics - Metrics related to Plans runs
+  technical: Query from PLANS_RUN_METRICS_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables:
+  - DISCOVERY_PRODUCT_MANAGEMENT
+sql_template: |-
+  SELECT
+      -- Reporting month
+      TO_CHAR(
+          DATE_TRUNC('MONTH', YEAR_MONTH),
+          'Mon-YYYY'
+      ) AS MONTH,
+
+      -- Distinct billing accounts with at least one plan containing runs
+      COUNT(
+          DISTINCT IFF(
+              PLAN_WITH_RUNS > 0,
+              BILLING_ACCOUNT_ID,
+              NULL
+          )
+      ) AS TOTAL_ACCOUNTS_WITH_RUNS,
+
+      -- Total plans with at least one run
+      COALESCE(
+          SUM(PLAN_WITH_RUNS),
+          0
+      ) AS PLANS_WITH_RUNS,
+
+      -- Percentage of available plans with at least one run
+      ROUND(
+          DIV0(
+              COALESCE(SUM(PLAN_WITH_RUNS), 0),
+              COALESCE(SUM(AVAILABLE_PLANS), 0)
+          ) * 100,
+          2
+      ) AS PCT_OF_TOTAL_PLANS_WITH_RUNS,
+
+      -- Total plan runs
+      COALESCE(
+          SUM(PLAN_RUN),
+          0
+      ) AS TOTAL_PLAN_RUNS
+
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+  WHERE
+      -- Current month and previous three months
+      YEAR_MONTH >= DATE_TRUNC(
+          'MONTH',
+          DATEADD(
+              MONTH,
+              -3,
+              CURRENT_DATE()
+          )
+      )
+
+      -- Purchased accounts only
+      AND LICENSE_TYPE = 'Purchase'
+
+      -- Optional filters
+      -- AND PIPELINE_REGION = 'US'
+      -- AND ACCOUNT_EDITION = 'Enterprise'
+      -- AND PRICING_AND_PACKAGING = '2025'
+      -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'
+
+  GROUP BY
+      DATE_TRUNC('MONTH', YEAR_MONTH)
+
+  ORDER BY
+      DATE_TRUNC('MONTH', YEAR_MONTH);
+queries:
+- name: base
+  description: Base metric query
+  query: |-
+    SELECT
+        -- Reporting month
+        TO_CHAR(
+            DATE_TRUNC('MONTH', YEAR_MONTH),
+            'Mon-YYYY'
+        ) AS MONTH,
+
+        -- Distinct billing accounts with at least one plan containing runs
+        COUNT(
+            DISTINCT IFF(
+                PLAN_WITH_RUNS > 0,
+                BILLING_ACCOUNT_ID,
+                NULL
+            )
+        ) AS TOTAL_ACCOUNTS_WITH_RUNS,
+
+        -- Total plans with at least one run
+        COALESCE(
+            SUM(PLAN_WITH_RUNS),
+            0
+        ) AS PLANS_WITH_RUNS,
+
+        -- Percentage of available plans with at least one run
+        ROUND(
+            DIV0(
+                COALESCE(SUM(PLAN_WITH_RUNS), 0),
+                COALESCE(SUM(AVAILABLE_PLANS), 0)
+            ) * 100,
+            2
+        ) AS PCT_OF_TOTAL_PLANS_WITH_RUNS,
+
+        -- Total plan runs
+        COALESCE(
+            SUM(PLAN_RUN),
+            0
+        ) AS TOTAL_PLAN_RUNS
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+    WHERE
+        -- Current month and previous three months
+        YEAR_MONTH >= DATE_TRUNC(
+            'MONTH',
+            DATEADD(
+                MONTH,
+                -3,
+                CURRENT_DATE()
+            )
+        )
+
+        -- Purchased accounts only
+        AND LICENSE_TYPE = 'Purchase'
+
+        -- Optional filters
+        -- AND PIPELINE_REGION = 'US'
+        -- AND ACCOUNT_EDITION = 'Enterprise'
+        -- AND PRICING_AND_PACKAGING = '2025'
+        -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'
+
+    GROUP BY
+        DATE_TRUNC('MONTH', YEAR_MONTH)
+
+    ORDER BY
+        DATE_TRUNC('MONTH', YEAR_MONTH);
+- name: daily
+  description: Daily metrics
+  query: |-
+    SELECT
+        -- Reporting month
+        TO_CHAR(
+            DATE_TRUNC('MONTH', YEAR_MONTH),
+            'Mon-YYYY'
+        ) AS MONTH,
+
+        -- Distinct billing accounts with at least one plan containing runs
+        COUNT(
+            DISTINCT IFF(
+                PLAN_WITH_RUNS > 0,
+                BILLING_ACCOUNT_ID,
+                NULL
+            )
+        ) AS TOTAL_ACCOUNTS_WITH_RUNS,
+
+        -- Total plans with at least one run
+        COALESCE(
+            SUM(PLAN_WITH_RUNS),
+            0
+        ) AS PLANS_WITH_RUNS,
+
+        -- Percentage of available plans with at least one run
+        ROUND(
+            DIV0(
+                COALESCE(SUM(PLAN_WITH_RUNS), 0),
+                COALESCE(SUM(AVAILABLE_PLANS), 0)
+            ) * 100,
+            2
+        ) AS PCT_OF_TOTAL_PLANS_WITH_RUNS,
+
+        -- Total plan runs
+        COALESCE(
+            SUM(PLAN_RUN),
+            0
+        ) AS TOTAL_PLAN_RUNS
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+    WHERE
+        -- Current month and previous three months
+        YEAR_MONTH >= DATE_TRUNC(
+            'MONTH',
+            DATEADD(
+                MONTH,
+                -3,
+                CURRENT_DATE()
+            )
+        )
+
+        -- Purchased accounts only
+        AND LICENSE_TYPE = 'Purchase'
+
+        -- Optional filters
+        -- AND PIPELINE_REGION = 'US'
+        -- AND ACCOUNT_EDITION = 'Enterprise'
+        -- AND PRICING_AND_PACKAGING = '2025'
+        -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'
+
+    GROUP BY
+        DATE_TRUNC('MONTH', YEAR_MONTH)
+
+    ORDER BY
+        DATE_TRUNC('MONTH', YEAR_MONTH);
+- name: monthly
+  description: Monthly aggregated metrics
+  query: |-
+    SELECT
+        -- Reporting month
+        TO_CHAR(
+            DATE_TRUNC('MONTH', YEAR_MONTH),
+            'Mon-YYYY'
+        ) AS MONTH,
+
+        -- Distinct billing accounts with at least one plan containing runs
+        COUNT(
+            DISTINCT IFF(
+                PLAN_WITH_RUNS > 0,
+                BILLING_ACCOUNT_ID,
+                NULL
+            )
+        ) AS TOTAL_ACCOUNTS_WITH_RUNS,
+
+        -- Total plans with at least one run
+        COALESCE(
+            SUM(PLAN_WITH_RUNS),
+            0
+        ) AS PLANS_WITH_RUNS,
+
+        -- Percentage of available plans with at least one run
+        ROUND(
+            DIV0(
+                COALESCE(SUM(PLAN_WITH_RUNS), 0),
+                COALESCE(SUM(AVAILABLE_PLANS), 0)
+            ) * 100,
+            2
+        ) AS PCT_OF_TOTAL_PLANS_WITH_RUNS,
+
+        -- Total plan runs
+        COALESCE(
+            SUM(PLAN_RUN),
+            0
+        ) AS TOTAL_PLAN_RUNS
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+    WHERE
+        -- Current month and previous three months
+        YEAR_MONTH >= DATE_TRUNC(
+            'MONTH',
+            DATEADD(
+                MONTH,
+                -3,
+                CURRENT_DATE()
+            )
+        )
+
+        -- Purchased accounts only
+        AND LICENSE_TYPE = 'Purchase'
+
+        -- Optional filters
+        -- AND PIPELINE_REGION = 'US'
+        -- AND ACCOUNT_EDITION = 'Enterprise'
+        -- AND PRICING_AND_PACKAGING = '2025'
+        -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'
+
+    GROUP BY
+        DATE_TRUNC('MONTH', YEAR_MONTH)
+
+    ORDER BY
+        DATE_TRUNC('MONTH', YEAR_MONTH);
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: data-engineering@alteryx.com
+tags:
+- plans
+- product_metric
+last_updated: '2026-08-04'
+version: '1.0'

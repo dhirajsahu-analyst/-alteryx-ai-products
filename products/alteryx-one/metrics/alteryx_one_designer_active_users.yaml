@@ -1,0 +1,28 @@
+id: alteryx_one_designer_active_users
+name: Alteryx One Designer Active Users
+description: Count of active users specifically running workflows on local Alteryx Designer.
+product: alteryx_one
+status: validated
+category: active_users
+definition:
+  business: Count of active users specifically running workflows on local Alteryx Designer.
+  technical: From ALTERYX_ONE_ACTIVE_USERS_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT MONTHLY_DESIGNER_ACTIVE_USER as count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ACTIVE_USERS_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: analytics@alteryx.com
+tags:
+- active_users
+- alteryx-one
+last_updated: '2026-08-03'
+version: '1.0'

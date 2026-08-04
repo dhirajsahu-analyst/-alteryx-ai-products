@@ -1,0 +1,2979 @@
+id: plans_fact
+name: Plans Fact
+description: Core fact table for Plans
+product: plans
+status: validated
+category: product_metric
+definition:
+  business: Plans Fact - Core fact table for Plans
+  technical: Query from PLANS_FACT_AV
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables:
+  - PLAN_NODES_LATEST
+  - PLAN_BASE
+  - DISCOVERY_PRODUCT_MANAGEMENT
+sql_template: |-
+  SELECT
+          DATE(TRY_TO_TIMESTAMP_NTZ(A.CREATED_AT))
+              AS ACTIVITY_DATE,
+
+          TRY_TO_TIMESTAMP_NTZ(A.CREATED_AT)
+              AS PLAN_CREATED_AT,
+
+          A.ID
+              AS PLAN_ID,
+
+          A.CREATED_BY
+              AS USER_ID,
+
+          A.CREATED_BY_RAW
+              AS USER_ID_RAW,
+
+          A.WORKSPACE_ID
+              AS WORKSPACE_ID,
+
+          A.WORKSPACE_ID_RAW
+              AS WORKSPACE_ID_RAW,
+
+          A.NAME
+              AS PLAN_NAME,
+
+          A.DESCRIPTION
+              AS PLAN_DESCRIPTION,
+
+          TRY_TO_TIMESTAMP_NTZ(A.UPDATED_AT)
+              AS PLAN_UPDATED_AT,
+
+          TRY_TO_TIMESTAMP_NTZ(A.DELETED_AT)
+              AS PLAN_DELETED_AT,
+
+          IFF(A.DELETED_AT IS NOT NULL, 1, 0)
+              AS IS_PLAN_DELETED,
+
+          A.UPDATED_BY
+              AS PLAN_UPDATED_BY,
+
+          A.ORIGINAL_PLAN_ID
+              AS ORIGINAL_PLAN_ID,
+
+          A.SNAPSHOTTED
+              AS IS_SNAPSHOTTED,
+
+          A.CP_PROJECT
+              AS CP_PROJECT,
+
+          A.NOTIFICATIONS_ENABLED
+              AS NOTIFICATIONS_ENABLED
+
+      FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANS A
+
+      /*
+        Retain the latest available physical record for each plan ID.
+      */
+      QUALIFY ROW_NUMBER() OVER
+      (
+          PARTITION BY A.ID
+          ORDER BY
+              TRY_TO_TIMESTAMP_NTZ(A.UPDATED_AT) DESC NULLS LAST,
+              TRY_TO_TIMESTAMP_NTZ(A.DELETED_AT) DESC NULLS LAST,
+              TRY_TO_TIMESTAMP_NTZ(A.CREATED_AT) DESC NULLS LAST
+      ) = 1
+  ),
+
+
+  USER_CONTEXT_AT_CREATION AS
+  (
+      /*
+        Commercial/user context at the time the plan was created.
+
+        Grain:
+        One row per DATE + USER_ID + WORKSPACE_ID.
+
+        The ROW_NUMBER protection ensures that the later LEFT JOIN
+        cannot increase the one-row-per-plan grain of the fact view.
+      */
+      SELECT
+          U.DATE,
+          U.USER_ID,
+          U.WORKSPACE_ID,
+          U.BILLING_ACCOUNT_ID,
+          U.BILLING_ACCOUNT_ID_RAW,
+          U.SFDC_ACCOUNT_ID,
+          U.ACCOUNT_CID,
+          U.PIPELINE_REGION,
+          U.LICENSE_TYPE,
+          U.ACCOUNT_EDITION,
+          U.PRICING_AND_PACKAGING,
+
+          CASE
+              WHEN U.LICENSE_TYPE ILIKE '%TRIAL%' THEN 'TRIAL'
+              WHEN U.LICENSE_TYPE ILIKE '%EVAL%' THEN 'EVAL'
+              WHEN U.LICENSE_TYPE ILIKE '%AFG%' THEN 'AFG'
+              WHEN U.LICENSE_TYPE ILIKE '%NFR%' THEN 'NFR'
+              WHEN U.LICENSE_TYPE ILIKE '%PURCHASE%'
+                OR U.LICENSE_TYPE ILIKE '%SUBSCRIPTION%' THEN 'PURCHASE'
+              WHEN U.LICENSE_TYPE IS NOT NULL THEN UPPER(TRIM(U.LICENSE_TYPE))
+              ELSE NULL
+          END AS ACCOUNT_QUOTE_TYPE
+
+      FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_AT U
+
+      QUALIFY ROW_NUMBER() OVER
+      (
+          PARTITION BY U.DATE, U.USER_ID, U.WORKSPACE_ID
+          ORDER BY
+              U.ACTIVATION_DATE DESC NULLS LAST,
+              U.BILLING_ACCOUNT_ID DESC NULLS LAST,
+              U.BILLING_ACCOUNT_ID_RAW DESC NULLS LAST
+      ) = 1
+  ),
+
+  PLAN_NODES_LATEST AS
+  (
+      /*
+        Retain the latest available physical record for each task/node.
+
+        Soft-deleted nodes remain available and contribute to EVER
+        metrics. Physically hard-deleted nodes cannot be recovered.
+      */
+      SELECT
+          N.ID
+              AS PLAN_NODE_ID,
+
+          N.PLAN_ID
+              AS PLAN_ID,
+
+          NULLIF(LOWER(TRIM(N.TASK_TYPE)), '')
+              AS TASK_TYPE_NORM,
+
+          N.CREATED_BY
+              AS TASK_CREATED_BY,
+
+          N.UPDATED_BY
+              AS TASK_UPDATED_BY,
+
+          TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT)
+              AS TASK_CREATED_AT,
+
+          TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT)
+              AS TASK_UPDATED_AT,
+
+          TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT)
+              AS TASK_DELETED_AT
+
+      FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANNODES N
+
+      QUALIFY ROW_NUMBER() OVER
+      (
+          PARTITION BY N.ID
+          ORDER BY
+              TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT) DESC NULLS LAST,
+              TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT) DESC NULLS LAST,
+              TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT) DESC NULLS LAST
+      ) = 1
+  ),
+
+
+  TASK_AGG AS
+  (
+      /*
+        Nodes are aggregated before they are joined to plans.
+
+        This preserves the one-row-per-plan grain and prevents task
+        counts from being multiplied when additional plan-level
+        datasets, such as plan runs, are added later.
+      */
+      SELECT
+          PLAN_ID,
+
+          /* ========================================================
+             Overall task metrics
+             ======================================================== */
+
+          COUNT(DISTINCT PLAN_NODE_ID)
+              AS TOTAL_TASKS_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_DELETED_AT IS NOT NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS DELETED_TASK_COUNT,
+
+          IFF(
+              COUNT(DISTINCT PLAN_NODE_ID) > 0,
+              1,
+              0
+          )
+              AS HAS_ANY_TASK_EVER,
+
+          IFF(
+              COUNT(DISTINCT PLAN_NODE_ID) = 0,
+              1,
+              0
+          )
+              AS HAS_NO_TASK_EVER,
+
+          IFF(
+              COUNT(DISTINCT CASE
+                  WHEN TASK_DELETED_AT IS NULL
+                  THEN PLAN_NODE_ID
+              END) > 0,
+              1,
+              0
+          )
+              AS HAS_ANY_CURRENT_TASK,
+
+          IFF(
+              COUNT(DISTINCT CASE
+                  WHEN TASK_DELETED_AT IS NULL
+                  THEN PLAN_NODE_ID
+              END) = 0,
+              1,
+              0
+          )
+              AS HAS_NO_CURRENT_TASK,
+
+          COUNT(DISTINCT TASK_TYPE_NORM)
+              AS DISTINCT_TASK_TYPE_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_DELETED_AT IS NULL
+              THEN TASK_TYPE_NORM
+          END)
+              AS DISTINCT_CURRENT_TASK_TYPE_COUNT,
+
+
+          /* ========================================================
+             Lifetime task counts by recognised type
+             ======================================================== */
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'workflow'
+              THEN PLAN_NODE_ID
+          END)
+              AS WORKFLOW_TASK_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'flow'
+              THEN PLAN_NODE_ID
+          END)
+              AS FLOW_TASK_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'http'
+              THEN PLAN_NODE_ID
+          END)
+              AS HTTP_TASK_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'email'
+              THEN PLAN_NODE_ID
+          END)
+              AS EMAIL_TASK_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'ai_dataset'
+              THEN PLAN_NODE_ID
+          END)
+              AS AI_DATASET_TASK_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'cefd_desktop'
+              THEN PLAN_NODE_ID
+          END)
+              AS CEFD_TASK_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'ml_predict'
+              THEN PLAN_NODE_ID
+          END)
+              AS ML_TASK_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'approval'
+              THEN PLAN_NODE_ID
+          END)
+              AS APPROVAL_TASK_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'condition'
+              THEN PLAN_NODE_ID
+          END)
+              AS CONDITION_TASK_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'delay'
+              THEN PLAN_NODE_ID
+          END)
+              AS DELAY_TASK_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'li_project_replay'
+              THEN PLAN_NODE_ID
+          END)
+              AS LI_PROJECT_REPLAY_TASK_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'ml_project_update'
+              THEN PLAN_NODE_ID
+          END)
+              AS ML_PROJECT_UPDATE_TASK_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'reporting_generate'
+              THEN PLAN_NODE_ID
+          END)
+              AS REPORTING_GENERATE_TASK_COUNT_EVER,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'storage'
+              THEN PLAN_NODE_ID
+          END)
+              AS STORAGE_TASK_COUNT_EVER,
+
+
+          /* ========================================================
+             Lifetime unclassified task count
+
+             This protects reconciliation when new task types are
+             introduced or malformed/null values appear.
+             ======================================================== */
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM IS NULL
+                OR TASK_TYPE_NORM NOT IN
+                (
+                    'workflow',
+                    'flow',
+                    'http',
+                    'email',
+                    'ai_dataset',
+                    'cefd_desktop',
+                    'ml_predict',
+                    'approval',
+                    'condition',
+                    'delay',
+                    'li_project_replay',
+                    'ml_project_update',
+                    'reporting_generate',
+                    'storage'
+                )
+              THEN PLAN_NODE_ID
+          END)
+              AS OTHER_TASK_COUNT_EVER,
+
+
+          /* ========================================================
+             Current task counts by recognised type
+             ======================================================== */
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'workflow'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_WORKFLOW_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'flow'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_FLOW_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'http'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_HTTP_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'email'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_EMAIL_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'ai_dataset'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_AI_DATASET_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'cefd_desktop'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_CEFD_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'ml_predict'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_ML_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'approval'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_APPROVAL_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'condition'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_CONDITION_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'delay'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_DELAY_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'li_project_replay'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_LI_PROJECT_REPLAY_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'ml_project_update'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_ML_PROJECT_UPDATE_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'reporting_generate'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_REPORTING_GENERATE_TASK_COUNT,
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_TYPE_NORM = 'storage'
+               AND TASK_DELETED_AT IS NULL
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_STORAGE_TASK_COUNT,
+
+
+          /* ========================================================
+             Current unclassified task count
+             ======================================================== */
+
+          COUNT(DISTINCT CASE
+              WHEN TASK_DELETED_AT IS NULL
+               AND
+               (
+                   TASK_TYPE_NORM IS NULL
+                   OR TASK_TYPE_NORM NOT IN
+                   (
+                       'workflow',
+                       'flow',
+                       'http',
+                       'email',
+                       'ai_dataset',
+                       'cefd_desktop',
+                       'ml_predict',
+                       'approval',
+                       'condition',
+                       'delay',
+                       'li_project_replay',
+                       'ml_project_update',
+                       'reporting_generate',
+                       'storage'
+                   )
+               )
+              THEN PLAN_NODE_ID
+          END)
+              AS CURRENT_OTHER_TASK_COUNT,
+
+
+          /* ========================================================
+             Task lifecycle timestamps
+             ======================================================== */
+
+          MIN(TASK_CREATED_AT)
+              AS FIRST_TASK_CREATED_AT,
+
+          MAX(TASK_CREATED_AT)
+              AS LAST_TASK_CREATED_AT,
+
+          MAX(TASK_UPDATED_AT)
+              AS LAST_TASK_UPDATED_AT
+
+      FROM PLAN_NODES_LATEST
+      GROUP BY PLAN_ID
+  )
+
+
+  SELECT
+      /* Plan identity */
+      P.ACTIVITY_DATE
+          AS ACTIVITY_DATE,
+
+      P.PLAN_CREATED_AT
+          AS PLAN_CREATED_AT,
+
+      P.PLAN_ID
+          AS PLAN_ID,
+
+      P.USER_ID
+          AS USER_ID,
+
+      P.USER_ID_RAW
+          AS USER_ID_RAW,
+
+      P.WORKSPACE_ID
+          AS WORKSPACE_ID,
+
+      P.WORKSPACE_ID_RAW
+          AS WORKSPACE_ID_RAW,
+
+      /* Commercial and account context at plan creation */
+      U.BILLING_ACCOUNT_ID AS BILLING_ACCOUNT_ID,
+      U.BILLING_ACCOUNT_ID_RAW AS BILLING_ACCOUNT_ID_RAW,
+      U.SFDC_ACCOUNT_ID AS SFDC_ACCOUNT_ID,
+      U.ACCOUNT_CID AS ACCOUNT_CID,
+      U.PIPELINE_REGION AS PIPELINE_REGION,
+      U.LICENSE_TYPE AS LICENSE_TYPE,
+      U.ACCOUNT_EDITION AS ACCOUNT_EDITION,
+      U.PRICING_AND_PACKAGING AS PRICING_AND_PACKAGING,
+      U.ACCOUNT_QUOTE_TYPE AS ACCOUNT_QUOTE_TYPE,
+
+      IFF(
+          U.USER_ID IS NULL,
+          NULL,
+          IFF(U.ACCOUNT_QUOTE_TYPE = 'TRIAL', 1, 0)
+      ) AS IS_TRIAL_USER,
+
+      IFF(
+          U.USER_ID IS NULL,
+          NULL,
+          IFF(U.ACCOUNT_QUOTE_TYPE = 'PURCHASE', 1, 0)
+      ) AS IS_PAID_ACCOUNT,
+
+      IFF(U.USER_ID IS NOT NULL, 1, 0)
+          AS HAS_USER_CONTEXT_MATCH,
+
+
+      /* Lifetime task summary */
+      COALESCE(T.TOTAL_TASKS_EVER, 0)
+          AS TOTAL_TASKS_EVER,
+
+      COALESCE(T.HAS_ANY_TASK_EVER, 0)
+          AS HAS_ANY_TASK_EVER,
+
+      COALESCE(T.HAS_NO_TASK_EVER, 1)
+          AS HAS_NO_TASK_EVER,
+
+
+      /* Plan details */
+      P.PLAN_NAME
+          AS PLAN_NAME,
+
+      P.PLAN_DESCRIPTION
+          AS PLAN_DESCRIPTION,
+
+      P.PLAN_UPDATED_AT
+          AS PLAN_UPDATED_AT,
+
+      P.PLAN_DELETED_AT
+          AS PLAN_DELETED_AT,
+
+      P.IS_PLAN_DELETED
+          AS IS_PLAN_DELETED,
+
+      P.PLAN_UPDATED_BY
+          AS PLAN_UPDATED_BY,
+
+      P.ORIGINAL_PLAN_ID
+          AS ORIGINAL_PLAN_ID,
+
+      P.IS_SNAPSHOTTED
+          AS IS_SNAPSHOTTED,
+
+      P.CP_PROJECT
+          AS CP_PROJECT,
+
+      P.NOTIFICATIONS_ENABLED
+          AS NOTIFICATIONS_ENABLED,
+
+
+      /* Current and deleted task summary */
+      COALESCE(T.CURRENT_TASK_COUNT, 0)
+          AS CURRENT_TASK_COUNT,
+
+      COALESCE(T.DELETED_TASK_COUNT, 0)
+          AS DELETED_TASK_COUNT,
+
+      COALESCE(T.HAS_ANY_CURRENT_TASK, 0)
+          AS HAS_ANY_CURRENT_TASK,
+
+      COALESCE(T.HAS_NO_CURRENT_TASK, 1)
+          AS HAS_NO_CURRENT_TASK,
+
+      COALESCE(T.DISTINCT_TASK_TYPE_COUNT_EVER, 0)
+          AS DISTINCT_TASK_TYPE_COUNT_EVER,
+
+      COALESCE(T.DISTINCT_CURRENT_TASK_TYPE_COUNT, 0)
+          AS DISTINCT_CURRENT_TASK_TYPE_COUNT,
+
+
+      /* Lifetime task counts */
+      COALESCE(T.WORKFLOW_TASK_COUNT_EVER, 0)
+          AS WORKFLOW_TASK_COUNT_EVER,
+
+      COALESCE(T.FLOW_TASK_COUNT_EVER, 0)
+          AS FLOW_TASK_COUNT_EVER,
+
+      COALESCE(T.HTTP_TASK_COUNT_EVER, 0)
+          AS HTTP_TASK_COUNT_EVER,
+
+      COALESCE(T.EMAIL_TASK_COUNT_EVER, 0)
+          AS EMAIL_TASK_COUNT_EVER,
+
+      COALESCE(T.AI_DATASET_TASK_COUNT_EVER, 0)
+          AS AI_DATASET_TASK_COUNT_EVER,
+
+      COALESCE(T.CEFD_TASK_COUNT_EVER, 0)
+          AS CEFD_TASK_COUNT_EVER,
+
+      COALESCE(T.ML_TASK_COUNT_EVER, 0)
+          AS ML_TASK_COUNT_EVER,
+
+      COALESCE(T.APPROVAL_TASK_COUNT_EVER, 0)
+          AS APPROVAL_TASK_COUNT_EVER,
+
+      COALESCE(T.CONDITION_TASK_COUNT_EVER, 0)
+          AS CONDITION_TASK_COUNT_EVER,
+
+      COALESCE(T.DELAY_TASK_COUNT_EVER, 0)
+          AS DELAY_TASK_COUNT_EVER,
+
+      COALESCE(T.LI_PROJECT_REPLAY_TASK_COUNT_EVER, 0)
+          AS LI_PROJECT_REPLAY_TASK_COUNT_EVER,
+
+      COALESCE(T.ML_PROJECT_UPDATE_TASK_COUNT_EVER, 0)
+          AS ML_PROJECT_UPDATE_TASK_COUNT_EVER,
+
+      COALESCE(T.REPORTING_GENERATE_TASK_COUNT_EVER, 0)
+          AS REPORTING_GENERATE_TASK_COUNT_EVER,
+
+      COALESCE(T.STORAGE_TASK_COUNT_EVER, 0)
+          AS STORAGE_TASK_COUNT_EVER,
+
+      COALESCE(T.OTHER_TASK_COUNT_EVER, 0)
+          AS OTHER_TASK_COUNT_EVER,
+
+
+      /* Current task counts */
+      COALESCE(T.CURRENT_WORKFLOW_TASK_COUNT, 0)
+          AS CURRENT_WORKFLOW_TASK_COUNT,
+
+      COALESCE(T.CURRENT_FLOW_TASK_COUNT, 0)
+          AS CURRENT_FLOW_TASK_COUNT,
+
+      COALESCE(T.CURRENT_HTTP_TASK_COUNT, 0)
+          AS CURRENT_HTTP_TASK_COUNT,
+
+      COALESCE(T.CURRENT_EMAIL_TASK_COUNT, 0)
+          AS CURRENT_EMAIL_TASK_COUNT,
+
+      COALESCE(T.CURRENT_AI_DATASET_TASK_COUNT, 0)
+          AS CURRENT_AI_DATASET_TASK_COUNT,
+
+      COALESCE(T.CURRENT_CEFD_TASK_COUNT, 0)
+          AS CURRENT_CEFD_TASK_COUNT,
+
+      COALESCE(T.CURRENT_ML_TASK_COUNT, 0)
+          AS CURRENT_ML_TASK_COUNT,
+
+      COALESCE(T.CURRENT_APPROVAL_TASK_COUNT, 0)
+          AS CURRENT_APPROVAL_TASK_COUNT,
+
+      COALESCE(T.CURRENT_CONDITION_TASK_COUNT, 0)
+          AS CURRENT_CONDITION_TASK_COUNT,
+
+      COALESCE(T.CURRENT_DELAY_TASK_COUNT, 0)
+          AS CURRENT_DELAY_TASK_COUNT,
+
+      COALESCE(T.CURRENT_LI_PROJECT_REPLAY_TASK_COUNT, 0)
+          AS CURRENT_LI_PROJECT_REPLAY_TASK_COUNT,
+
+      COALESCE(T.CURRENT_ML_PROJECT_UPDATE_TASK_COUNT, 0)
+          AS CURRENT_ML_PROJECT_UPDATE_TASK_COUNT,
+
+      COALESCE(T.CURRENT_REPORTING_GENERATE_TASK_COUNT, 0)
+          AS CURRENT_REPORTING_GENERATE_TASK_COUNT,
+
+      COALESCE(T.CURRENT_STORAGE_TASK_COUNT, 0)
+          AS CURRENT_STORAGE_TASK_COUNT,
+
+      COALESCE(T.CURRENT_OTHER_TASK_COUNT, 0)
+          AS CURRENT_OTHER_TASK_COUNT,
+
+
+      /* Task lifecycle */
+      T.FIRST_TASK_CREATED_AT
+          AS FIRST_TASK_CREATED_AT,
+
+      T.LAST_TASK_CREATED_AT
+          AS LAST_TASK_CREATED_AT,
+
+      T.LAST_TASK_UPDATED_AT
+          AS LAST_TASK_UPDATED_AT
+
+  FROM PLAN_BASE P
+
+  LEFT JOIN USER_CONTEXT_AT_CREATION U
+      ON P.ACTIVITY_DATE = U.DATE
+     AND P.USER_ID = U.USER_ID
+     AND P.WORKSPACE_ID = U.WORKSPACE_ID
+
+  LEFT JOIN TASK_AGG T
+      ON P.PLAN_ID = T.PLAN_ID;
+queries:
+- name: base
+  description: Base metric query
+  query: |-
+    SELECT
+            DATE(TRY_TO_TIMESTAMP_NTZ(A.CREATED_AT))
+                AS ACTIVITY_DATE,
+
+            TRY_TO_TIMESTAMP_NTZ(A.CREATED_AT)
+                AS PLAN_CREATED_AT,
+
+            A.ID
+                AS PLAN_ID,
+
+            A.CREATED_BY
+                AS USER_ID,
+
+            A.CREATED_BY_RAW
+                AS USER_ID_RAW,
+
+            A.WORKSPACE_ID
+                AS WORKSPACE_ID,
+
+            A.WORKSPACE_ID_RAW
+                AS WORKSPACE_ID_RAW,
+
+            A.NAME
+                AS PLAN_NAME,
+
+            A.DESCRIPTION
+                AS PLAN_DESCRIPTION,
+
+            TRY_TO_TIMESTAMP_NTZ(A.UPDATED_AT)
+                AS PLAN_UPDATED_AT,
+
+            TRY_TO_TIMESTAMP_NTZ(A.DELETED_AT)
+                AS PLAN_DELETED_AT,
+
+            IFF(A.DELETED_AT IS NOT NULL, 1, 0)
+                AS IS_PLAN_DELETED,
+
+            A.UPDATED_BY
+                AS PLAN_UPDATED_BY,
+
+            A.ORIGINAL_PLAN_ID
+                AS ORIGINAL_PLAN_ID,
+
+            A.SNAPSHOTTED
+                AS IS_SNAPSHOTTED,
+
+            A.CP_PROJECT
+                AS CP_PROJECT,
+
+            A.NOTIFICATIONS_ENABLED
+                AS NOTIFICATIONS_ENABLED
+
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANS A
+
+        /*
+          Retain the latest available physical record for each plan ID.
+        */
+        QUALIFY ROW_NUMBER() OVER
+        (
+            PARTITION BY A.ID
+            ORDER BY
+                TRY_TO_TIMESTAMP_NTZ(A.UPDATED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(A.DELETED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(A.CREATED_AT) DESC NULLS LAST
+        ) = 1
+    ),
+
+
+    USER_CONTEXT_AT_CREATION AS
+    (
+        /*
+          Commercial/user context at the time the plan was created.
+
+          Grain:
+          One row per DATE + USER_ID + WORKSPACE_ID.
+
+          The ROW_NUMBER protection ensures that the later LEFT JOIN
+          cannot increase the one-row-per-plan grain of the fact view.
+        */
+        SELECT
+            U.DATE,
+            U.USER_ID,
+            U.WORKSPACE_ID,
+            U.BILLING_ACCOUNT_ID,
+            U.BILLING_ACCOUNT_ID_RAW,
+            U.SFDC_ACCOUNT_ID,
+            U.ACCOUNT_CID,
+            U.PIPELINE_REGION,
+            U.LICENSE_TYPE,
+            U.ACCOUNT_EDITION,
+            U.PRICING_AND_PACKAGING,
+
+            CASE
+                WHEN U.LICENSE_TYPE ILIKE '%TRIAL%' THEN 'TRIAL'
+                WHEN U.LICENSE_TYPE ILIKE '%EVAL%' THEN 'EVAL'
+                WHEN U.LICENSE_TYPE ILIKE '%AFG%' THEN 'AFG'
+                WHEN U.LICENSE_TYPE ILIKE '%NFR%' THEN 'NFR'
+                WHEN U.LICENSE_TYPE ILIKE '%PURCHASE%'
+                  OR U.LICENSE_TYPE ILIKE '%SUBSCRIPTION%' THEN 'PURCHASE'
+                WHEN U.LICENSE_TYPE IS NOT NULL THEN UPPER(TRIM(U.LICENSE_TYPE))
+                ELSE NULL
+            END AS ACCOUNT_QUOTE_TYPE
+
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_AT U
+
+        QUALIFY ROW_NUMBER() OVER
+        (
+            PARTITION BY U.DATE, U.USER_ID, U.WORKSPACE_ID
+            ORDER BY
+                U.ACTIVATION_DATE DESC NULLS LAST,
+                U.BILLING_ACCOUNT_ID DESC NULLS LAST,
+                U.BILLING_ACCOUNT_ID_RAW DESC NULLS LAST
+        ) = 1
+    ),
+
+    PLAN_NODES_LATEST AS
+    (
+        /*
+          Retain the latest available physical record for each task/node.
+
+          Soft-deleted nodes remain available and contribute to EVER
+          metrics. Physically hard-deleted nodes cannot be recovered.
+        */
+        SELECT
+            N.ID
+                AS PLAN_NODE_ID,
+
+            N.PLAN_ID
+                AS PLAN_ID,
+
+            NULLIF(LOWER(TRIM(N.TASK_TYPE)), '')
+                AS TASK_TYPE_NORM,
+
+            N.CREATED_BY
+                AS TASK_CREATED_BY,
+
+            N.UPDATED_BY
+                AS TASK_UPDATED_BY,
+
+            TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT)
+                AS TASK_CREATED_AT,
+
+            TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT)
+                AS TASK_UPDATED_AT,
+
+            TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT)
+                AS TASK_DELETED_AT
+
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANNODES N
+
+        QUALIFY ROW_NUMBER() OVER
+        (
+            PARTITION BY N.ID
+            ORDER BY
+                TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT) DESC NULLS LAST
+        ) = 1
+    ),
+
+
+    TASK_AGG AS
+    (
+        /*
+          Nodes are aggregated before they are joined to plans.
+
+          This preserves the one-row-per-plan grain and prevents task
+          counts from being multiplied when additional plan-level
+          datasets, such as plan runs, are added later.
+        */
+        SELECT
+            PLAN_ID,
+
+            /* ========================================================
+               Overall task metrics
+               ======================================================== */
+
+            COUNT(DISTINCT PLAN_NODE_ID)
+                AS TOTAL_TASKS_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_DELETED_AT IS NOT NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS DELETED_TASK_COUNT,
+
+            IFF(
+                COUNT(DISTINCT PLAN_NODE_ID) > 0,
+                1,
+                0
+            )
+                AS HAS_ANY_TASK_EVER,
+
+            IFF(
+                COUNT(DISTINCT PLAN_NODE_ID) = 0,
+                1,
+                0
+            )
+                AS HAS_NO_TASK_EVER,
+
+            IFF(
+                COUNT(DISTINCT CASE
+                    WHEN TASK_DELETED_AT IS NULL
+                    THEN PLAN_NODE_ID
+                END) > 0,
+                1,
+                0
+            )
+                AS HAS_ANY_CURRENT_TASK,
+
+            IFF(
+                COUNT(DISTINCT CASE
+                    WHEN TASK_DELETED_AT IS NULL
+                    THEN PLAN_NODE_ID
+                END) = 0,
+                1,
+                0
+            )
+                AS HAS_NO_CURRENT_TASK,
+
+            COUNT(DISTINCT TASK_TYPE_NORM)
+                AS DISTINCT_TASK_TYPE_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_DELETED_AT IS NULL
+                THEN TASK_TYPE_NORM
+            END)
+                AS DISTINCT_CURRENT_TASK_TYPE_COUNT,
+
+
+            /* ========================================================
+               Lifetime task counts by recognised type
+               ======================================================== */
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'workflow'
+                THEN PLAN_NODE_ID
+            END)
+                AS WORKFLOW_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'flow'
+                THEN PLAN_NODE_ID
+            END)
+                AS FLOW_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'http'
+                THEN PLAN_NODE_ID
+            END)
+                AS HTTP_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'email'
+                THEN PLAN_NODE_ID
+            END)
+                AS EMAIL_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ai_dataset'
+                THEN PLAN_NODE_ID
+            END)
+                AS AI_DATASET_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'cefd_desktop'
+                THEN PLAN_NODE_ID
+            END)
+                AS CEFD_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ml_predict'
+                THEN PLAN_NODE_ID
+            END)
+                AS ML_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'approval'
+                THEN PLAN_NODE_ID
+            END)
+                AS APPROVAL_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'condition'
+                THEN PLAN_NODE_ID
+            END)
+                AS CONDITION_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'delay'
+                THEN PLAN_NODE_ID
+            END)
+                AS DELAY_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'li_project_replay'
+                THEN PLAN_NODE_ID
+            END)
+                AS LI_PROJECT_REPLAY_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ml_project_update'
+                THEN PLAN_NODE_ID
+            END)
+                AS ML_PROJECT_UPDATE_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'reporting_generate'
+                THEN PLAN_NODE_ID
+            END)
+                AS REPORTING_GENERATE_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'storage'
+                THEN PLAN_NODE_ID
+            END)
+                AS STORAGE_TASK_COUNT_EVER,
+
+
+            /* ========================================================
+               Lifetime unclassified task count
+
+               This protects reconciliation when new task types are
+               introduced or malformed/null values appear.
+               ======================================================== */
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM IS NULL
+                  OR TASK_TYPE_NORM NOT IN
+                  (
+                      'workflow',
+                      'flow',
+                      'http',
+                      'email',
+                      'ai_dataset',
+                      'cefd_desktop',
+                      'ml_predict',
+                      'approval',
+                      'condition',
+                      'delay',
+                      'li_project_replay',
+                      'ml_project_update',
+                      'reporting_generate',
+                      'storage'
+                  )
+                THEN PLAN_NODE_ID
+            END)
+                AS OTHER_TASK_COUNT_EVER,
+
+
+            /* ========================================================
+               Current task counts by recognised type
+               ======================================================== */
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'workflow'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_WORKFLOW_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'flow'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_FLOW_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'http'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_HTTP_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'email'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_EMAIL_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ai_dataset'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_AI_DATASET_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'cefd_desktop'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_CEFD_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ml_predict'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_ML_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'approval'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_APPROVAL_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'condition'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_CONDITION_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'delay'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_DELAY_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'li_project_replay'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_LI_PROJECT_REPLAY_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ml_project_update'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_ML_PROJECT_UPDATE_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'reporting_generate'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_REPORTING_GENERATE_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'storage'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_STORAGE_TASK_COUNT,
+
+
+            /* ========================================================
+               Current unclassified task count
+               ======================================================== */
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_DELETED_AT IS NULL
+                 AND
+                 (
+                     TASK_TYPE_NORM IS NULL
+                     OR TASK_TYPE_NORM NOT IN
+                     (
+                         'workflow',
+                         'flow',
+                         'http',
+                         'email',
+                         'ai_dataset',
+                         'cefd_desktop',
+                         'ml_predict',
+                         'approval',
+                         'condition',
+                         'delay',
+                         'li_project_replay',
+                         'ml_project_update',
+                         'reporting_generate',
+                         'storage'
+                     )
+                 )
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_OTHER_TASK_COUNT,
+
+
+            /* ========================================================
+               Task lifecycle timestamps
+               ======================================================== */
+
+            MIN(TASK_CREATED_AT)
+                AS FIRST_TASK_CREATED_AT,
+
+            MAX(TASK_CREATED_AT)
+                AS LAST_TASK_CREATED_AT,
+
+            MAX(TASK_UPDATED_AT)
+                AS LAST_TASK_UPDATED_AT
+
+        FROM PLAN_NODES_LATEST
+        GROUP BY PLAN_ID
+    )
+
+
+    SELECT
+        /* Plan identity */
+        P.ACTIVITY_DATE
+            AS ACTIVITY_DATE,
+
+        P.PLAN_CREATED_AT
+            AS PLAN_CREATED_AT,
+
+        P.PLAN_ID
+            AS PLAN_ID,
+
+        P.USER_ID
+            AS USER_ID,
+
+        P.USER_ID_RAW
+            AS USER_ID_RAW,
+
+        P.WORKSPACE_ID
+            AS WORKSPACE_ID,
+
+        P.WORKSPACE_ID_RAW
+            AS WORKSPACE_ID_RAW,
+
+        /* Commercial and account context at plan creation */
+        U.BILLING_ACCOUNT_ID AS BILLING_ACCOUNT_ID,
+        U.BILLING_ACCOUNT_ID_RAW AS BILLING_ACCOUNT_ID_RAW,
+        U.SFDC_ACCOUNT_ID AS SFDC_ACCOUNT_ID,
+        U.ACCOUNT_CID AS ACCOUNT_CID,
+        U.PIPELINE_REGION AS PIPELINE_REGION,
+        U.LICENSE_TYPE AS LICENSE_TYPE,
+        U.ACCOUNT_EDITION AS ACCOUNT_EDITION,
+        U.PRICING_AND_PACKAGING AS PRICING_AND_PACKAGING,
+        U.ACCOUNT_QUOTE_TYPE AS ACCOUNT_QUOTE_TYPE,
+
+        IFF(
+            U.USER_ID IS NULL,
+            NULL,
+            IFF(U.ACCOUNT_QUOTE_TYPE = 'TRIAL', 1, 0)
+        ) AS IS_TRIAL_USER,
+
+        IFF(
+            U.USER_ID IS NULL,
+            NULL,
+            IFF(U.ACCOUNT_QUOTE_TYPE = 'PURCHASE', 1, 0)
+        ) AS IS_PAID_ACCOUNT,
+
+        IFF(U.USER_ID IS NOT NULL, 1, 0)
+            AS HAS_USER_CONTEXT_MATCH,
+
+
+        /* Lifetime task summary */
+        COALESCE(T.TOTAL_TASKS_EVER, 0)
+            AS TOTAL_TASKS_EVER,
+
+        COALESCE(T.HAS_ANY_TASK_EVER, 0)
+            AS HAS_ANY_TASK_EVER,
+
+        COALESCE(T.HAS_NO_TASK_EVER, 1)
+            AS HAS_NO_TASK_EVER,
+
+
+        /* Plan details */
+        P.PLAN_NAME
+            AS PLAN_NAME,
+
+        P.PLAN_DESCRIPTION
+            AS PLAN_DESCRIPTION,
+
+        P.PLAN_UPDATED_AT
+            AS PLAN_UPDATED_AT,
+
+        P.PLAN_DELETED_AT
+            AS PLAN_DELETED_AT,
+
+        P.IS_PLAN_DELETED
+            AS IS_PLAN_DELETED,
+
+        P.PLAN_UPDATED_BY
+            AS PLAN_UPDATED_BY,
+
+        P.ORIGINAL_PLAN_ID
+            AS ORIGINAL_PLAN_ID,
+
+        P.IS_SNAPSHOTTED
+            AS IS_SNAPSHOTTED,
+
+        P.CP_PROJECT
+            AS CP_PROJECT,
+
+        P.NOTIFICATIONS_ENABLED
+            AS NOTIFICATIONS_ENABLED,
+
+
+        /* Current and deleted task summary */
+        COALESCE(T.CURRENT_TASK_COUNT, 0)
+            AS CURRENT_TASK_COUNT,
+
+        COALESCE(T.DELETED_TASK_COUNT, 0)
+            AS DELETED_TASK_COUNT,
+
+        COALESCE(T.HAS_ANY_CURRENT_TASK, 0)
+            AS HAS_ANY_CURRENT_TASK,
+
+        COALESCE(T.HAS_NO_CURRENT_TASK, 1)
+            AS HAS_NO_CURRENT_TASK,
+
+        COALESCE(T.DISTINCT_TASK_TYPE_COUNT_EVER, 0)
+            AS DISTINCT_TASK_TYPE_COUNT_EVER,
+
+        COALESCE(T.DISTINCT_CURRENT_TASK_TYPE_COUNT, 0)
+            AS DISTINCT_CURRENT_TASK_TYPE_COUNT,
+
+
+        /* Lifetime task counts */
+        COALESCE(T.WORKFLOW_TASK_COUNT_EVER, 0)
+            AS WORKFLOW_TASK_COUNT_EVER,
+
+        COALESCE(T.FLOW_TASK_COUNT_EVER, 0)
+            AS FLOW_TASK_COUNT_EVER,
+
+        COALESCE(T.HTTP_TASK_COUNT_EVER, 0)
+            AS HTTP_TASK_COUNT_EVER,
+
+        COALESCE(T.EMAIL_TASK_COUNT_EVER, 0)
+            AS EMAIL_TASK_COUNT_EVER,
+
+        COALESCE(T.AI_DATASET_TASK_COUNT_EVER, 0)
+            AS AI_DATASET_TASK_COUNT_EVER,
+
+        COALESCE(T.CEFD_TASK_COUNT_EVER, 0)
+            AS CEFD_TASK_COUNT_EVER,
+
+        COALESCE(T.ML_TASK_COUNT_EVER, 0)
+            AS ML_TASK_COUNT_EVER,
+
+        COALESCE(T.APPROVAL_TASK_COUNT_EVER, 0)
+            AS APPROVAL_TASK_COUNT_EVER,
+
+        COALESCE(T.CONDITION_TASK_COUNT_EVER, 0)
+            AS CONDITION_TASK_COUNT_EVER,
+
+        COALESCE(T.DELAY_TASK_COUNT_EVER, 0)
+            AS DELAY_TASK_COUNT_EVER,
+
+        COALESCE(T.LI_PROJECT_REPLAY_TASK_COUNT_EVER, 0)
+            AS LI_PROJECT_REPLAY_TASK_COUNT_EVER,
+
+        COALESCE(T.ML_PROJECT_UPDATE_TASK_COUNT_EVER, 0)
+            AS ML_PROJECT_UPDATE_TASK_COUNT_EVER,
+
+        COALESCE(T.REPORTING_GENERATE_TASK_COUNT_EVER, 0)
+            AS REPORTING_GENERATE_TASK_COUNT_EVER,
+
+        COALESCE(T.STORAGE_TASK_COUNT_EVER, 0)
+            AS STORAGE_TASK_COUNT_EVER,
+
+        COALESCE(T.OTHER_TASK_COUNT_EVER, 0)
+            AS OTHER_TASK_COUNT_EVER,
+
+
+        /* Current task counts */
+        COALESCE(T.CURRENT_WORKFLOW_TASK_COUNT, 0)
+            AS CURRENT_WORKFLOW_TASK_COUNT,
+
+        COALESCE(T.CURRENT_FLOW_TASK_COUNT, 0)
+            AS CURRENT_FLOW_TASK_COUNT,
+
+        COALESCE(T.CURRENT_HTTP_TASK_COUNT, 0)
+            AS CURRENT_HTTP_TASK_COUNT,
+
+        COALESCE(T.CURRENT_EMAIL_TASK_COUNT, 0)
+            AS CURRENT_EMAIL_TASK_COUNT,
+
+        COALESCE(T.CURRENT_AI_DATASET_TASK_COUNT, 0)
+            AS CURRENT_AI_DATASET_TASK_COUNT,
+
+        COALESCE(T.CURRENT_CEFD_TASK_COUNT, 0)
+            AS CURRENT_CEFD_TASK_COUNT,
+
+        COALESCE(T.CURRENT_ML_TASK_COUNT, 0)
+            AS CURRENT_ML_TASK_COUNT,
+
+        COALESCE(T.CURRENT_APPROVAL_TASK_COUNT, 0)
+            AS CURRENT_APPROVAL_TASK_COUNT,
+
+        COALESCE(T.CURRENT_CONDITION_TASK_COUNT, 0)
+            AS CURRENT_CONDITION_TASK_COUNT,
+
+        COALESCE(T.CURRENT_DELAY_TASK_COUNT, 0)
+            AS CURRENT_DELAY_TASK_COUNT,
+
+        COALESCE(T.CURRENT_LI_PROJECT_REPLAY_TASK_COUNT, 0)
+            AS CURRENT_LI_PROJECT_REPLAY_TASK_COUNT,
+
+        COALESCE(T.CURRENT_ML_PROJECT_UPDATE_TASK_COUNT, 0)
+            AS CURRENT_ML_PROJECT_UPDATE_TASK_COUNT,
+
+        COALESCE(T.CURRENT_REPORTING_GENERATE_TASK_COUNT, 0)
+            AS CURRENT_REPORTING_GENERATE_TASK_COUNT,
+
+        COALESCE(T.CURRENT_STORAGE_TASK_COUNT, 0)
+            AS CURRENT_STORAGE_TASK_COUNT,
+
+        COALESCE(T.CURRENT_OTHER_TASK_COUNT, 0)
+            AS CURRENT_OTHER_TASK_COUNT,
+
+
+        /* Task lifecycle */
+        T.FIRST_TASK_CREATED_AT
+            AS FIRST_TASK_CREATED_AT,
+
+        T.LAST_TASK_CREATED_AT
+            AS LAST_TASK_CREATED_AT,
+
+        T.LAST_TASK_UPDATED_AT
+            AS LAST_TASK_UPDATED_AT
+
+    FROM PLAN_BASE P
+
+    LEFT JOIN USER_CONTEXT_AT_CREATION U
+        ON P.ACTIVITY_DATE = U.DATE
+       AND P.USER_ID = U.USER_ID
+       AND P.WORKSPACE_ID = U.WORKSPACE_ID
+
+    LEFT JOIN TASK_AGG T
+        ON P.PLAN_ID = T.PLAN_ID;
+- name: daily
+  description: Daily metrics
+  query: |-
+    SELECT
+            DATE(TRY_TO_TIMESTAMP_NTZ(A.CREATED_AT))
+                AS ACTIVITY_DATE,
+
+            TRY_TO_TIMESTAMP_NTZ(A.CREATED_AT)
+                AS PLAN_CREATED_AT,
+
+            A.ID
+                AS PLAN_ID,
+
+            A.CREATED_BY
+                AS USER_ID,
+
+            A.CREATED_BY_RAW
+                AS USER_ID_RAW,
+
+            A.WORKSPACE_ID
+                AS WORKSPACE_ID,
+
+            A.WORKSPACE_ID_RAW
+                AS WORKSPACE_ID_RAW,
+
+            A.NAME
+                AS PLAN_NAME,
+
+            A.DESCRIPTION
+                AS PLAN_DESCRIPTION,
+
+            TRY_TO_TIMESTAMP_NTZ(A.UPDATED_AT)
+                AS PLAN_UPDATED_AT,
+
+            TRY_TO_TIMESTAMP_NTZ(A.DELETED_AT)
+                AS PLAN_DELETED_AT,
+
+            IFF(A.DELETED_AT IS NOT NULL, 1, 0)
+                AS IS_PLAN_DELETED,
+
+            A.UPDATED_BY
+                AS PLAN_UPDATED_BY,
+
+            A.ORIGINAL_PLAN_ID
+                AS ORIGINAL_PLAN_ID,
+
+            A.SNAPSHOTTED
+                AS IS_SNAPSHOTTED,
+
+            A.CP_PROJECT
+                AS CP_PROJECT,
+
+            A.NOTIFICATIONS_ENABLED
+                AS NOTIFICATIONS_ENABLED
+
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANS A
+
+        /*
+          Retain the latest available physical record for each plan ID.
+        */
+        QUALIFY ROW_NUMBER() OVER
+        (
+            PARTITION BY A.ID
+            ORDER BY
+                TRY_TO_TIMESTAMP_NTZ(A.UPDATED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(A.DELETED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(A.CREATED_AT) DESC NULLS LAST
+        ) = 1
+    ),
+
+
+    USER_CONTEXT_AT_CREATION AS
+    (
+        /*
+          Commercial/user context at the time the plan was created.
+
+          Grain:
+          One row per DATE + USER_ID + WORKSPACE_ID.
+
+          The ROW_NUMBER protection ensures that the later LEFT JOIN
+          cannot increase the one-row-per-plan grain of the fact view.
+        */
+        SELECT
+            U.DATE,
+            U.USER_ID,
+            U.WORKSPACE_ID,
+            U.BILLING_ACCOUNT_ID,
+            U.BILLING_ACCOUNT_ID_RAW,
+            U.SFDC_ACCOUNT_ID,
+            U.ACCOUNT_CID,
+            U.PIPELINE_REGION,
+            U.LICENSE_TYPE,
+            U.ACCOUNT_EDITION,
+            U.PRICING_AND_PACKAGING,
+
+            CASE
+                WHEN U.LICENSE_TYPE ILIKE '%TRIAL%' THEN 'TRIAL'
+                WHEN U.LICENSE_TYPE ILIKE '%EVAL%' THEN 'EVAL'
+                WHEN U.LICENSE_TYPE ILIKE '%AFG%' THEN 'AFG'
+                WHEN U.LICENSE_TYPE ILIKE '%NFR%' THEN 'NFR'
+                WHEN U.LICENSE_TYPE ILIKE '%PURCHASE%'
+                  OR U.LICENSE_TYPE ILIKE '%SUBSCRIPTION%' THEN 'PURCHASE'
+                WHEN U.LICENSE_TYPE IS NOT NULL THEN UPPER(TRIM(U.LICENSE_TYPE))
+                ELSE NULL
+            END AS ACCOUNT_QUOTE_TYPE
+
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_AT U
+
+        QUALIFY ROW_NUMBER() OVER
+        (
+            PARTITION BY U.DATE, U.USER_ID, U.WORKSPACE_ID
+            ORDER BY
+                U.ACTIVATION_DATE DESC NULLS LAST,
+                U.BILLING_ACCOUNT_ID DESC NULLS LAST,
+                U.BILLING_ACCOUNT_ID_RAW DESC NULLS LAST
+        ) = 1
+    ),
+
+    PLAN_NODES_LATEST AS
+    (
+        /*
+          Retain the latest available physical record for each task/node.
+
+          Soft-deleted nodes remain available and contribute to EVER
+          metrics. Physically hard-deleted nodes cannot be recovered.
+        */
+        SELECT
+            N.ID
+                AS PLAN_NODE_ID,
+
+            N.PLAN_ID
+                AS PLAN_ID,
+
+            NULLIF(LOWER(TRIM(N.TASK_TYPE)), '')
+                AS TASK_TYPE_NORM,
+
+            N.CREATED_BY
+                AS TASK_CREATED_BY,
+
+            N.UPDATED_BY
+                AS TASK_UPDATED_BY,
+
+            TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT)
+                AS TASK_CREATED_AT,
+
+            TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT)
+                AS TASK_UPDATED_AT,
+
+            TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT)
+                AS TASK_DELETED_AT
+
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANNODES N
+
+        QUALIFY ROW_NUMBER() OVER
+        (
+            PARTITION BY N.ID
+            ORDER BY
+                TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT) DESC NULLS LAST
+        ) = 1
+    ),
+
+
+    TASK_AGG AS
+    (
+        /*
+          Nodes are aggregated before they are joined to plans.
+
+          This preserves the one-row-per-plan grain and prevents task
+          counts from being multiplied when additional plan-level
+          datasets, such as plan runs, are added later.
+        */
+        SELECT
+            PLAN_ID,
+
+            /* ========================================================
+               Overall task metrics
+               ======================================================== */
+
+            COUNT(DISTINCT PLAN_NODE_ID)
+                AS TOTAL_TASKS_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_DELETED_AT IS NOT NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS DELETED_TASK_COUNT,
+
+            IFF(
+                COUNT(DISTINCT PLAN_NODE_ID) > 0,
+                1,
+                0
+            )
+                AS HAS_ANY_TASK_EVER,
+
+            IFF(
+                COUNT(DISTINCT PLAN_NODE_ID) = 0,
+                1,
+                0
+            )
+                AS HAS_NO_TASK_EVER,
+
+            IFF(
+                COUNT(DISTINCT CASE
+                    WHEN TASK_DELETED_AT IS NULL
+                    THEN PLAN_NODE_ID
+                END) > 0,
+                1,
+                0
+            )
+                AS HAS_ANY_CURRENT_TASK,
+
+            IFF(
+                COUNT(DISTINCT CASE
+                    WHEN TASK_DELETED_AT IS NULL
+                    THEN PLAN_NODE_ID
+                END) = 0,
+                1,
+                0
+            )
+                AS HAS_NO_CURRENT_TASK,
+
+            COUNT(DISTINCT TASK_TYPE_NORM)
+                AS DISTINCT_TASK_TYPE_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_DELETED_AT IS NULL
+                THEN TASK_TYPE_NORM
+            END)
+                AS DISTINCT_CURRENT_TASK_TYPE_COUNT,
+
+
+            /* ========================================================
+               Lifetime task counts by recognised type
+               ======================================================== */
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'workflow'
+                THEN PLAN_NODE_ID
+            END)
+                AS WORKFLOW_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'flow'
+                THEN PLAN_NODE_ID
+            END)
+                AS FLOW_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'http'
+                THEN PLAN_NODE_ID
+            END)
+                AS HTTP_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'email'
+                THEN PLAN_NODE_ID
+            END)
+                AS EMAIL_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ai_dataset'
+                THEN PLAN_NODE_ID
+            END)
+                AS AI_DATASET_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'cefd_desktop'
+                THEN PLAN_NODE_ID
+            END)
+                AS CEFD_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ml_predict'
+                THEN PLAN_NODE_ID
+            END)
+                AS ML_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'approval'
+                THEN PLAN_NODE_ID
+            END)
+                AS APPROVAL_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'condition'
+                THEN PLAN_NODE_ID
+            END)
+                AS CONDITION_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'delay'
+                THEN PLAN_NODE_ID
+            END)
+                AS DELAY_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'li_project_replay'
+                THEN PLAN_NODE_ID
+            END)
+                AS LI_PROJECT_REPLAY_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ml_project_update'
+                THEN PLAN_NODE_ID
+            END)
+                AS ML_PROJECT_UPDATE_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'reporting_generate'
+                THEN PLAN_NODE_ID
+            END)
+                AS REPORTING_GENERATE_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'storage'
+                THEN PLAN_NODE_ID
+            END)
+                AS STORAGE_TASK_COUNT_EVER,
+
+
+            /* ========================================================
+               Lifetime unclassified task count
+
+               This protects reconciliation when new task types are
+               introduced or malformed/null values appear.
+               ======================================================== */
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM IS NULL
+                  OR TASK_TYPE_NORM NOT IN
+                  (
+                      'workflow',
+                      'flow',
+                      'http',
+                      'email',
+                      'ai_dataset',
+                      'cefd_desktop',
+                      'ml_predict',
+                      'approval',
+                      'condition',
+                      'delay',
+                      'li_project_replay',
+                      'ml_project_update',
+                      'reporting_generate',
+                      'storage'
+                  )
+                THEN PLAN_NODE_ID
+            END)
+                AS OTHER_TASK_COUNT_EVER,
+
+
+            /* ========================================================
+               Current task counts by recognised type
+               ======================================================== */
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'workflow'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_WORKFLOW_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'flow'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_FLOW_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'http'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_HTTP_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'email'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_EMAIL_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ai_dataset'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_AI_DATASET_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'cefd_desktop'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_CEFD_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ml_predict'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_ML_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'approval'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_APPROVAL_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'condition'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_CONDITION_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'delay'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_DELAY_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'li_project_replay'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_LI_PROJECT_REPLAY_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ml_project_update'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_ML_PROJECT_UPDATE_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'reporting_generate'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_REPORTING_GENERATE_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'storage'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_STORAGE_TASK_COUNT,
+
+
+            /* ========================================================
+               Current unclassified task count
+               ======================================================== */
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_DELETED_AT IS NULL
+                 AND
+                 (
+                     TASK_TYPE_NORM IS NULL
+                     OR TASK_TYPE_NORM NOT IN
+                     (
+                         'workflow',
+                         'flow',
+                         'http',
+                         'email',
+                         'ai_dataset',
+                         'cefd_desktop',
+                         'ml_predict',
+                         'approval',
+                         'condition',
+                         'delay',
+                         'li_project_replay',
+                         'ml_project_update',
+                         'reporting_generate',
+                         'storage'
+                     )
+                 )
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_OTHER_TASK_COUNT,
+
+
+            /* ========================================================
+               Task lifecycle timestamps
+               ======================================================== */
+
+            MIN(TASK_CREATED_AT)
+                AS FIRST_TASK_CREATED_AT,
+
+            MAX(TASK_CREATED_AT)
+                AS LAST_TASK_CREATED_AT,
+
+            MAX(TASK_UPDATED_AT)
+                AS LAST_TASK_UPDATED_AT
+
+        FROM PLAN_NODES_LATEST
+        GROUP BY PLAN_ID
+    )
+
+
+    SELECT
+        /* Plan identity */
+        P.ACTIVITY_DATE
+            AS ACTIVITY_DATE,
+
+        P.PLAN_CREATED_AT
+            AS PLAN_CREATED_AT,
+
+        P.PLAN_ID
+            AS PLAN_ID,
+
+        P.USER_ID
+            AS USER_ID,
+
+        P.USER_ID_RAW
+            AS USER_ID_RAW,
+
+        P.WORKSPACE_ID
+            AS WORKSPACE_ID,
+
+        P.WORKSPACE_ID_RAW
+            AS WORKSPACE_ID_RAW,
+
+        /* Commercial and account context at plan creation */
+        U.BILLING_ACCOUNT_ID AS BILLING_ACCOUNT_ID,
+        U.BILLING_ACCOUNT_ID_RAW AS BILLING_ACCOUNT_ID_RAW,
+        U.SFDC_ACCOUNT_ID AS SFDC_ACCOUNT_ID,
+        U.ACCOUNT_CID AS ACCOUNT_CID,
+        U.PIPELINE_REGION AS PIPELINE_REGION,
+        U.LICENSE_TYPE AS LICENSE_TYPE,
+        U.ACCOUNT_EDITION AS ACCOUNT_EDITION,
+        U.PRICING_AND_PACKAGING AS PRICING_AND_PACKAGING,
+        U.ACCOUNT_QUOTE_TYPE AS ACCOUNT_QUOTE_TYPE,
+
+        IFF(
+            U.USER_ID IS NULL,
+            NULL,
+            IFF(U.ACCOUNT_QUOTE_TYPE = 'TRIAL', 1, 0)
+        ) AS IS_TRIAL_USER,
+
+        IFF(
+            U.USER_ID IS NULL,
+            NULL,
+            IFF(U.ACCOUNT_QUOTE_TYPE = 'PURCHASE', 1, 0)
+        ) AS IS_PAID_ACCOUNT,
+
+        IFF(U.USER_ID IS NOT NULL, 1, 0)
+            AS HAS_USER_CONTEXT_MATCH,
+
+
+        /* Lifetime task summary */
+        COALESCE(T.TOTAL_TASKS_EVER, 0)
+            AS TOTAL_TASKS_EVER,
+
+        COALESCE(T.HAS_ANY_TASK_EVER, 0)
+            AS HAS_ANY_TASK_EVER,
+
+        COALESCE(T.HAS_NO_TASK_EVER, 1)
+            AS HAS_NO_TASK_EVER,
+
+
+        /* Plan details */
+        P.PLAN_NAME
+            AS PLAN_NAME,
+
+        P.PLAN_DESCRIPTION
+            AS PLAN_DESCRIPTION,
+
+        P.PLAN_UPDATED_AT
+            AS PLAN_UPDATED_AT,
+
+        P.PLAN_DELETED_AT
+            AS PLAN_DELETED_AT,
+
+        P.IS_PLAN_DELETED
+            AS IS_PLAN_DELETED,
+
+        P.PLAN_UPDATED_BY
+            AS PLAN_UPDATED_BY,
+
+        P.ORIGINAL_PLAN_ID
+            AS ORIGINAL_PLAN_ID,
+
+        P.IS_SNAPSHOTTED
+            AS IS_SNAPSHOTTED,
+
+        P.CP_PROJECT
+            AS CP_PROJECT,
+
+        P.NOTIFICATIONS_ENABLED
+            AS NOTIFICATIONS_ENABLED,
+
+
+        /* Current and deleted task summary */
+        COALESCE(T.CURRENT_TASK_COUNT, 0)
+            AS CURRENT_TASK_COUNT,
+
+        COALESCE(T.DELETED_TASK_COUNT, 0)
+            AS DELETED_TASK_COUNT,
+
+        COALESCE(T.HAS_ANY_CURRENT_TASK, 0)
+            AS HAS_ANY_CURRENT_TASK,
+
+        COALESCE(T.HAS_NO_CURRENT_TASK, 1)
+            AS HAS_NO_CURRENT_TASK,
+
+        COALESCE(T.DISTINCT_TASK_TYPE_COUNT_EVER, 0)
+            AS DISTINCT_TASK_TYPE_COUNT_EVER,
+
+        COALESCE(T.DISTINCT_CURRENT_TASK_TYPE_COUNT, 0)
+            AS DISTINCT_CURRENT_TASK_TYPE_COUNT,
+
+
+        /* Lifetime task counts */
+        COALESCE(T.WORKFLOW_TASK_COUNT_EVER, 0)
+            AS WORKFLOW_TASK_COUNT_EVER,
+
+        COALESCE(T.FLOW_TASK_COUNT_EVER, 0)
+            AS FLOW_TASK_COUNT_EVER,
+
+        COALESCE(T.HTTP_TASK_COUNT_EVER, 0)
+            AS HTTP_TASK_COUNT_EVER,
+
+        COALESCE(T.EMAIL_TASK_COUNT_EVER, 0)
+            AS EMAIL_TASK_COUNT_EVER,
+
+        COALESCE(T.AI_DATASET_TASK_COUNT_EVER, 0)
+            AS AI_DATASET_TASK_COUNT_EVER,
+
+        COALESCE(T.CEFD_TASK_COUNT_EVER, 0)
+            AS CEFD_TASK_COUNT_EVER,
+
+        COALESCE(T.ML_TASK_COUNT_EVER, 0)
+            AS ML_TASK_COUNT_EVER,
+
+        COALESCE(T.APPROVAL_TASK_COUNT_EVER, 0)
+            AS APPROVAL_TASK_COUNT_EVER,
+
+        COALESCE(T.CONDITION_TASK_COUNT_EVER, 0)
+            AS CONDITION_TASK_COUNT_EVER,
+
+        COALESCE(T.DELAY_TASK_COUNT_EVER, 0)
+            AS DELAY_TASK_COUNT_EVER,
+
+        COALESCE(T.LI_PROJECT_REPLAY_TASK_COUNT_EVER, 0)
+            AS LI_PROJECT_REPLAY_TASK_COUNT_EVER,
+
+        COALESCE(T.ML_PROJECT_UPDATE_TASK_COUNT_EVER, 0)
+            AS ML_PROJECT_UPDATE_TASK_COUNT_EVER,
+
+        COALESCE(T.REPORTING_GENERATE_TASK_COUNT_EVER, 0)
+            AS REPORTING_GENERATE_TASK_COUNT_EVER,
+
+        COALESCE(T.STORAGE_TASK_COUNT_EVER, 0)
+            AS STORAGE_TASK_COUNT_EVER,
+
+        COALESCE(T.OTHER_TASK_COUNT_EVER, 0)
+            AS OTHER_TASK_COUNT_EVER,
+
+
+        /* Current task counts */
+        COALESCE(T.CURRENT_WORKFLOW_TASK_COUNT, 0)
+            AS CURRENT_WORKFLOW_TASK_COUNT,
+
+        COALESCE(T.CURRENT_FLOW_TASK_COUNT, 0)
+            AS CURRENT_FLOW_TASK_COUNT,
+
+        COALESCE(T.CURRENT_HTTP_TASK_COUNT, 0)
+            AS CURRENT_HTTP_TASK_COUNT,
+
+        COALESCE(T.CURRENT_EMAIL_TASK_COUNT, 0)
+            AS CURRENT_EMAIL_TASK_COUNT,
+
+        COALESCE(T.CURRENT_AI_DATASET_TASK_COUNT, 0)
+            AS CURRENT_AI_DATASET_TASK_COUNT,
+
+        COALESCE(T.CURRENT_CEFD_TASK_COUNT, 0)
+            AS CURRENT_CEFD_TASK_COUNT,
+
+        COALESCE(T.CURRENT_ML_TASK_COUNT, 0)
+            AS CURRENT_ML_TASK_COUNT,
+
+        COALESCE(T.CURRENT_APPROVAL_TASK_COUNT, 0)
+            AS CURRENT_APPROVAL_TASK_COUNT,
+
+        COALESCE(T.CURRENT_CONDITION_TASK_COUNT, 0)
+            AS CURRENT_CONDITION_TASK_COUNT,
+
+        COALESCE(T.CURRENT_DELAY_TASK_COUNT, 0)
+            AS CURRENT_DELAY_TASK_COUNT,
+
+        COALESCE(T.CURRENT_LI_PROJECT_REPLAY_TASK_COUNT, 0)
+            AS CURRENT_LI_PROJECT_REPLAY_TASK_COUNT,
+
+        COALESCE(T.CURRENT_ML_PROJECT_UPDATE_TASK_COUNT, 0)
+            AS CURRENT_ML_PROJECT_UPDATE_TASK_COUNT,
+
+        COALESCE(T.CURRENT_REPORTING_GENERATE_TASK_COUNT, 0)
+            AS CURRENT_REPORTING_GENERATE_TASK_COUNT,
+
+        COALESCE(T.CURRENT_STORAGE_TASK_COUNT, 0)
+            AS CURRENT_STORAGE_TASK_COUNT,
+
+        COALESCE(T.CURRENT_OTHER_TASK_COUNT, 0)
+            AS CURRENT_OTHER_TASK_COUNT,
+
+
+        /* Task lifecycle */
+        T.FIRST_TASK_CREATED_AT
+            AS FIRST_TASK_CREATED_AT,
+
+        T.LAST_TASK_CREATED_AT
+            AS LAST_TASK_CREATED_AT,
+
+        T.LAST_TASK_UPDATED_AT
+            AS LAST_TASK_UPDATED_AT
+
+    FROM PLAN_BASE P
+
+    LEFT JOIN USER_CONTEXT_AT_CREATION U
+        ON P.ACTIVITY_DATE = U.DATE
+       AND P.USER_ID = U.USER_ID
+       AND P.WORKSPACE_ID = U.WORKSPACE_ID
+
+    LEFT JOIN TASK_AGG T
+        ON P.PLAN_ID = T.PLAN_ID;
+- name: monthly
+  description: Monthly aggregated metrics
+  query: |-
+    SELECT
+            DATE(TRY_TO_TIMESTAMP_NTZ(A.CREATED_AT))
+                AS ACTIVITY_DATE,
+
+            TRY_TO_TIMESTAMP_NTZ(A.CREATED_AT)
+                AS PLAN_CREATED_AT,
+
+            A.ID
+                AS PLAN_ID,
+
+            A.CREATED_BY
+                AS USER_ID,
+
+            A.CREATED_BY_RAW
+                AS USER_ID_RAW,
+
+            A.WORKSPACE_ID
+                AS WORKSPACE_ID,
+
+            A.WORKSPACE_ID_RAW
+                AS WORKSPACE_ID_RAW,
+
+            A.NAME
+                AS PLAN_NAME,
+
+            A.DESCRIPTION
+                AS PLAN_DESCRIPTION,
+
+            TRY_TO_TIMESTAMP_NTZ(A.UPDATED_AT)
+                AS PLAN_UPDATED_AT,
+
+            TRY_TO_TIMESTAMP_NTZ(A.DELETED_AT)
+                AS PLAN_DELETED_AT,
+
+            IFF(A.DELETED_AT IS NOT NULL, 1, 0)
+                AS IS_PLAN_DELETED,
+
+            A.UPDATED_BY
+                AS PLAN_UPDATED_BY,
+
+            A.ORIGINAL_PLAN_ID
+                AS ORIGINAL_PLAN_ID,
+
+            A.SNAPSHOTTED
+                AS IS_SNAPSHOTTED,
+
+            A.CP_PROJECT
+                AS CP_PROJECT,
+
+            A.NOTIFICATIONS_ENABLED
+                AS NOTIFICATIONS_ENABLED
+
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANS A
+
+        /*
+          Retain the latest available physical record for each plan ID.
+        */
+        QUALIFY ROW_NUMBER() OVER
+        (
+            PARTITION BY A.ID
+            ORDER BY
+                TRY_TO_TIMESTAMP_NTZ(A.UPDATED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(A.DELETED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(A.CREATED_AT) DESC NULLS LAST
+        ) = 1
+    ),
+
+
+    USER_CONTEXT_AT_CREATION AS
+    (
+        /*
+          Commercial/user context at the time the plan was created.
+
+          Grain:
+          One row per DATE + USER_ID + WORKSPACE_ID.
+
+          The ROW_NUMBER protection ensures that the later LEFT JOIN
+          cannot increase the one-row-per-plan grain of the fact view.
+        */
+        SELECT
+            U.DATE,
+            U.USER_ID,
+            U.WORKSPACE_ID,
+            U.BILLING_ACCOUNT_ID,
+            U.BILLING_ACCOUNT_ID_RAW,
+            U.SFDC_ACCOUNT_ID,
+            U.ACCOUNT_CID,
+            U.PIPELINE_REGION,
+            U.LICENSE_TYPE,
+            U.ACCOUNT_EDITION,
+            U.PRICING_AND_PACKAGING,
+
+            CASE
+                WHEN U.LICENSE_TYPE ILIKE '%TRIAL%' THEN 'TRIAL'
+                WHEN U.LICENSE_TYPE ILIKE '%EVAL%' THEN 'EVAL'
+                WHEN U.LICENSE_TYPE ILIKE '%AFG%' THEN 'AFG'
+                WHEN U.LICENSE_TYPE ILIKE '%NFR%' THEN 'NFR'
+                WHEN U.LICENSE_TYPE ILIKE '%PURCHASE%'
+                  OR U.LICENSE_TYPE ILIKE '%SUBSCRIPTION%' THEN 'PURCHASE'
+                WHEN U.LICENSE_TYPE IS NOT NULL THEN UPPER(TRIM(U.LICENSE_TYPE))
+                ELSE NULL
+            END AS ACCOUNT_QUOTE_TYPE
+
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_AT U
+
+        QUALIFY ROW_NUMBER() OVER
+        (
+            PARTITION BY U.DATE, U.USER_ID, U.WORKSPACE_ID
+            ORDER BY
+                U.ACTIVATION_DATE DESC NULLS LAST,
+                U.BILLING_ACCOUNT_ID DESC NULLS LAST,
+                U.BILLING_ACCOUNT_ID_RAW DESC NULLS LAST
+        ) = 1
+    ),
+
+    PLAN_NODES_LATEST AS
+    (
+        /*
+          Retain the latest available physical record for each task/node.
+
+          Soft-deleted nodes remain available and contribute to EVER
+          metrics. Physically hard-deleted nodes cannot be recovered.
+        */
+        SELECT
+            N.ID
+                AS PLAN_NODE_ID,
+
+            N.PLAN_ID
+                AS PLAN_ID,
+
+            NULLIF(LOWER(TRIM(N.TASK_TYPE)), '')
+                AS TASK_TYPE_NORM,
+
+            N.CREATED_BY
+                AS TASK_CREATED_BY,
+
+            N.UPDATED_BY
+                AS TASK_UPDATED_BY,
+
+            TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT)
+                AS TASK_CREATED_AT,
+
+            TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT)
+                AS TASK_UPDATED_AT,
+
+            TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT)
+                AS TASK_DELETED_AT
+
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_TELEMETRY_RAW.MYSQL_TRIFACTA_PLANNODES N
+
+        QUALIFY ROW_NUMBER() OVER
+        (
+            PARTITION BY N.ID
+            ORDER BY
+                TRY_TO_TIMESTAMP_NTZ(N.UPDATED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(N.DELETED_AT) DESC NULLS LAST,
+                TRY_TO_TIMESTAMP_NTZ(N.CREATED_AT) DESC NULLS LAST
+        ) = 1
+    ),
+
+
+    TASK_AGG AS
+    (
+        /*
+          Nodes are aggregated before they are joined to plans.
+
+          This preserves the one-row-per-plan grain and prevents task
+          counts from being multiplied when additional plan-level
+          datasets, such as plan runs, are added later.
+        */
+        SELECT
+            PLAN_ID,
+
+            /* ========================================================
+               Overall task metrics
+               ======================================================== */
+
+            COUNT(DISTINCT PLAN_NODE_ID)
+                AS TOTAL_TASKS_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_DELETED_AT IS NOT NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS DELETED_TASK_COUNT,
+
+            IFF(
+                COUNT(DISTINCT PLAN_NODE_ID) > 0,
+                1,
+                0
+            )
+                AS HAS_ANY_TASK_EVER,
+
+            IFF(
+                COUNT(DISTINCT PLAN_NODE_ID) = 0,
+                1,
+                0
+            )
+                AS HAS_NO_TASK_EVER,
+
+            IFF(
+                COUNT(DISTINCT CASE
+                    WHEN TASK_DELETED_AT IS NULL
+                    THEN PLAN_NODE_ID
+                END) > 0,
+                1,
+                0
+            )
+                AS HAS_ANY_CURRENT_TASK,
+
+            IFF(
+                COUNT(DISTINCT CASE
+                    WHEN TASK_DELETED_AT IS NULL
+                    THEN PLAN_NODE_ID
+                END) = 0,
+                1,
+                0
+            )
+                AS HAS_NO_CURRENT_TASK,
+
+            COUNT(DISTINCT TASK_TYPE_NORM)
+                AS DISTINCT_TASK_TYPE_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_DELETED_AT IS NULL
+                THEN TASK_TYPE_NORM
+            END)
+                AS DISTINCT_CURRENT_TASK_TYPE_COUNT,
+
+
+            /* ========================================================
+               Lifetime task counts by recognised type
+               ======================================================== */
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'workflow'
+                THEN PLAN_NODE_ID
+            END)
+                AS WORKFLOW_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'flow'
+                THEN PLAN_NODE_ID
+            END)
+                AS FLOW_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'http'
+                THEN PLAN_NODE_ID
+            END)
+                AS HTTP_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'email'
+                THEN PLAN_NODE_ID
+            END)
+                AS EMAIL_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ai_dataset'
+                THEN PLAN_NODE_ID
+            END)
+                AS AI_DATASET_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'cefd_desktop'
+                THEN PLAN_NODE_ID
+            END)
+                AS CEFD_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ml_predict'
+                THEN PLAN_NODE_ID
+            END)
+                AS ML_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'approval'
+                THEN PLAN_NODE_ID
+            END)
+                AS APPROVAL_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'condition'
+                THEN PLAN_NODE_ID
+            END)
+                AS CONDITION_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'delay'
+                THEN PLAN_NODE_ID
+            END)
+                AS DELAY_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'li_project_replay'
+                THEN PLAN_NODE_ID
+            END)
+                AS LI_PROJECT_REPLAY_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ml_project_update'
+                THEN PLAN_NODE_ID
+            END)
+                AS ML_PROJECT_UPDATE_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'reporting_generate'
+                THEN PLAN_NODE_ID
+            END)
+                AS REPORTING_GENERATE_TASK_COUNT_EVER,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'storage'
+                THEN PLAN_NODE_ID
+            END)
+                AS STORAGE_TASK_COUNT_EVER,
+
+
+            /* ========================================================
+               Lifetime unclassified task count
+
+               This protects reconciliation when new task types are
+               introduced or malformed/null values appear.
+               ======================================================== */
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM IS NULL
+                  OR TASK_TYPE_NORM NOT IN
+                  (
+                      'workflow',
+                      'flow',
+                      'http',
+                      'email',
+                      'ai_dataset',
+                      'cefd_desktop',
+                      'ml_predict',
+                      'approval',
+                      'condition',
+                      'delay',
+                      'li_project_replay',
+                      'ml_project_update',
+                      'reporting_generate',
+                      'storage'
+                  )
+                THEN PLAN_NODE_ID
+            END)
+                AS OTHER_TASK_COUNT_EVER,
+
+
+            /* ========================================================
+               Current task counts by recognised type
+               ======================================================== */
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'workflow'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_WORKFLOW_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'flow'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_FLOW_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'http'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_HTTP_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'email'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_EMAIL_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ai_dataset'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_AI_DATASET_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'cefd_desktop'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_CEFD_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ml_predict'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_ML_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'approval'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_APPROVAL_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'condition'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_CONDITION_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'delay'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_DELAY_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'li_project_replay'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_LI_PROJECT_REPLAY_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'ml_project_update'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_ML_PROJECT_UPDATE_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'reporting_generate'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_REPORTING_GENERATE_TASK_COUNT,
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_TYPE_NORM = 'storage'
+                 AND TASK_DELETED_AT IS NULL
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_STORAGE_TASK_COUNT,
+
+
+            /* ========================================================
+               Current unclassified task count
+               ======================================================== */
+
+            COUNT(DISTINCT CASE
+                WHEN TASK_DELETED_AT IS NULL
+                 AND
+                 (
+                     TASK_TYPE_NORM IS NULL
+                     OR TASK_TYPE_NORM NOT IN
+                     (
+                         'workflow',
+                         'flow',
+                         'http',
+                         'email',
+                         'ai_dataset',
+                         'cefd_desktop',
+                         'ml_predict',
+                         'approval',
+                         'condition',
+                         'delay',
+                         'li_project_replay',
+                         'ml_project_update',
+                         'reporting_generate',
+                         'storage'
+                     )
+                 )
+                THEN PLAN_NODE_ID
+            END)
+                AS CURRENT_OTHER_TASK_COUNT,
+
+
+            /* ========================================================
+               Task lifecycle timestamps
+               ======================================================== */
+
+            MIN(TASK_CREATED_AT)
+                AS FIRST_TASK_CREATED_AT,
+
+            MAX(TASK_CREATED_AT)
+                AS LAST_TASK_CREATED_AT,
+
+            MAX(TASK_UPDATED_AT)
+                AS LAST_TASK_UPDATED_AT
+
+        FROM PLAN_NODES_LATEST
+        GROUP BY PLAN_ID
+    )
+
+
+    SELECT
+        /* Plan identity */
+        P.ACTIVITY_DATE
+            AS ACTIVITY_DATE,
+
+        P.PLAN_CREATED_AT
+            AS PLAN_CREATED_AT,
+
+        P.PLAN_ID
+            AS PLAN_ID,
+
+        P.USER_ID
+            AS USER_ID,
+
+        P.USER_ID_RAW
+            AS USER_ID_RAW,
+
+        P.WORKSPACE_ID
+            AS WORKSPACE_ID,
+
+        P.WORKSPACE_ID_RAW
+            AS WORKSPACE_ID_RAW,
+
+        /* Commercial and account context at plan creation */
+        U.BILLING_ACCOUNT_ID AS BILLING_ACCOUNT_ID,
+        U.BILLING_ACCOUNT_ID_RAW AS BILLING_ACCOUNT_ID_RAW,
+        U.SFDC_ACCOUNT_ID AS SFDC_ACCOUNT_ID,
+        U.ACCOUNT_CID AS ACCOUNT_CID,
+        U.PIPELINE_REGION AS PIPELINE_REGION,
+        U.LICENSE_TYPE AS LICENSE_TYPE,
+        U.ACCOUNT_EDITION AS ACCOUNT_EDITION,
+        U.PRICING_AND_PACKAGING AS PRICING_AND_PACKAGING,
+        U.ACCOUNT_QUOTE_TYPE AS ACCOUNT_QUOTE_TYPE,
+
+        IFF(
+            U.USER_ID IS NULL,
+            NULL,
+            IFF(U.ACCOUNT_QUOTE_TYPE = 'TRIAL', 1, 0)
+        ) AS IS_TRIAL_USER,
+
+        IFF(
+            U.USER_ID IS NULL,
+            NULL,
+            IFF(U.ACCOUNT_QUOTE_TYPE = 'PURCHASE', 1, 0)
+        ) AS IS_PAID_ACCOUNT,
+
+        IFF(U.USER_ID IS NOT NULL, 1, 0)
+            AS HAS_USER_CONTEXT_MATCH,
+
+
+        /* Lifetime task summary */
+        COALESCE(T.TOTAL_TASKS_EVER, 0)
+            AS TOTAL_TASKS_EVER,
+
+        COALESCE(T.HAS_ANY_TASK_EVER, 0)
+            AS HAS_ANY_TASK_EVER,
+
+        COALESCE(T.HAS_NO_TASK_EVER, 1)
+            AS HAS_NO_TASK_EVER,
+
+
+        /* Plan details */
+        P.PLAN_NAME
+            AS PLAN_NAME,
+
+        P.PLAN_DESCRIPTION
+            AS PLAN_DESCRIPTION,
+
+        P.PLAN_UPDATED_AT
+            AS PLAN_UPDATED_AT,
+
+        P.PLAN_DELETED_AT
+            AS PLAN_DELETED_AT,
+
+        P.IS_PLAN_DELETED
+            AS IS_PLAN_DELETED,
+
+        P.PLAN_UPDATED_BY
+            AS PLAN_UPDATED_BY,
+
+        P.ORIGINAL_PLAN_ID
+            AS ORIGINAL_PLAN_ID,
+
+        P.IS_SNAPSHOTTED
+            AS IS_SNAPSHOTTED,
+
+        P.CP_PROJECT
+            AS CP_PROJECT,
+
+        P.NOTIFICATIONS_ENABLED
+            AS NOTIFICATIONS_ENABLED,
+
+
+        /* Current and deleted task summary */
+        COALESCE(T.CURRENT_TASK_COUNT, 0)
+            AS CURRENT_TASK_COUNT,
+
+        COALESCE(T.DELETED_TASK_COUNT, 0)
+            AS DELETED_TASK_COUNT,
+
+        COALESCE(T.HAS_ANY_CURRENT_TASK, 0)
+            AS HAS_ANY_CURRENT_TASK,
+
+        COALESCE(T.HAS_NO_CURRENT_TASK, 1)
+            AS HAS_NO_CURRENT_TASK,
+
+        COALESCE(T.DISTINCT_TASK_TYPE_COUNT_EVER, 0)
+            AS DISTINCT_TASK_TYPE_COUNT_EVER,
+
+        COALESCE(T.DISTINCT_CURRENT_TASK_TYPE_COUNT, 0)
+            AS DISTINCT_CURRENT_TASK_TYPE_COUNT,
+
+
+        /* Lifetime task counts */
+        COALESCE(T.WORKFLOW_TASK_COUNT_EVER, 0)
+            AS WORKFLOW_TASK_COUNT_EVER,
+
+        COALESCE(T.FLOW_TASK_COUNT_EVER, 0)
+            AS FLOW_TASK_COUNT_EVER,
+
+        COALESCE(T.HTTP_TASK_COUNT_EVER, 0)
+            AS HTTP_TASK_COUNT_EVER,
+
+        COALESCE(T.EMAIL_TASK_COUNT_EVER, 0)
+            AS EMAIL_TASK_COUNT_EVER,
+
+        COALESCE(T.AI_DATASET_TASK_COUNT_EVER, 0)
+            AS AI_DATASET_TASK_COUNT_EVER,
+
+        COALESCE(T.CEFD_TASK_COUNT_EVER, 0)
+            AS CEFD_TASK_COUNT_EVER,
+
+        COALESCE(T.ML_TASK_COUNT_EVER, 0)
+            AS ML_TASK_COUNT_EVER,
+
+        COALESCE(T.APPROVAL_TASK_COUNT_EVER, 0)
+            AS APPROVAL_TASK_COUNT_EVER,
+
+        COALESCE(T.CONDITION_TASK_COUNT_EVER, 0)
+            AS CONDITION_TASK_COUNT_EVER,
+
+        COALESCE(T.DELAY_TASK_COUNT_EVER, 0)
+            AS DELAY_TASK_COUNT_EVER,
+
+        COALESCE(T.LI_PROJECT_REPLAY_TASK_COUNT_EVER, 0)
+            AS LI_PROJECT_REPLAY_TASK_COUNT_EVER,
+
+        COALESCE(T.ML_PROJECT_UPDATE_TASK_COUNT_EVER, 0)
+            AS ML_PROJECT_UPDATE_TASK_COUNT_EVER,
+
+        COALESCE(T.REPORTING_GENERATE_TASK_COUNT_EVER, 0)
+            AS REPORTING_GENERATE_TASK_COUNT_EVER,
+
+        COALESCE(T.STORAGE_TASK_COUNT_EVER, 0)
+            AS STORAGE_TASK_COUNT_EVER,
+
+        COALESCE(T.OTHER_TASK_COUNT_EVER, 0)
+            AS OTHER_TASK_COUNT_EVER,
+
+
+        /* Current task counts */
+        COALESCE(T.CURRENT_WORKFLOW_TASK_COUNT, 0)
+            AS CURRENT_WORKFLOW_TASK_COUNT,
+
+        COALESCE(T.CURRENT_FLOW_TASK_COUNT, 0)
+            AS CURRENT_FLOW_TASK_COUNT,
+
+        COALESCE(T.CURRENT_HTTP_TASK_COUNT, 0)
+            AS CURRENT_HTTP_TASK_COUNT,
+
+        COALESCE(T.CURRENT_EMAIL_TASK_COUNT, 0)
+            AS CURRENT_EMAIL_TASK_COUNT,
+
+        COALESCE(T.CURRENT_AI_DATASET_TASK_COUNT, 0)
+            AS CURRENT_AI_DATASET_TASK_COUNT,
+
+        COALESCE(T.CURRENT_CEFD_TASK_COUNT, 0)
+            AS CURRENT_CEFD_TASK_COUNT,
+
+        COALESCE(T.CURRENT_ML_TASK_COUNT, 0)
+            AS CURRENT_ML_TASK_COUNT,
+
+        COALESCE(T.CURRENT_APPROVAL_TASK_COUNT, 0)
+            AS CURRENT_APPROVAL_TASK_COUNT,
+
+        COALESCE(T.CURRENT_CONDITION_TASK_COUNT, 0)
+            AS CURRENT_CONDITION_TASK_COUNT,
+
+        COALESCE(T.CURRENT_DELAY_TASK_COUNT, 0)
+            AS CURRENT_DELAY_TASK_COUNT,
+
+        COALESCE(T.CURRENT_LI_PROJECT_REPLAY_TASK_COUNT, 0)
+            AS CURRENT_LI_PROJECT_REPLAY_TASK_COUNT,
+
+        COALESCE(T.CURRENT_ML_PROJECT_UPDATE_TASK_COUNT, 0)
+            AS CURRENT_ML_PROJECT_UPDATE_TASK_COUNT,
+
+        COALESCE(T.CURRENT_REPORTING_GENERATE_TASK_COUNT, 0)
+            AS CURRENT_REPORTING_GENERATE_TASK_COUNT,
+
+        COALESCE(T.CURRENT_STORAGE_TASK_COUNT, 0)
+            AS CURRENT_STORAGE_TASK_COUNT,
+
+        COALESCE(T.CURRENT_OTHER_TASK_COUNT, 0)
+            AS CURRENT_OTHER_TASK_COUNT,
+
+
+        /* Task lifecycle */
+        T.FIRST_TASK_CREATED_AT
+            AS FIRST_TASK_CREATED_AT,
+
+        T.LAST_TASK_CREATED_AT
+            AS LAST_TASK_CREATED_AT,
+
+        T.LAST_TASK_UPDATED_AT
+            AS LAST_TASK_UPDATED_AT
+
+    FROM PLAN_BASE P
+
+    LEFT JOIN USER_CONTEXT_AT_CREATION U
+        ON P.ACTIVITY_DATE = U.DATE
+       AND P.USER_ID = U.USER_ID
+       AND P.WORKSPACE_ID = U.WORKSPACE_ID
+
+    LEFT JOIN TASK_AGG T
+        ON P.PLAN_ID = T.PLAN_ID;
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: data-engineering@alteryx.com
+tags:
+- plans
+- product_metric
+last_updated: '2026-08-04'
+version: '1.0'

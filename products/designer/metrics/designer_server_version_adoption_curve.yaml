@@ -1,0 +1,42 @@
+id: designer_server_version_adoption_curve
+name: Designer Server Version Adoption Curve
+description: Designer and Server adoption rate by days since release, with milestone analysis
+product: designer
+status: validated
+category: adoption
+definition:
+  business: Benchmark adoption curve showing Designer/Server upgrade velocity compared to historical patterns
+  technical: From DESIGNER_SERVER_VERSION_ADOPTION_RATE_VIEW tracking adoption at key milestones
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    VERSION,
+    DAYS,
+    DESIGNER_ADOPTION,
+    SERVER_ADOPTION,
+    (DESIGNER_ADOPTION + SERVER_ADOPTION) / 2 AS blended_adoption_pct,
+    LEAD(DESIGNER_ADOPTION) OVER (PARTITION BY VERSION ORDER BY DAYS) AS next_milestone_designer,
+    LEAD(SERVER_ADOPTION) OVER (PARTITION BY VERSION ORDER BY DAYS) AS next_milestone_server
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.DESIGNER_SERVER_VERSION_ADOPTION_RATE_VIEW
+  WHERE DAYS IN (1, 7, 30, 60, 90, 180)
+  ORDER BY VERSION DESC, DAYS ASC
+  LIMIT 100
+queries: []
+aggregation_level: cohort
+grain: cohort
+freshness: daily
+filters:
+- DAYS IN (1, 7, 30, 60, 90, 180)
+depends_on: []
+related_metrics:
+- designer_001
+- designer_005
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- designer
+last_updated: '2026-08-03'
+version: '1.0'

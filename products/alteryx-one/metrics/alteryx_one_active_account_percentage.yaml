@@ -1,0 +1,28 @@
+id: alteryx_one_active_account_percentage
+name: Alteryx One Active Account Percentage
+description: Percentage of total deployed accounts with at least one active user.
+product: alteryx_one
+status: validated
+category: active_accounts
+definition:
+  business: Percentage of total deployed accounts with at least one active user.
+  technical: From ALTERYX_ONE_ACTIVE_ACCOUNTS_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT PERCENTAGE_ACTIVE_ACCOUNTS as percentage FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ACTIVE_ACCOUNTS_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: analytics@alteryx.com
+tags:
+- active_accounts
+- alteryx-one
+last_updated: '2026-08-03'
+version: '1.0'

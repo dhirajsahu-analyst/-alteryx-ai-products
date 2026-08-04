@@ -1,0 +1,42 @@
+id: version_adoption_011
+name: Machine and User Supported Version Percentage
+description: Monthly percentage of machines and users running supported versions by product
+product: version_adoption
+status: validated
+category: adoption
+definition:
+  business: Technical health metric showing infrastructure modernization and support risk exposure
+  technical: From MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    PRODUCT_ID,
+    TOTAL_MACHINES,
+    PCT_SUPPORTED_MACHINE,
+    TOTAL_USERS,
+    PCT_SUPPORTED_USER,
+    (PCT_SUPPORTED_MACHINE + PCT_SUPPORTED_USER) / 2 AS blended_support_pct,
+    LAG(PCT_SUPPORTED_MACHINE) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH) AS prev_machine_pct,
+    LAG(PCT_SUPPORTED_USER) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH) AS prev_user_pct
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+  ORDER BY MONTH DESC, PRODUCT_ID
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- version_adoption_003
+- version_adoption_005
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- version_adoption
+last_updated: '2026-08-03'
+version: '1.0'

@@ -1,0 +1,44 @@
+id: version_adoption_pareto_analysis_accounts
+name: Version Adoption Pareto Analysis (Accounts)
+description: Cumulative percentage distribution showing how many versions account for 80% of customer base
+product: account_user
+status: validated
+category: adoption
+definition:
+  business: Pareto analysis identifying critical versions for support focus and deprecation planning
+  technical: From VERSION_RUNNING_SUM_ACCOUNTS_VIEW with running cumulative percentages
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    PRODUCT_ID,
+    PREVAILING_VERSION,
+    TOTAL_ACCOUNTS,
+    RUNNING_PCT_OF_TOTAL,
+    ROW_NUMBER() OVER (PARTITION BY PRODUCT_ID ORDER BY TOTAL_ACCOUNTS DESC) AS version_rank,
+    CASE
+      WHEN RUNNING_PCT_OF_TOTAL <= 50 THEN 'Critical (0-50%)'
+      WHEN RUNNING_PCT_OF_TOTAL <= 80 THEN 'Important (50-80%)'
+      WHEN RUNNING_PCT_OF_TOTAL <= 95 THEN 'Supporting (80-95%)'
+      ELSE 'Long Tail (95%+)'
+    END AS pareto_segment
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.VERSION_RUNNING_SUM_ACCOUNTS_VIEW
+  ORDER BY PRODUCT_ID, RUNNING_PCT_OF_TOTAL
+  LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- account_user_010
+- account_user_012
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- account_user
+last_updated: '2026-08-03'
+version: '1.0'

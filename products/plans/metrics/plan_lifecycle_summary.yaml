@@ -1,0 +1,293 @@
+id: plan_lifecycle_summary
+name: Plan Lifecycle Summary
+description: Lifecycle metrics for Plans
+product: plans
+status: validated
+category: product_metric
+definition:
+  business: Plan Lifecycle Summary - Lifecycle metrics for Plans
+  technical: Query from PLAN_LIFECYCLE_SUMMARY_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables:
+  - DISCOVERY_PRODUCT_MANAGEMENT
+sql_template: |-
+  SELECT
+
+      TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY') AS MONTH,
+
+      -- Number of plans created during the month.
+      COUNT(DISTINCT PLAN_ID) AS CREATED_PLANS,
+
+      -- Number of plans from the monthly cohort that have since been deleted.
+      COUNT(
+          DISTINCT CASE
+              WHEN IS_PLAN_DELETED = 1 THEN PLAN_ID
+          END
+      ) AS DELETED_PLANS,
+
+      -- Number of plans from the monthly cohort that are still active.
+      COUNT(DISTINCT PLAN_ID)
+        - COUNT(
+              DISTINCT CASE
+                  WHEN IS_PLAN_DELETED = 1 THEN PLAN_ID
+              END
+          ) AS ACTIVE_PLANS,
+
+      -- Percentage of plans created during the month that have since been deleted.
+      ROUND(
+          COUNT(
+              DISTINCT CASE
+                  WHEN IS_PLAN_DELETED = 1 THEN PLAN_ID
+              END
+          ) * 100.0
+          / NULLIF(COUNT(DISTINCT PLAN_ID), 0),
+          2
+      ) AS PLAN_CHURN_PERCENT,
+
+      -- Average age in days of active plans created during the month.
+      ROUND(
+          AVG(
+              CASE
+                  WHEN IS_PLAN_DELETED = 0
+                  THEN DATEDIFF(DAY, PLAN_CREATED_AT, CURRENT_DATE())
+              END
+          ),
+          2
+      ) AS AVG_ACTIVE_PLAN_AGE_DAYS
+
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
+
+  WHERE PLAN_CREATED_AT >= DATEADD(
+          MONTH,
+          -2,
+          DATE_TRUNC('MONTH', CURRENT_DATE())
+      )
+    AND LICENSE_TYPE = 'Purchase'
+
+  -- Optional Dimension Filters
+  -- AND BILLING_ACCOUNT_ID_RAW = '<raw-billing-account-id>'
+  -- AND PIPELINE_REGION = 'US'
+  -- AND ACCOUNT_EDITION = 'Enterprise'
+  -- AND PRICING_AND_PACKAGING = '2025'
+  -- AND WORKSPACE_ID = '<workspace-id>'
+  -- AND USER_ID = '<user-id>'
+
+  GROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)
+
+  ORDER BY DATE_TRUNC('MONTH', PLAN_CREATED_AT);
+queries:
+- name: base
+  description: Base metric query
+  query: |-
+    SELECT
+
+        TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY') AS MONTH,
+
+        -- Number of plans created during the month.
+        COUNT(DISTINCT PLAN_ID) AS CREATED_PLANS,
+
+        -- Number of plans from the monthly cohort that have since been deleted.
+        COUNT(
+            DISTINCT CASE
+                WHEN IS_PLAN_DELETED = 1 THEN PLAN_ID
+            END
+        ) AS DELETED_PLANS,
+
+        -- Number of plans from the monthly cohort that are still active.
+        COUNT(DISTINCT PLAN_ID)
+          - COUNT(
+                DISTINCT CASE
+                    WHEN IS_PLAN_DELETED = 1 THEN PLAN_ID
+                END
+            ) AS ACTIVE_PLANS,
+
+        -- Percentage of plans created during the month that have since been deleted.
+        ROUND(
+            COUNT(
+                DISTINCT CASE
+                    WHEN IS_PLAN_DELETED = 1 THEN PLAN_ID
+                END
+            ) * 100.0
+            / NULLIF(COUNT(DISTINCT PLAN_ID), 0),
+            2
+        ) AS PLAN_CHURN_PERCENT,
+
+        -- Average age in days of active plans created during the month.
+        ROUND(
+            AVG(
+                CASE
+                    WHEN IS_PLAN_DELETED = 0
+                    THEN DATEDIFF(DAY, PLAN_CREATED_AT, CURRENT_DATE())
+                END
+            ),
+            2
+        ) AS AVG_ACTIVE_PLAN_AGE_DAYS
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
+
+    WHERE PLAN_CREATED_AT >= DATEADD(
+            MONTH,
+            -2,
+            DATE_TRUNC('MONTH', CURRENT_DATE())
+        )
+      AND LICENSE_TYPE = 'Purchase'
+
+    -- Optional Dimension Filters
+    -- AND BILLING_ACCOUNT_ID_RAW = '<raw-billing-account-id>'
+    -- AND PIPELINE_REGION = 'US'
+    -- AND ACCOUNT_EDITION = 'Enterprise'
+    -- AND PRICING_AND_PACKAGING = '2025'
+    -- AND WORKSPACE_ID = '<workspace-id>'
+    -- AND USER_ID = '<user-id>'
+
+    GROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)
+
+    ORDER BY DATE_TRUNC('MONTH', PLAN_CREATED_AT);
+- name: daily
+  description: Daily metrics
+  query: |-
+    SELECT
+
+        TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY') AS MONTH,
+
+        -- Number of plans created during the month.
+        COUNT(DISTINCT PLAN_ID) AS CREATED_PLANS,
+
+        -- Number of plans from the monthly cohort that have since been deleted.
+        COUNT(
+            DISTINCT CASE
+                WHEN IS_PLAN_DELETED = 1 THEN PLAN_ID
+            END
+        ) AS DELETED_PLANS,
+
+        -- Number of plans from the monthly cohort that are still active.
+        COUNT(DISTINCT PLAN_ID)
+          - COUNT(
+                DISTINCT CASE
+                    WHEN IS_PLAN_DELETED = 1 THEN PLAN_ID
+                END
+            ) AS ACTIVE_PLANS,
+
+        -- Percentage of plans created during the month that have since been deleted.
+        ROUND(
+            COUNT(
+                DISTINCT CASE
+                    WHEN IS_PLAN_DELETED = 1 THEN PLAN_ID
+                END
+            ) * 100.0
+            / NULLIF(COUNT(DISTINCT PLAN_ID), 0),
+            2
+        ) AS PLAN_CHURN_PERCENT,
+
+        -- Average age in days of active plans created during the month.
+        ROUND(
+            AVG(
+                CASE
+                    WHEN IS_PLAN_DELETED = 0
+                    THEN DATEDIFF(DAY, PLAN_CREATED_AT, CURRENT_DATE())
+                END
+            ),
+            2
+        ) AS AVG_ACTIVE_PLAN_AGE_DAYS
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
+
+    WHERE PLAN_CREATED_AT >= DATEADD(
+            MONTH,
+            -2,
+            DATE_TRUNC('MONTH', CURRENT_DATE())
+        )
+      AND LICENSE_TYPE = 'Purchase'
+
+    -- Optional Dimension Filters
+    -- AND BILLING_ACCOUNT_ID_RAW = '<raw-billing-account-id>'
+    -- AND PIPELINE_REGION = 'US'
+    -- AND ACCOUNT_EDITION = 'Enterprise'
+    -- AND PRICING_AND_PACKAGING = '2025'
+    -- AND WORKSPACE_ID = '<workspace-id>'
+    -- AND USER_ID = '<user-id>'
+
+    GROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)
+
+    ORDER BY DATE_TRUNC('MONTH', PLAN_CREATED_AT);
+- name: monthly
+  description: Monthly aggregated metrics
+  query: |-
+    SELECT
+
+        TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY') AS MONTH,
+
+        -- Number of plans created during the month.
+        COUNT(DISTINCT PLAN_ID) AS CREATED_PLANS,
+
+        -- Number of plans from the monthly cohort that have since been deleted.
+        COUNT(
+            DISTINCT CASE
+                WHEN IS_PLAN_DELETED = 1 THEN PLAN_ID
+            END
+        ) AS DELETED_PLANS,
+
+        -- Number of plans from the monthly cohort that are still active.
+        COUNT(DISTINCT PLAN_ID)
+          - COUNT(
+                DISTINCT CASE
+                    WHEN IS_PLAN_DELETED = 1 THEN PLAN_ID
+                END
+            ) AS ACTIVE_PLANS,
+
+        -- Percentage of plans created during the month that have since been deleted.
+        ROUND(
+            COUNT(
+                DISTINCT CASE
+                    WHEN IS_PLAN_DELETED = 1 THEN PLAN_ID
+                END
+            ) * 100.0
+            / NULLIF(COUNT(DISTINCT PLAN_ID), 0),
+            2
+        ) AS PLAN_CHURN_PERCENT,
+
+        -- Average age in days of active plans created during the month.
+        ROUND(
+            AVG(
+                CASE
+                    WHEN IS_PLAN_DELETED = 0
+                    THEN DATEDIFF(DAY, PLAN_CREATED_AT, CURRENT_DATE())
+                END
+            ),
+            2
+        ) AS AVG_ACTIVE_PLAN_AGE_DAYS
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
+
+    WHERE PLAN_CREATED_AT >= DATEADD(
+            MONTH,
+            -2,
+            DATE_TRUNC('MONTH', CURRENT_DATE())
+        )
+      AND LICENSE_TYPE = 'Purchase'
+
+    -- Optional Dimension Filters
+    -- AND BILLING_ACCOUNT_ID_RAW = '<raw-billing-account-id>'
+    -- AND PIPELINE_REGION = 'US'
+    -- AND ACCOUNT_EDITION = 'Enterprise'
+    -- AND PRICING_AND_PACKAGING = '2025'
+    -- AND WORKSPACE_ID = '<workspace-id>'
+    -- AND USER_ID = '<user-id>'
+
+    GROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)
+
+    ORDER BY DATE_TRUNC('MONTH', PLAN_CREATED_AT);
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: data-engineering@alteryx.com
+tags:
+- plans
+- product_metric
+last_updated: '2026-08-04'
+version: '1.0'

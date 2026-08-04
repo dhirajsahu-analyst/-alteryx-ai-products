@@ -1,0 +1,58 @@
+timestamp: '2026-08-03T12:25:43.518922'
+product_area: alteryx_one
+metrics:
+- metric_id: ayx1_mau
+  metric_name: Alteryx One Monthly Active Users
+  aliases:
+  - AYX1 MAU
+  - Active Users
+  - MAU
+  product_area: alteryx_one
+  source_view: DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ACTIVE_USERS_VIEW
+  validation_status: validated
+  metric_slug: alteryx_one_monthly_active_users
+- metric_id: ayx1_activated_users
+  metric_name: Alteryx One Activated Users
+  aliases:
+  - Activated Users
+  - New Activations
+  product_area: alteryx_one
+  source_view: DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ACTIVE_USERS_VIEW
+  validation_status: validated
+  metric_slug: alteryx_one_activation_count
+- metric_id: ayx1_engagement_rate
+  metric_name: Alteryx One Engagement Rate
+  aliases:
+  - '% Engaged Users'
+  - Engagement Ratio
+  product_area: alteryx_one
+  source_view: DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ENGAGED_ACCOUNTS_VIEW
+  validation_status: validated
+  metric_slug: alteryx_one_engagement_rate
+- metric_id: ayx1_deployment_rate
+  metric_name: Alteryx One Deployment Rate
+  aliases:
+  - '% Deployed Accounts'
+  - Deployment %
+  product_area: alteryx_one
+  source_view: DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DEPLOYED_ACCOUNT_PERCENTAGE_VIEW
+  validation_status: validated
+  metric_slug: alteryx_one_deployment_rate
+- metric_id: ayx1_activation_funnel
+  metric_name: Alteryx One Activation Funnel
+  aliases:
+  - Activation Funnel
+  - Seats to Activation
+  product_area: alteryx_one
+  source_view: DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ACTIVATION_FUNNEL_VIEW
+  validation_status: validated
+  metric_slug: alteryx_one_activation_funnel
+- metric_id: ayx1_retention
+  metric_name: Alteryx One User Retention
+  aliases:
+  - Retention Rate
+  - Cohort Retention
+  product_area: alteryx_one
+  source_view: DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_USERS_RETENTIONS_VIEW
+  validation_status: validated
+  metric_slug: alteryx_one_user_retention

@@ -1,0 +1,33 @@
+id: copilot_engaged_users
+name: Copilot Engaged Users (Alias)
+description: Alias for copilot_highly_engaged_users - count of users demonstrating high engagement
+product: ask_alteryx
+status: validated
+category: volume
+definition:
+  business: Alias for copilot_highly_engaged_users - count of users demonstrating high engagement
+  technical: '[''ENGAGED_USERS''] from COPILOT_USERS_ACTIVITY_FUNNEL_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT ENGAGED_USERS as engaged_users_count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ACTIVITY_FUNNEL_VIEW WHERE ENGAGED_USERS > 0 LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- ENGAGED_USERS > 0
+depends_on: []
+related_metrics:
+- copilot_highly_engaged_users
+- copilot_user_engagement_rate
+maintainer: analytics@alteryx.com
+tags:
+- volume
+- copilot
+- engagement
+- power-users
+last_updated: '2026-08-03'
+version: '1.0'

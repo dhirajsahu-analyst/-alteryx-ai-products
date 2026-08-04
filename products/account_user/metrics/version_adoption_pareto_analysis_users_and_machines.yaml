@@ -1,0 +1,50 @@
+id: version_adoption_pareto_analysis_users_and_machines
+name: Version Adoption Pareto Analysis (Users and Machines)
+description: Cumulative distribution of users and machines across versions showing concentration points
+product: account_user
+status: validated
+category: adoption
+definition:
+  business: Identifies version concentration and strategic support focus areas
+  technical: From VERSION_RUNNING_SUM_USERS_AND_MACHINE_VIEW with Pareto analysis
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    PRODUCT_ID,
+    VERSION,
+    TOTAL_USERS,
+    RUNNING_PCT_OF_USER_TOTAL,
+    TOTAL_MACHINES,
+    RUNNING_PCT_OF_MACHINE_TOTAL,
+    ROW_NUMBER() OVER (PARTITION BY PRODUCT_ID ORDER BY TOTAL_USERS DESC) AS user_rank,
+    CASE
+      WHEN RUNNING_PCT_OF_USER_TOTAL <= 50 THEN 'Critical'
+      WHEN RUNNING_PCT_OF_USER_TOTAL <= 80 THEN 'Important'
+      ELSE 'Long Tail'
+    END AS user_segment,
+    CASE
+      WHEN RUNNING_PCT_OF_MACHINE_TOTAL <= 50 THEN 'Critical'
+      WHEN RUNNING_PCT_OF_MACHINE_TOTAL <= 80 THEN 'Important'
+      ELSE 'Long Tail'
+    END AS machine_segment
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.VERSION_RUNNING_SUM_USERS_AND_MACHINE_VIEW
+  ORDER BY PRODUCT_ID, RUNNING_PCT_OF_USER_TOTAL
+  LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- account_user_011
+- account_user_004
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- account_user
+last_updated: '2026-08-03'
+version: '1.0'

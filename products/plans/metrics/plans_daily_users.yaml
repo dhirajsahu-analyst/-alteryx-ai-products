@@ -1,0 +1,1804 @@
+id: plans_daily_users
+name: Plans Daily Users
+description: Daily active users in Plans
+product: plans
+status: validated
+category: product_metric
+definition:
+  business: Plans Daily Users - Daily active users in Plans
+  technical: Query from PLANS_DAILY_USERS_AV
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables:
+  - USERS_BASE
+  - PLANS_FACT
+  - PLANS_GRANULAR
+  - DISCOVERY_PRODUCT_MANAGEMENT
+sql_template: |-
+  SELECT *
+      FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_AT
+  ),
+
+  PLANS_FACT AS (
+      SELECT *
+      FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.Plans_fact_at
+  ),
+
+  PLANS_GRANULAR AS (
+      SELECT *
+      FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_DAILY_USER_GRANULAR_AT
+  ),
+
+  /*
+     Plan creation-date and current plan-state metrics.
+
+     Important definition:
+     - CREATED_PLAN: plans created by the user on the row date.
+     - AVAILABLE_PLANS: those created plans that are currently not soft deleted.
+     - Task-composition metrics use the current task state from PLANS_FACT_AT_TEST.
+     - TOTAL_TASKS_EVER and AVG_TASKS_PER_PLAN_EVER retain lifetime source semantics.
+  */
+  PLAN_CREATION_STATE_AGG AS (
+      SELECT
+          F.ACTIVITY_DATE,
+          F.USER_ID,
+          F.WORKSPACE_ID,
+
+          COUNT(DISTINCT F.PLAN_ID) AS CREATED_PLAN,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.IS_PLAN_DELETED, 0) = 0,
+              F.PLAN_ID,
+              NULL
+          )) AS AVAILABLE_PLANS,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_WORKFLOW_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_WORKFLOW_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_FLOW_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_FLOW_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_HTTP_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_HTTP_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_EMAIL_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_EMAIL_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_AI_DATASET_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_AI_DATASET_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_CEFD_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_CEFD_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_ML_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_ML_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_APPROVAL_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_APPROVAL_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_CONDITION_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_CONDITION_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_DELAY_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_DELAY_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_LI_PROJECT_REPLAY_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_LI_PROJECT_REPLY_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_ML_PROJECT_UPDATE_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_ML_PROJECT_UPDATE_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_REPORTING_GENERATE_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_REPORTING_GENERATE_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_STORAGE_TASK_COUNT, 0) > 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_STORAGE_TASK,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(F.CURRENT_TASK_COUNT, 0) = 0,
+              F.PLAN_ID,
+              NULL
+          )) AS PLANS_WITHOUT_TASK,
+
+          SUM(COALESCE(F.TOTAL_TASKS_EVER, 0)) AS TOTAL_TASKS_EVER,
+
+          DIV0(
+              SUM(COALESCE(F.TOTAL_TASKS_EVER, 0)),
+              COUNT(DISTINCT F.PLAN_ID)
+          ) AS AVG_TASKS_PER_PLAN_EVER
+
+      FROM PLANS_FACT F
+      WHERE F.ACTIVITY_DATE IS NOT NULL
+        AND F.USER_ID IS NOT NULL
+        AND F.WORKSPACE_ID IS NOT NULL
+      GROUP BY 1, 2, 3
+  ),
+
+  /*
+     Primary daily user activity aggregation.
+     All plan-user relationships and run metrics come from the granular table.
+  */
+  GRANULAR_USER_DAY AS (
+      SELECT
+          G.ACTIVITY_DATE,
+          G.USER_ID,
+          G.WORKSPACE_ID,
+
+          COUNT(DISTINCT G.PLAN_ID) AS PLANS_WORKED_ON,
+
+          COUNT(DISTINCT IFF(
+              G.IS_PLAN_CREATOR = 1,
+              G.PLAN_ID,
+              NULL
+          )) AS PLANS_CREATED_BY_ACTIVITY,
+
+          COUNT(DISTINCT IFF(
+              G.IS_PLAN_EDITOR_PRIMARY = 1,
+              G.PLAN_ID,
+              NULL
+          )) AS PLANS_EDITED,
+
+          COUNT(DISTINCT IFF(
+              G.IS_TASK_CONTRIBUTOR = 1,
+              G.PLAN_ID,
+              NULL
+          )) AS PLANS_WITH_TASK_CHANGES,
+
+          COUNT(DISTINCT IFF(
+              G.IS_PLAN_RUNNER = 1,
+              G.PLAN_ID,
+              NULL
+          )) AS PLANS_RUN_BY_USER,
+
+          SUM(COALESCE(G.PLAN_CREATED_COUNT, 0)) AS PLAN_CREATED_ACTIVITY_COUNT,
+          SUM(COALESCE(G.PLAN_EDITED_COUNT, 0)) AS PLAN_EDIT_COUNT,
+          SUM(COALESCE(G.TASK_CREATED_COUNT, 0)) AS TASK_CREATED_COUNT,
+          SUM(COALESCE(G.TASK_UPDATED_COUNT, 0)) AS TASK_UPDATED_COUNT,
+          SUM(COALESCE(G.TASK_DELETED_COUNT, 0)) AS TASK_DELETED_COUNT,
+
+          SUM(COALESCE(G.PLAN_RUN_COUNT, 0)) AS PLAN_RUN,
+          SUM(COALESCE(G.COMPLETED_PLAN_RUN_COUNT, 0)) AS COMPLETED_PLAN_RUNS,
+          SUM(COALESCE(G.INPROGRESS_PLAN_RUN_COUNT, 0)) AS INPROGRESS_PLAN_RUNS,
+          SUM(COALESCE(G.CREATED_PLAN_RUN_COUNT, 0)) AS CREATED_PLAN_RUNS,
+          SUM(COALESCE(G.CANCELLED_PLAN_RUN_COUNT, 0)) AS CANCELLED_PLAN_RUNS,
+          SUM(COALESCE(G.FAILED_PLAN_RUN_COUNT, 0)) AS FAILED_PLAN_RUNS,
+          SUM(COALESCE(G.MANUAL_PLAN_RUN_COUNT, 0)) AS MANUAL_PLAN_RUNS,
+          SUM(COALESCE(G.SCHEDULED_PLAN_RUN_COUNT, 0)) AS SCHEDULE_PLAN_RUNS,
+          SUM(COALESCE(G.API_PLAN_RUN_COUNT, 0)) AS API_PLAN_RUNS,
+          SUM(COALESCE(G.AUTOMATED_PLAN_RUN_COUNT, 0)) AS AUTOMATED_PLAN_RUNS,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(G.PLAN_RUN_COUNT, 0) > 0,
+              G.PLAN_ID,
+              NULL
+          )) AS PLAN_WITH_RUNS,
+
+          COUNT(DISTINCT IFF(
+              COALESCE(G.AUTOMATED_PLAN_RUN_COUNT, 0) > 0,
+              G.PLAN_ID,
+              NULL
+          )) AS AUTOMATED_PLANS,
+
+          MIN(G.FIRST_RUN_AT) AS FIRST_RUN_ON_DATE_AT,
+          MAX(G.LAST_RUN_AT) AS LAST_RUN_ON_DATE_AT
+
+      FROM PLANS_GRANULAR G
+      GROUP BY 1, 2, 3
+  ),
+
+  USER_FIRST_PLAN_CREATED_DATE AS (
+      SELECT
+          F.USER_ID,
+          F.WORKSPACE_ID,
+          MIN(F.ACTIVITY_DATE) AS FIRST_PLAN_CREATED_AT
+      FROM PLANS_FACT F
+      WHERE F.USER_ID IS NOT NULL
+        AND F.WORKSPACE_ID IS NOT NULL
+        AND F.ACTIVITY_DATE IS NOT NULL
+      GROUP BY 1, 2
+  ),
+
+  USER_FIRST_PLAN_RUN_DATE AS (
+      SELECT
+          G.USER_ID,
+          G.WORKSPACE_ID,
+          MIN(DATE(G.FIRST_RUN_AT)) AS FIRST_PLAN_RUN_AT
+      FROM PLANS_GRANULAR G
+      WHERE COALESCE(G.PLAN_RUN_COUNT, 0) > 0
+        AND G.FIRST_RUN_AT IS NOT NULL
+      GROUP BY 1, 2
+  ),
+
+  /*
+     Amplitude remains user/workspace/day level because the supplied source
+     does not yet provide a validated PLAN_ID mapping for these events.
+  */
+  AMPLITUDE_EVENTS_DAILY AS (
+      SELECT
+          TO_DATE(EVENT_TIME) AS ACTIVITY_DATE,
+          USER_EMAIL,
+          BASE64_ENCODE(CONCAT(WORKSPACE_ID, '_', PIPELINE_REGION)) AS WORKSPACE_ID,
+          PIPELINE_REGION,
+
+          COUNT_IF(EVENT_TYPE = 'delete_plan') AS DELETE_PLAN,
+          COUNT_IF(EVENT_TYPE = 'export_plan') AS EXPORT_PLAN,
+          COUNT_IF(EVENT_TYPE = 'cancel_plan_run') AS CANCEL_PLAN_RUN,
+          COUNT_IF(EVENT_TYPE = 'share_plan') AS SHARE_PLAN,
+          COUNT_IF(EVENT_TYPE = 'create_plan') AS CREATE_PLAN,
+          COUNT_IF(EVENT_TYPE = 'open_plan_run_page') AS OPEN_PLAN_RUN_PAGE,
+          COUNT_IF(EVENT_TYPE = 'delete_task') AS DELETE_TASK,
+          COUNT_IF(EVENT_TYPE = 'rename_plan') AS RENAME_PLAN,
+          COUNT_IF(EVENT_TYPE = 'retry_plan_run') AS RETRY_PLAN_RUN,
+          COUNT_IF(EVENT_TYPE = 'run_plan') AS RUN_PLAN,
+          COUNT_IF(EVENT_TYPE = 'transfer_plan_ownership') AS TRASFER_PLAN_OWNERSHIP,
+          COUNT_IF(EVENT_TYPE = 'test_http_task') AS TEST_HTTP_TASK,
+          COUNT_IF(EVENT_TYPE = 'manage_plan_parameters') AS MANAGE_PLAN_PARAMETERS,
+          COUNT_IF(EVENT_TYPE = 'visit_previous_plan_run') AS VISIT_PREVIOUS_PLAN_RUN,
+          COUNT_IF(EVENT_TYPE = 'add_workflow_task') AS ADD_WORKFLOW_TASK,
+          COUNT_IF(EVENT_TYPE = 'visit_plan') AS VISIT_PLAN,
+          COUNT_IF(EVENT_TYPE = 'add_flow_task') AS ADD_FLOW_TASK,
+          COUNT_IF(EVENT_TYPE = 'add_slack_task') AS ADD_SLACK_TASK,
+          COUNT_IF(EVENT_TYPE = 'import_plan') AS IMPORT_PLAN,
+          COUNT_IF(EVENT_TYPE = 'visit_original_plan_run') AS VISIT_ORIGINAL_PLAN_RUN,
+          COUNT_IF(EVENT_TYPE = 'test_slack_task') AS TEST_SLACK_TASK,
+          COUNT_IF(EVENT_TYPE = 'save_slack_task') AS SAVE_SLACK_TASK,
+          COUNT_IF(EVENT_TYPE = 'add_http_task') AS ADD_HTTP_TASK,
+          COUNT_IF(EVENT_TYPE = 'rename_task') AS RENAME_TASK,
+          COUNT_IF(EVENT_TYPE = 'save_http_task') AS SAVE_HTTP_TASK,
+          COUNT_IF(EVENT_TYPE = 'add_ml_project_update_task') AS ADD_ML_PROJECT_UPDATE_TASK,
+          COUNT_IF(EVENT_TYPE = 'visit_next_plan_run') AS VISIT_NEXT_PLAN_RUN,
+          COUNT_IF(EVENT_TYPE = 'add_delete_file_task') AS ADD_DELETE_FILE_TASK,
+          COUNT_IF(EVENT_TYPE = 'manage_plan_notifications') AS MANAGE_PLAN_NOTIFICATIONS,
+          COUNT_IF(EVENT_TYPE = 'add_ml_predict_task') AS ADD_ML_PREDICT_TASK,
+          COUNT_IF(EVENT_TYPE = 'open_plans_landing_page') AS OPEN_PLANS_LANDING_PAGE,
+          COUNT_IF(EVENT_TYPE = 'visit_latest_plan_run') AS VISIT_LATEST_PLAN_RUN,
+
+          COUNT(*) AS TOTAL_EVENTS,
+
+          IFF(
+              COUNT_IF(EVENT_TYPE IN (
+                  'create_plan', 'import_plan', 'export_plan', 'rename_plan',
+                  'delete_plan', 'share_plan', 'add_workflow_task', 'add_flow_task',
+                  'add_slack_task', 'add_http_task', 'add_ml_project_update_task',
+                  'add_ml_predict_task', 'add_delete_file_task', 'save_http_task',
+                  'save_slack_task', 'rename_task', 'test_http_task', 'test_slack_task'
+              )) > 0,
+              1,
+              0
+          ) AS ACTIVE_USERS,
+
+          IFF(
+              COUNT_IF(EVENT_TYPE IN (
+                  'create_plan', 'import_plan', 'export_plan', 'rename_plan',
+                  'delete_plan', 'share_plan', 'add_workflow_task', 'add_flow_task',
+                  'add_slack_task', 'add_http_task', 'add_ml_project_update_task',
+                  'add_ml_predict_task', 'add_delete_file_task', 'save_http_task',
+                  'save_slack_task', 'rename_task', 'test_http_task', 'test_slack_task'
+              )) > 0
+              AND COUNT_IF(EVENT_TYPE IN (
+                  'run_plan', 'retry_plan_run', 'schedule_plan',
+                  'plan_create_new_schedule', 'cancel_plan_run'
+              )) > 0,
+              1,
+              0
+          ) AS ENGAGED_USERS_AMPLITUDE
+
+      FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_CLOUD.AMPLITUDE_ALL_EVENTS_WITH_LICENSE
+      GROUP BY 1, 2, 3, 4
+  )
+
+  SELECT
+      U.DATE AS DATE,
+      U.USER_ID AS USER_ID,
+      U.USER_ID_RAW AS USER_ID_RAW,
+      U.USER_EMAIL AS USER_EMAIL,
+      U.WORKSPACE_ID AS WORKSPACE_ID,
+      U.WORKSPACE_ID_RAW AS WORKSPACE_ID_RAW,
+      U.PIPELINE_REGION AS PIPELINE_REGION,
+      U.BILLING_ACCOUNT_ID AS BILLING_ACCOUNT_ID,
+      U.BILLING_ACCOUNT_ID_RAW AS BILLING_ACCOUNT_ID_RAW,
+      U.SFDC_ACCOUNT_ID AS SFDC_ACCOUNT_ID,
+      U.ACCOUNT_CID AS ACCOUNT_CID,
+      U.BILLING_ACCOUNT_NAME AS BILLING_ACCOUNT_NAME,
+      U.NAMED_COMPANY AS NAMED_COMPANY,
+      U.LICENSE_TYPE AS LICENSE_TYPE,
+      U.ACCOUNT_EDITION AS ACCOUNT_EDITION,
+      U.PRICING_AND_PACKAGING AS PRICING_AND_PACKAGING,
+      U.STATUS AS STATUS,
+      U.ACTIVATION_DATE AS ACTIVATION_DATE,
+
+      COALESCE(P.AVAILABLE_PLANS, 0) AS AVAILABLE_PLANS,
+      COALESCE(P.CREATED_PLAN, 0) AS CREATED_PLAN,
+      COALESCE(P.PLANS_WITH_WORKFLOW_TASK, 0) AS PLANS_WITH_WORKFLOW_TASK,
+      COALESCE(P.PLANS_WITH_FLOW_TASK, 0) AS PLANS_WITH_FLOW_TASK,
+      COALESCE(P.PLANS_WITH_HTTP_TASK, 0) AS PLANS_WITH_HTTP_TASK,
+      COALESCE(P.PLANS_WITH_EMAIL_TASK, 0) AS PLANS_WITH_EMAIL_TASK,
+      COALESCE(P.PLANS_WITH_AI_DATASET_TASK, 0) AS PLANS_WITH_AI_DATASET_TASK,
+      COALESCE(P.PLANS_WITH_CEFD_TASK, 0) AS PLANS_WITH_CEFD_TASK,
+      COALESCE(P.PLANS_WITH_ML_TASK, 0) AS PLANS_WITH_ML_TASK,
+      COALESCE(P.PLANS_WITHOUT_TASK, 0) AS PLANS_WITHOUT_TASK,
+      COALESCE(P.PLANS_WITH_APPROVAL_TASK, 0) AS PLANS_WITH_APPROVAL_TASK,
+      COALESCE(P.PLANS_WITH_CONDITION_TASK, 0) AS PLANS_WITH_CONDITION_TASK,
+      COALESCE(P.PLANS_WITH_DELAY_TASK, 0) AS PLANS_WITH_DELAY_TASK,
+      COALESCE(P.PLANS_WITH_LI_PROJECT_REPLY_TASK, 0) AS PLANS_WITH_LI_PROJECT_REPLY_TASK,
+      COALESCE(P.PLANS_WITH_ML_PROJECT_UPDATE_TASK, 0) AS PLANS_WITH_ML_PROJECT_UPDATE_TASK,
+      COALESCE(P.PLANS_WITH_REPORTING_GENERATE_TASK, 0) AS PLANS_WITH_REPORTING_GENERATE_TASK,
+      COALESCE(P.PLANS_WITH_STORAGE_TASK, 0) AS PLANS_WITH_STORAGE_TASK,
+      COALESCE(P.TOTAL_TASKS_EVER, 0) AS TOTAL_TASKS_EVER,
+      COALESCE(P.AVG_TASKS_PER_PLAN_EVER, 0) AS AVG_TASKS_PER_PLAN_EVER,
+
+      COALESCE(G.PLAN_RUN, 0) AS PLAN_RUN,
+      COALESCE(G.COMPLETED_PLAN_RUNS, 0) AS COMPLETED_PLAN_RUNS,
+      COALESCE(G.INPROGRESS_PLAN_RUNS, 0) AS INPROGRESS_PLAN_RUNS,
+      COALESCE(G.CREATED_PLAN_RUNS, 0) AS CREATED_PLAN_RUNS,
+      COALESCE(G.CANCELLED_PLAN_RUNS, 0) AS CANCELLED_PLAN_RUNS,
+      COALESCE(G.FAILED_PLAN_RUNS, 0) AS FAILED_PLAN_RUNS,
+      COALESCE(G.MANUAL_PLAN_RUNS, 0) AS MANUAL_PLAN_RUNS,
+      COALESCE(G.SCHEDULE_PLAN_RUNS, 0) AS SCHEDULE_PLAN_RUNS,
+      COALESCE(G.API_PLAN_RUNS, 0) AS API_PLAN_RUNS,
+      COALESCE(G.AUTOMATED_PLAN_RUNS, 0) AS AUTOMATED_PLAN_RUNS,
+      COALESCE(G.PLAN_WITH_RUNS, 0) AS PLAN_WITH_RUNS,
+      COALESCE(G.AUTOMATED_PLANS, 0) AS AUTOMATED_PLANS,
+
+      F.FIRST_PLAN_CREATED_AT AS FIRST_PLAN_CREATED_AT,
+      R.FIRST_PLAN_RUN_AT AS FIRST_PLAN_RUN_AT,
+
+      COALESCE(A.DELETE_PLAN, 0) AS DELETE_PLAN,
+      COALESCE(A.EXPORT_PLAN, 0) AS EXPORT_PLAN,
+      COALESCE(A.CANCEL_PLAN_RUN, 0) AS CANCEL_PLAN_RUN,
+      COALESCE(A.SHARE_PLAN, 0) AS SHARE_PLAN,
+      COALESCE(A.CREATE_PLAN, 0) AS CREATE_PLAN,
+      COALESCE(A.OPEN_PLAN_RUN_PAGE, 0) AS OPEN_PLAN_RUN_PAGE,
+      COALESCE(A.DELETE_TASK, 0) AS DELETE_TASK,
+      COALESCE(A.RENAME_PLAN, 0) AS RENAME_PLAN,
+      COALESCE(A.RETRY_PLAN_RUN, 0) AS RETRY_PLAN_RUN,
+      COALESCE(A.RUN_PLAN, 0) AS RUN_PLAN,
+      COALESCE(A.TRASFER_PLAN_OWNERSHIP, 0) AS TRASFER_PLAN_OWNERSHIP,
+      COALESCE(A.TEST_HTTP_TASK, 0) AS TEST_HTTP_TASK,
+      COALESCE(A.MANAGE_PLAN_PARAMETERS, 0) AS MANAGE_PLAN_PARAMETERS,
+      COALESCE(A.VISIT_PREVIOUS_PLAN_RUN, 0) AS VISIT_PREVIOUS_PLAN_RUN,
+      COALESCE(A.ADD_WORKFLOW_TASK, 0) AS ADD_WORKFLOW_TASK,
+      COALESCE(A.VISIT_PLAN, 0) AS VISIT_PLAN,
+      COALESCE(A.ADD_FLOW_TASK, 0) AS ADD_FLOW_TASK,
+      COALESCE(A.ADD_SLACK_TASK, 0) AS ADD_SLACK_TASK,
+      COALESCE(A.IMPORT_PLAN, 0) AS IMPORT_PLAN,
+      COALESCE(A.VISIT_ORIGINAL_PLAN_RUN, 0) AS VISIT_ORIGINAL_PLAN_RUN,
+      COALESCE(A.TEST_SLACK_TASK, 0) AS TEST_SLACK_TASK,
+      COALESCE(A.SAVE_SLACK_TASK, 0) AS SAVE_SLACK_TASK,
+      COALESCE(A.ADD_HTTP_TASK, 0) AS ADD_HTTP_TASK,
+      COALESCE(A.RENAME_TASK, 0) AS RENAME_TASK,
+      COALESCE(A.SAVE_HTTP_TASK, 0) AS SAVE_HTTP_TASK,
+      COALESCE(A.ADD_ML_PROJECT_UPDATE_TASK, 0) AS ADD_ML_PROJECT_UPDATE_TASK,
+      COALESCE(A.VISIT_NEXT_PLAN_RUN, 0) AS VISIT_NEXT_PLAN_RUN,
+      COALESCE(A.ADD_DELETE_FILE_TASK, 0) AS ADD_DELETE_FILE_TASK,
+      COALESCE(A.MANAGE_PLAN_NOTIFICATIONS, 0) AS MANAGE_PLAN_NOTIFICATIONS,
+      COALESCE(A.ADD_ML_PREDICT_TASK, 0) AS ADD_ML_PREDICT_TASK,
+      COALESCE(A.OPEN_PLANS_LANDING_PAGE, 0) AS OPEN_PLANS_LANDING_PAGE,
+      COALESCE(A.VISIT_LATEST_PLAN_RUN, 0) AS VISIT_LATEST_PLAN_RUN,
+      COALESCE(A.TOTAL_EVENTS, 0) AS TOTAL_EVENTS,
+      COALESCE(A.ACTIVE_USERS, 0) AS ACTIVE_USERS,
+      COALESCE(A.ENGAGED_USERS_AMPLITUDE, 0) AS ENGAGED_USERS_AMPLITUDE,
+
+      /* New granular activity fields */
+      COALESCE(G.PLANS_WORKED_ON, 0) AS PLANS_WORKED_ON,
+      COALESCE(G.PLANS_CREATED_BY_ACTIVITY, 0) AS PLANS_CREATED_BY_ACTIVITY,
+      COALESCE(G.PLANS_EDITED, 0) AS PLANS_EDITED,
+      COALESCE(G.PLANS_WITH_TASK_CHANGES, 0) AS PLANS_WITH_TASK_CHANGES,
+      COALESCE(G.PLANS_RUN_BY_USER, 0) AS PLANS_RUN_BY_USER,
+      COALESCE(G.PLAN_CREATED_ACTIVITY_COUNT, 0) AS PLAN_CREATED_ACTIVITY_COUNT,
+      COALESCE(G.PLAN_EDIT_COUNT, 0) AS PLAN_EDIT_COUNT,
+      COALESCE(G.TASK_CREATED_COUNT, 0) AS TASK_CREATED_COUNT,
+      COALESCE(G.TASK_UPDATED_COUNT, 0) AS TASK_UPDATED_COUNT,
+      COALESCE(G.TASK_DELETED_COUNT, 0) AS TASK_DELETED_COUNT,
+      G.FIRST_RUN_ON_DATE_AT AS FIRST_RUN_ON_DATE_AT,
+      G.LAST_RUN_ON_DATE_AT AS LAST_RUN_ON_DATE_AT
+
+  FROM USERS_BASE U
+  LEFT JOIN PLAN_CREATION_STATE_AGG P
+    ON U.DATE = P.ACTIVITY_DATE
+   AND U.USER_ID = P.USER_ID
+   AND U.WORKSPACE_ID = P.WORKSPACE_ID
+  LEFT JOIN GRANULAR_USER_DAY G
+    ON U.DATE = G.ACTIVITY_DATE
+   AND U.USER_ID = G.USER_ID
+   AND U.WORKSPACE_ID = G.WORKSPACE_ID
+  LEFT JOIN USER_FIRST_PLAN_CREATED_DATE F
+    ON U.USER_ID = F.USER_ID
+   AND U.WORKSPACE_ID = F.WORKSPACE_ID
+  LEFT JOIN USER_FIRST_PLAN_RUN_DATE R
+    ON U.USER_ID = R.USER_ID
+   AND U.WORKSPACE_ID = R.WORKSPACE_ID
+  LEFT JOIN AMPLITUDE_EVENTS_DAILY A
+    ON U.DATE = A.ACTIVITY_DATE
+   AND U.USER_EMAIL = A.USER_EMAIL
+   AND U.WORKSPACE_ID = A.WORKSPACE_ID
+   AND U.PIPELINE_REGION = A.PIPELINE_REGION
+  ;
+queries:
+- name: base
+  description: Base metric query
+  query: |-
+    SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_AT
+    ),
+
+    PLANS_FACT AS (
+        SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.Plans_fact_at
+    ),
+
+    PLANS_GRANULAR AS (
+        SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_DAILY_USER_GRANULAR_AT
+    ),
+
+    /*
+       Plan creation-date and current plan-state metrics.
+
+       Important definition:
+       - CREATED_PLAN: plans created by the user on the row date.
+       - AVAILABLE_PLANS: those created plans that are currently not soft deleted.
+       - Task-composition metrics use the current task state from PLANS_FACT_AT_TEST.
+       - TOTAL_TASKS_EVER and AVG_TASKS_PER_PLAN_EVER retain lifetime source semantics.
+    */
+    PLAN_CREATION_STATE_AGG AS (
+        SELECT
+            F.ACTIVITY_DATE,
+            F.USER_ID,
+            F.WORKSPACE_ID,
+
+            COUNT(DISTINCT F.PLAN_ID) AS CREATED_PLAN,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.IS_PLAN_DELETED, 0) = 0,
+                F.PLAN_ID,
+                NULL
+            )) AS AVAILABLE_PLANS,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_WORKFLOW_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_WORKFLOW_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_FLOW_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_FLOW_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_HTTP_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_HTTP_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_EMAIL_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_EMAIL_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_AI_DATASET_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_AI_DATASET_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_CEFD_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_CEFD_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_ML_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_ML_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_APPROVAL_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_APPROVAL_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_CONDITION_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_CONDITION_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_DELAY_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_DELAY_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_LI_PROJECT_REPLAY_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_LI_PROJECT_REPLY_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_ML_PROJECT_UPDATE_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_ML_PROJECT_UPDATE_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_REPORTING_GENERATE_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_REPORTING_GENERATE_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_STORAGE_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_STORAGE_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_TASK_COUNT, 0) = 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITHOUT_TASK,
+
+            SUM(COALESCE(F.TOTAL_TASKS_EVER, 0)) AS TOTAL_TASKS_EVER,
+
+            DIV0(
+                SUM(COALESCE(F.TOTAL_TASKS_EVER, 0)),
+                COUNT(DISTINCT F.PLAN_ID)
+            ) AS AVG_TASKS_PER_PLAN_EVER
+
+        FROM PLANS_FACT F
+        WHERE F.ACTIVITY_DATE IS NOT NULL
+          AND F.USER_ID IS NOT NULL
+          AND F.WORKSPACE_ID IS NOT NULL
+        GROUP BY 1, 2, 3
+    ),
+
+    /*
+       Primary daily user activity aggregation.
+       All plan-user relationships and run metrics come from the granular table.
+    */
+    GRANULAR_USER_DAY AS (
+        SELECT
+            G.ACTIVITY_DATE,
+            G.USER_ID,
+            G.WORKSPACE_ID,
+
+            COUNT(DISTINCT G.PLAN_ID) AS PLANS_WORKED_ON,
+
+            COUNT(DISTINCT IFF(
+                G.IS_PLAN_CREATOR = 1,
+                G.PLAN_ID,
+                NULL
+            )) AS PLANS_CREATED_BY_ACTIVITY,
+
+            COUNT(DISTINCT IFF(
+                G.IS_PLAN_EDITOR_PRIMARY = 1,
+                G.PLAN_ID,
+                NULL
+            )) AS PLANS_EDITED,
+
+            COUNT(DISTINCT IFF(
+                G.IS_TASK_CONTRIBUTOR = 1,
+                G.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_TASK_CHANGES,
+
+            COUNT(DISTINCT IFF(
+                G.IS_PLAN_RUNNER = 1,
+                G.PLAN_ID,
+                NULL
+            )) AS PLANS_RUN_BY_USER,
+
+            SUM(COALESCE(G.PLAN_CREATED_COUNT, 0)) AS PLAN_CREATED_ACTIVITY_COUNT,
+            SUM(COALESCE(G.PLAN_EDITED_COUNT, 0)) AS PLAN_EDIT_COUNT,
+            SUM(COALESCE(G.TASK_CREATED_COUNT, 0)) AS TASK_CREATED_COUNT,
+            SUM(COALESCE(G.TASK_UPDATED_COUNT, 0)) AS TASK_UPDATED_COUNT,
+            SUM(COALESCE(G.TASK_DELETED_COUNT, 0)) AS TASK_DELETED_COUNT,
+
+            SUM(COALESCE(G.PLAN_RUN_COUNT, 0)) AS PLAN_RUN,
+            SUM(COALESCE(G.COMPLETED_PLAN_RUN_COUNT, 0)) AS COMPLETED_PLAN_RUNS,
+            SUM(COALESCE(G.INPROGRESS_PLAN_RUN_COUNT, 0)) AS INPROGRESS_PLAN_RUNS,
+            SUM(COALESCE(G.CREATED_PLAN_RUN_COUNT, 0)) AS CREATED_PLAN_RUNS,
+            SUM(COALESCE(G.CANCELLED_PLAN_RUN_COUNT, 0)) AS CANCELLED_PLAN_RUNS,
+            SUM(COALESCE(G.FAILED_PLAN_RUN_COUNT, 0)) AS FAILED_PLAN_RUNS,
+            SUM(COALESCE(G.MANUAL_PLAN_RUN_COUNT, 0)) AS MANUAL_PLAN_RUNS,
+            SUM(COALESCE(G.SCHEDULED_PLAN_RUN_COUNT, 0)) AS SCHEDULE_PLAN_RUNS,
+            SUM(COALESCE(G.API_PLAN_RUN_COUNT, 0)) AS API_PLAN_RUNS,
+            SUM(COALESCE(G.AUTOMATED_PLAN_RUN_COUNT, 0)) AS AUTOMATED_PLAN_RUNS,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(G.PLAN_RUN_COUNT, 0) > 0,
+                G.PLAN_ID,
+                NULL
+            )) AS PLAN_WITH_RUNS,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(G.AUTOMATED_PLAN_RUN_COUNT, 0) > 0,
+                G.PLAN_ID,
+                NULL
+            )) AS AUTOMATED_PLANS,
+
+            MIN(G.FIRST_RUN_AT) AS FIRST_RUN_ON_DATE_AT,
+            MAX(G.LAST_RUN_AT) AS LAST_RUN_ON_DATE_AT
+
+        FROM PLANS_GRANULAR G
+        GROUP BY 1, 2, 3
+    ),
+
+    USER_FIRST_PLAN_CREATED_DATE AS (
+        SELECT
+            F.USER_ID,
+            F.WORKSPACE_ID,
+            MIN(F.ACTIVITY_DATE) AS FIRST_PLAN_CREATED_AT
+        FROM PLANS_FACT F
+        WHERE F.USER_ID IS NOT NULL
+          AND F.WORKSPACE_ID IS NOT NULL
+          AND F.ACTIVITY_DATE IS NOT NULL
+        GROUP BY 1, 2
+    ),
+
+    USER_FIRST_PLAN_RUN_DATE AS (
+        SELECT
+            G.USER_ID,
+            G.WORKSPACE_ID,
+            MIN(DATE(G.FIRST_RUN_AT)) AS FIRST_PLAN_RUN_AT
+        FROM PLANS_GRANULAR G
+        WHERE COALESCE(G.PLAN_RUN_COUNT, 0) > 0
+          AND G.FIRST_RUN_AT IS NOT NULL
+        GROUP BY 1, 2
+    ),
+
+    /*
+       Amplitude remains user/workspace/day level because the supplied source
+       does not yet provide a validated PLAN_ID mapping for these events.
+    */
+    AMPLITUDE_EVENTS_DAILY AS (
+        SELECT
+            TO_DATE(EVENT_TIME) AS ACTIVITY_DATE,
+            USER_EMAIL,
+            BASE64_ENCODE(CONCAT(WORKSPACE_ID, '_', PIPELINE_REGION)) AS WORKSPACE_ID,
+            PIPELINE_REGION,
+
+            COUNT_IF(EVENT_TYPE = 'delete_plan') AS DELETE_PLAN,
+            COUNT_IF(EVENT_TYPE = 'export_plan') AS EXPORT_PLAN,
+            COUNT_IF(EVENT_TYPE = 'cancel_plan_run') AS CANCEL_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'share_plan') AS SHARE_PLAN,
+            COUNT_IF(EVENT_TYPE = 'create_plan') AS CREATE_PLAN,
+            COUNT_IF(EVENT_TYPE = 'open_plan_run_page') AS OPEN_PLAN_RUN_PAGE,
+            COUNT_IF(EVENT_TYPE = 'delete_task') AS DELETE_TASK,
+            COUNT_IF(EVENT_TYPE = 'rename_plan') AS RENAME_PLAN,
+            COUNT_IF(EVENT_TYPE = 'retry_plan_run') AS RETRY_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'run_plan') AS RUN_PLAN,
+            COUNT_IF(EVENT_TYPE = 'transfer_plan_ownership') AS TRASFER_PLAN_OWNERSHIP,
+            COUNT_IF(EVENT_TYPE = 'test_http_task') AS TEST_HTTP_TASK,
+            COUNT_IF(EVENT_TYPE = 'manage_plan_parameters') AS MANAGE_PLAN_PARAMETERS,
+            COUNT_IF(EVENT_TYPE = 'visit_previous_plan_run') AS VISIT_PREVIOUS_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'add_workflow_task') AS ADD_WORKFLOW_TASK,
+            COUNT_IF(EVENT_TYPE = 'visit_plan') AS VISIT_PLAN,
+            COUNT_IF(EVENT_TYPE = 'add_flow_task') AS ADD_FLOW_TASK,
+            COUNT_IF(EVENT_TYPE = 'add_slack_task') AS ADD_SLACK_TASK,
+            COUNT_IF(EVENT_TYPE = 'import_plan') AS IMPORT_PLAN,
+            COUNT_IF(EVENT_TYPE = 'visit_original_plan_run') AS VISIT_ORIGINAL_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'test_slack_task') AS TEST_SLACK_TASK,
+            COUNT_IF(EVENT_TYPE = 'save_slack_task') AS SAVE_SLACK_TASK,
+            COUNT_IF(EVENT_TYPE = 'add_http_task') AS ADD_HTTP_TASK,
+            COUNT_IF(EVENT_TYPE = 'rename_task') AS RENAME_TASK,
+            COUNT_IF(EVENT_TYPE = 'save_http_task') AS SAVE_HTTP_TASK,
+            COUNT_IF(EVENT_TYPE = 'add_ml_project_update_task') AS ADD_ML_PROJECT_UPDATE_TASK,
+            COUNT_IF(EVENT_TYPE = 'visit_next_plan_run') AS VISIT_NEXT_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'add_delete_file_task') AS ADD_DELETE_FILE_TASK,
+            COUNT_IF(EVENT_TYPE = 'manage_plan_notifications') AS MANAGE_PLAN_NOTIFICATIONS,
+            COUNT_IF(EVENT_TYPE = 'add_ml_predict_task') AS ADD_ML_PREDICT_TASK,
+            COUNT_IF(EVENT_TYPE = 'open_plans_landing_page') AS OPEN_PLANS_LANDING_PAGE,
+            COUNT_IF(EVENT_TYPE = 'visit_latest_plan_run') AS VISIT_LATEST_PLAN_RUN,
+
+            COUNT(*) AS TOTAL_EVENTS,
+
+            IFF(
+                COUNT_IF(EVENT_TYPE IN (
+                    'create_plan', 'import_plan', 'export_plan', 'rename_plan',
+                    'delete_plan', 'share_plan', 'add_workflow_task', 'add_flow_task',
+                    'add_slack_task', 'add_http_task', 'add_ml_project_update_task',
+                    'add_ml_predict_task', 'add_delete_file_task', 'save_http_task',
+                    'save_slack_task', 'rename_task', 'test_http_task', 'test_slack_task'
+                )) > 0,
+                1,
+                0
+            ) AS ACTIVE_USERS,
+
+            IFF(
+                COUNT_IF(EVENT_TYPE IN (
+                    'create_plan', 'import_plan', 'export_plan', 'rename_plan',
+                    'delete_plan', 'share_plan', 'add_workflow_task', 'add_flow_task',
+                    'add_slack_task', 'add_http_task', 'add_ml_project_update_task',
+                    'add_ml_predict_task', 'add_delete_file_task', 'save_http_task',
+                    'save_slack_task', 'rename_task', 'test_http_task', 'test_slack_task'
+                )) > 0
+                AND COUNT_IF(EVENT_TYPE IN (
+                    'run_plan', 'retry_plan_run', 'schedule_plan',
+                    'plan_create_new_schedule', 'cancel_plan_run'
+                )) > 0,
+                1,
+                0
+            ) AS ENGAGED_USERS_AMPLITUDE
+
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_CLOUD.AMPLITUDE_ALL_EVENTS_WITH_LICENSE
+        GROUP BY 1, 2, 3, 4
+    )
+
+    SELECT
+        U.DATE AS DATE,
+        U.USER_ID AS USER_ID,
+        U.USER_ID_RAW AS USER_ID_RAW,
+        U.USER_EMAIL AS USER_EMAIL,
+        U.WORKSPACE_ID AS WORKSPACE_ID,
+        U.WORKSPACE_ID_RAW AS WORKSPACE_ID_RAW,
+        U.PIPELINE_REGION AS PIPELINE_REGION,
+        U.BILLING_ACCOUNT_ID AS BILLING_ACCOUNT_ID,
+        U.BILLING_ACCOUNT_ID_RAW AS BILLING_ACCOUNT_ID_RAW,
+        U.SFDC_ACCOUNT_ID AS SFDC_ACCOUNT_ID,
+        U.ACCOUNT_CID AS ACCOUNT_CID,
+        U.BILLING_ACCOUNT_NAME AS BILLING_ACCOUNT_NAME,
+        U.NAMED_COMPANY AS NAMED_COMPANY,
+        U.LICENSE_TYPE AS LICENSE_TYPE,
+        U.ACCOUNT_EDITION AS ACCOUNT_EDITION,
+        U.PRICING_AND_PACKAGING AS PRICING_AND_PACKAGING,
+        U.STATUS AS STATUS,
+        U.ACTIVATION_DATE AS ACTIVATION_DATE,
+
+        COALESCE(P.AVAILABLE_PLANS, 0) AS AVAILABLE_PLANS,
+        COALESCE(P.CREATED_PLAN, 0) AS CREATED_PLAN,
+        COALESCE(P.PLANS_WITH_WORKFLOW_TASK, 0) AS PLANS_WITH_WORKFLOW_TASK,
+        COALESCE(P.PLANS_WITH_FLOW_TASK, 0) AS PLANS_WITH_FLOW_TASK,
+        COALESCE(P.PLANS_WITH_HTTP_TASK, 0) AS PLANS_WITH_HTTP_TASK,
+        COALESCE(P.PLANS_WITH_EMAIL_TASK, 0) AS PLANS_WITH_EMAIL_TASK,
+        COALESCE(P.PLANS_WITH_AI_DATASET_TASK, 0) AS PLANS_WITH_AI_DATASET_TASK,
+        COALESCE(P.PLANS_WITH_CEFD_TASK, 0) AS PLANS_WITH_CEFD_TASK,
+        COALESCE(P.PLANS_WITH_ML_TASK, 0) AS PLANS_WITH_ML_TASK,
+        COALESCE(P.PLANS_WITHOUT_TASK, 0) AS PLANS_WITHOUT_TASK,
+        COALESCE(P.PLANS_WITH_APPROVAL_TASK, 0) AS PLANS_WITH_APPROVAL_TASK,
+        COALESCE(P.PLANS_WITH_CONDITION_TASK, 0) AS PLANS_WITH_CONDITION_TASK,
+        COALESCE(P.PLANS_WITH_DELAY_TASK, 0) AS PLANS_WITH_DELAY_TASK,
+        COALESCE(P.PLANS_WITH_LI_PROJECT_REPLY_TASK, 0) AS PLANS_WITH_LI_PROJECT_REPLY_TASK,
+        COALESCE(P.PLANS_WITH_ML_PROJECT_UPDATE_TASK, 0) AS PLANS_WITH_ML_PROJECT_UPDATE_TASK,
+        COALESCE(P.PLANS_WITH_REPORTING_GENERATE_TASK, 0) AS PLANS_WITH_REPORTING_GENERATE_TASK,
+        COALESCE(P.PLANS_WITH_STORAGE_TASK, 0) AS PLANS_WITH_STORAGE_TASK,
+        COALESCE(P.TOTAL_TASKS_EVER, 0) AS TOTAL_TASKS_EVER,
+        COALESCE(P.AVG_TASKS_PER_PLAN_EVER, 0) AS AVG_TASKS_PER_PLAN_EVER,
+
+        COALESCE(G.PLAN_RUN, 0) AS PLAN_RUN,
+        COALESCE(G.COMPLETED_PLAN_RUNS, 0) AS COMPLETED_PLAN_RUNS,
+        COALESCE(G.INPROGRESS_PLAN_RUNS, 0) AS INPROGRESS_PLAN_RUNS,
+        COALESCE(G.CREATED_PLAN_RUNS, 0) AS CREATED_PLAN_RUNS,
+        COALESCE(G.CANCELLED_PLAN_RUNS, 0) AS CANCELLED_PLAN_RUNS,
+        COALESCE(G.FAILED_PLAN_RUNS, 0) AS FAILED_PLAN_RUNS,
+        COALESCE(G.MANUAL_PLAN_RUNS, 0) AS MANUAL_PLAN_RUNS,
+        COALESCE(G.SCHEDULE_PLAN_RUNS, 0) AS SCHEDULE_PLAN_RUNS,
+        COALESCE(G.API_PLAN_RUNS, 0) AS API_PLAN_RUNS,
+        COALESCE(G.AUTOMATED_PLAN_RUNS, 0) AS AUTOMATED_PLAN_RUNS,
+        COALESCE(G.PLAN_WITH_RUNS, 0) AS PLAN_WITH_RUNS,
+        COALESCE(G.AUTOMATED_PLANS, 0) AS AUTOMATED_PLANS,
+
+        F.FIRST_PLAN_CREATED_AT AS FIRST_PLAN_CREATED_AT,
+        R.FIRST_PLAN_RUN_AT AS FIRST_PLAN_RUN_AT,
+
+        COALESCE(A.DELETE_PLAN, 0) AS DELETE_PLAN,
+        COALESCE(A.EXPORT_PLAN, 0) AS EXPORT_PLAN,
+        COALESCE(A.CANCEL_PLAN_RUN, 0) AS CANCEL_PLAN_RUN,
+        COALESCE(A.SHARE_PLAN, 0) AS SHARE_PLAN,
+        COALESCE(A.CREATE_PLAN, 0) AS CREATE_PLAN,
+        COALESCE(A.OPEN_PLAN_RUN_PAGE, 0) AS OPEN_PLAN_RUN_PAGE,
+        COALESCE(A.DELETE_TASK, 0) AS DELETE_TASK,
+        COALESCE(A.RENAME_PLAN, 0) AS RENAME_PLAN,
+        COALESCE(A.RETRY_PLAN_RUN, 0) AS RETRY_PLAN_RUN,
+        COALESCE(A.RUN_PLAN, 0) AS RUN_PLAN,
+        COALESCE(A.TRASFER_PLAN_OWNERSHIP, 0) AS TRASFER_PLAN_OWNERSHIP,
+        COALESCE(A.TEST_HTTP_TASK, 0) AS TEST_HTTP_TASK,
+        COALESCE(A.MANAGE_PLAN_PARAMETERS, 0) AS MANAGE_PLAN_PARAMETERS,
+        COALESCE(A.VISIT_PREVIOUS_PLAN_RUN, 0) AS VISIT_PREVIOUS_PLAN_RUN,
+        COALESCE(A.ADD_WORKFLOW_TASK, 0) AS ADD_WORKFLOW_TASK,
+        COALESCE(A.VISIT_PLAN, 0) AS VISIT_PLAN,
+        COALESCE(A.ADD_FLOW_TASK, 0) AS ADD_FLOW_TASK,
+        COALESCE(A.ADD_SLACK_TASK, 0) AS ADD_SLACK_TASK,
+        COALESCE(A.IMPORT_PLAN, 0) AS IMPORT_PLAN,
+        COALESCE(A.VISIT_ORIGINAL_PLAN_RUN, 0) AS VISIT_ORIGINAL_PLAN_RUN,
+        COALESCE(A.TEST_SLACK_TASK, 0) AS TEST_SLACK_TASK,
+        COALESCE(A.SAVE_SLACK_TASK, 0) AS SAVE_SLACK_TASK,
+        COALESCE(A.ADD_HTTP_TASK, 0) AS ADD_HTTP_TASK,
+        COALESCE(A.RENAME_TASK, 0) AS RENAME_TASK,
+        COALESCE(A.SAVE_HTTP_TASK, 0) AS SAVE_HTTP_TASK,
+        COALESCE(A.ADD_ML_PROJECT_UPDATE_TASK, 0) AS ADD_ML_PROJECT_UPDATE_TASK,
+        COALESCE(A.VISIT_NEXT_PLAN_RUN, 0) AS VISIT_NEXT_PLAN_RUN,
+        COALESCE(A.ADD_DELETE_FILE_TASK, 0) AS ADD_DELETE_FILE_TASK,
+        COALESCE(A.MANAGE_PLAN_NOTIFICATIONS, 0) AS MANAGE_PLAN_NOTIFICATIONS,
+        COALESCE(A.ADD_ML_PREDICT_TASK, 0) AS ADD_ML_PREDICT_TASK,
+        COALESCE(A.OPEN_PLANS_LANDING_PAGE, 0) AS OPEN_PLANS_LANDING_PAGE,
+        COALESCE(A.VISIT_LATEST_PLAN_RUN, 0) AS VISIT_LATEST_PLAN_RUN,
+        COALESCE(A.TOTAL_EVENTS, 0) AS TOTAL_EVENTS,
+        COALESCE(A.ACTIVE_USERS, 0) AS ACTIVE_USERS,
+        COALESCE(A.ENGAGED_USERS_AMPLITUDE, 0) AS ENGAGED_USERS_AMPLITUDE,
+
+        /* New granular activity fields */
+        COALESCE(G.PLANS_WORKED_ON, 0) AS PLANS_WORKED_ON,
+        COALESCE(G.PLANS_CREATED_BY_ACTIVITY, 0) AS PLANS_CREATED_BY_ACTIVITY,
+        COALESCE(G.PLANS_EDITED, 0) AS PLANS_EDITED,
+        COALESCE(G.PLANS_WITH_TASK_CHANGES, 0) AS PLANS_WITH_TASK_CHANGES,
+        COALESCE(G.PLANS_RUN_BY_USER, 0) AS PLANS_RUN_BY_USER,
+        COALESCE(G.PLAN_CREATED_ACTIVITY_COUNT, 0) AS PLAN_CREATED_ACTIVITY_COUNT,
+        COALESCE(G.PLAN_EDIT_COUNT, 0) AS PLAN_EDIT_COUNT,
+        COALESCE(G.TASK_CREATED_COUNT, 0) AS TASK_CREATED_COUNT,
+        COALESCE(G.TASK_UPDATED_COUNT, 0) AS TASK_UPDATED_COUNT,
+        COALESCE(G.TASK_DELETED_COUNT, 0) AS TASK_DELETED_COUNT,
+        G.FIRST_RUN_ON_DATE_AT AS FIRST_RUN_ON_DATE_AT,
+        G.LAST_RUN_ON_DATE_AT AS LAST_RUN_ON_DATE_AT
+
+    FROM USERS_BASE U
+    LEFT JOIN PLAN_CREATION_STATE_AGG P
+      ON U.DATE = P.ACTIVITY_DATE
+     AND U.USER_ID = P.USER_ID
+     AND U.WORKSPACE_ID = P.WORKSPACE_ID
+    LEFT JOIN GRANULAR_USER_DAY G
+      ON U.DATE = G.ACTIVITY_DATE
+     AND U.USER_ID = G.USER_ID
+     AND U.WORKSPACE_ID = G.WORKSPACE_ID
+    LEFT JOIN USER_FIRST_PLAN_CREATED_DATE F
+      ON U.USER_ID = F.USER_ID
+     AND U.WORKSPACE_ID = F.WORKSPACE_ID
+    LEFT JOIN USER_FIRST_PLAN_RUN_DATE R
+      ON U.USER_ID = R.USER_ID
+     AND U.WORKSPACE_ID = R.WORKSPACE_ID
+    LEFT JOIN AMPLITUDE_EVENTS_DAILY A
+      ON U.DATE = A.ACTIVITY_DATE
+     AND U.USER_EMAIL = A.USER_EMAIL
+     AND U.WORKSPACE_ID = A.WORKSPACE_ID
+     AND U.PIPELINE_REGION = A.PIPELINE_REGION
+    ;
+- name: daily
+  description: Daily metrics
+  query: |-
+    SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_AT
+    ),
+
+    PLANS_FACT AS (
+        SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.Plans_fact_at
+    ),
+
+    PLANS_GRANULAR AS (
+        SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_DAILY_USER_GRANULAR_AT
+    ),
+
+    /*
+       Plan creation-date and current plan-state metrics.
+
+       Important definition:
+       - CREATED_PLAN: plans created by the user on the row date.
+       - AVAILABLE_PLANS: those created plans that are currently not soft deleted.
+       - Task-composition metrics use the current task state from PLANS_FACT_AT_TEST.
+       - TOTAL_TASKS_EVER and AVG_TASKS_PER_PLAN_EVER retain lifetime source semantics.
+    */
+    PLAN_CREATION_STATE_AGG AS (
+        SELECT
+            F.ACTIVITY_DATE,
+            F.USER_ID,
+            F.WORKSPACE_ID,
+
+            COUNT(DISTINCT F.PLAN_ID) AS CREATED_PLAN,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.IS_PLAN_DELETED, 0) = 0,
+                F.PLAN_ID,
+                NULL
+            )) AS AVAILABLE_PLANS,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_WORKFLOW_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_WORKFLOW_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_FLOW_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_FLOW_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_HTTP_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_HTTP_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_EMAIL_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_EMAIL_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_AI_DATASET_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_AI_DATASET_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_CEFD_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_CEFD_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_ML_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_ML_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_APPROVAL_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_APPROVAL_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_CONDITION_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_CONDITION_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_DELAY_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_DELAY_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_LI_PROJECT_REPLAY_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_LI_PROJECT_REPLY_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_ML_PROJECT_UPDATE_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_ML_PROJECT_UPDATE_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_REPORTING_GENERATE_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_REPORTING_GENERATE_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_STORAGE_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_STORAGE_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_TASK_COUNT, 0) = 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITHOUT_TASK,
+
+            SUM(COALESCE(F.TOTAL_TASKS_EVER, 0)) AS TOTAL_TASKS_EVER,
+
+            DIV0(
+                SUM(COALESCE(F.TOTAL_TASKS_EVER, 0)),
+                COUNT(DISTINCT F.PLAN_ID)
+            ) AS AVG_TASKS_PER_PLAN_EVER
+
+        FROM PLANS_FACT F
+        WHERE F.ACTIVITY_DATE IS NOT NULL
+          AND F.USER_ID IS NOT NULL
+          AND F.WORKSPACE_ID IS NOT NULL
+        GROUP BY 1, 2, 3
+    ),
+
+    /*
+       Primary daily user activity aggregation.
+       All plan-user relationships and run metrics come from the granular table.
+    */
+    GRANULAR_USER_DAY AS (
+        SELECT
+            G.ACTIVITY_DATE,
+            G.USER_ID,
+            G.WORKSPACE_ID,
+
+            COUNT(DISTINCT G.PLAN_ID) AS PLANS_WORKED_ON,
+
+            COUNT(DISTINCT IFF(
+                G.IS_PLAN_CREATOR = 1,
+                G.PLAN_ID,
+                NULL
+            )) AS PLANS_CREATED_BY_ACTIVITY,
+
+            COUNT(DISTINCT IFF(
+                G.IS_PLAN_EDITOR_PRIMARY = 1,
+                G.PLAN_ID,
+                NULL
+            )) AS PLANS_EDITED,
+
+            COUNT(DISTINCT IFF(
+                G.IS_TASK_CONTRIBUTOR = 1,
+                G.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_TASK_CHANGES,
+
+            COUNT(DISTINCT IFF(
+                G.IS_PLAN_RUNNER = 1,
+                G.PLAN_ID,
+                NULL
+            )) AS PLANS_RUN_BY_USER,
+
+            SUM(COALESCE(G.PLAN_CREATED_COUNT, 0)) AS PLAN_CREATED_ACTIVITY_COUNT,
+            SUM(COALESCE(G.PLAN_EDITED_COUNT, 0)) AS PLAN_EDIT_COUNT,
+            SUM(COALESCE(G.TASK_CREATED_COUNT, 0)) AS TASK_CREATED_COUNT,
+            SUM(COALESCE(G.TASK_UPDATED_COUNT, 0)) AS TASK_UPDATED_COUNT,
+            SUM(COALESCE(G.TASK_DELETED_COUNT, 0)) AS TASK_DELETED_COUNT,
+
+            SUM(COALESCE(G.PLAN_RUN_COUNT, 0)) AS PLAN_RUN,
+            SUM(COALESCE(G.COMPLETED_PLAN_RUN_COUNT, 0)) AS COMPLETED_PLAN_RUNS,
+            SUM(COALESCE(G.INPROGRESS_PLAN_RUN_COUNT, 0)) AS INPROGRESS_PLAN_RUNS,
+            SUM(COALESCE(G.CREATED_PLAN_RUN_COUNT, 0)) AS CREATED_PLAN_RUNS,
+            SUM(COALESCE(G.CANCELLED_PLAN_RUN_COUNT, 0)) AS CANCELLED_PLAN_RUNS,
+            SUM(COALESCE(G.FAILED_PLAN_RUN_COUNT, 0)) AS FAILED_PLAN_RUNS,
+            SUM(COALESCE(G.MANUAL_PLAN_RUN_COUNT, 0)) AS MANUAL_PLAN_RUNS,
+            SUM(COALESCE(G.SCHEDULED_PLAN_RUN_COUNT, 0)) AS SCHEDULE_PLAN_RUNS,
+            SUM(COALESCE(G.API_PLAN_RUN_COUNT, 0)) AS API_PLAN_RUNS,
+            SUM(COALESCE(G.AUTOMATED_PLAN_RUN_COUNT, 0)) AS AUTOMATED_PLAN_RUNS,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(G.PLAN_RUN_COUNT, 0) > 0,
+                G.PLAN_ID,
+                NULL
+            )) AS PLAN_WITH_RUNS,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(G.AUTOMATED_PLAN_RUN_COUNT, 0) > 0,
+                G.PLAN_ID,
+                NULL
+            )) AS AUTOMATED_PLANS,
+
+            MIN(G.FIRST_RUN_AT) AS FIRST_RUN_ON_DATE_AT,
+            MAX(G.LAST_RUN_AT) AS LAST_RUN_ON_DATE_AT
+
+        FROM PLANS_GRANULAR G
+        GROUP BY 1, 2, 3
+    ),
+
+    USER_FIRST_PLAN_CREATED_DATE AS (
+        SELECT
+            F.USER_ID,
+            F.WORKSPACE_ID,
+            MIN(F.ACTIVITY_DATE) AS FIRST_PLAN_CREATED_AT
+        FROM PLANS_FACT F
+        WHERE F.USER_ID IS NOT NULL
+          AND F.WORKSPACE_ID IS NOT NULL
+          AND F.ACTIVITY_DATE IS NOT NULL
+        GROUP BY 1, 2
+    ),
+
+    USER_FIRST_PLAN_RUN_DATE AS (
+        SELECT
+            G.USER_ID,
+            G.WORKSPACE_ID,
+            MIN(DATE(G.FIRST_RUN_AT)) AS FIRST_PLAN_RUN_AT
+        FROM PLANS_GRANULAR G
+        WHERE COALESCE(G.PLAN_RUN_COUNT, 0) > 0
+          AND G.FIRST_RUN_AT IS NOT NULL
+        GROUP BY 1, 2
+    ),
+
+    /*
+       Amplitude remains user/workspace/day level because the supplied source
+       does not yet provide a validated PLAN_ID mapping for these events.
+    */
+    AMPLITUDE_EVENTS_DAILY AS (
+        SELECT
+            TO_DATE(EVENT_TIME) AS ACTIVITY_DATE,
+            USER_EMAIL,
+            BASE64_ENCODE(CONCAT(WORKSPACE_ID, '_', PIPELINE_REGION)) AS WORKSPACE_ID,
+            PIPELINE_REGION,
+
+            COUNT_IF(EVENT_TYPE = 'delete_plan') AS DELETE_PLAN,
+            COUNT_IF(EVENT_TYPE = 'export_plan') AS EXPORT_PLAN,
+            COUNT_IF(EVENT_TYPE = 'cancel_plan_run') AS CANCEL_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'share_plan') AS SHARE_PLAN,
+            COUNT_IF(EVENT_TYPE = 'create_plan') AS CREATE_PLAN,
+            COUNT_IF(EVENT_TYPE = 'open_plan_run_page') AS OPEN_PLAN_RUN_PAGE,
+            COUNT_IF(EVENT_TYPE = 'delete_task') AS DELETE_TASK,
+            COUNT_IF(EVENT_TYPE = 'rename_plan') AS RENAME_PLAN,
+            COUNT_IF(EVENT_TYPE = 'retry_plan_run') AS RETRY_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'run_plan') AS RUN_PLAN,
+            COUNT_IF(EVENT_TYPE = 'transfer_plan_ownership') AS TRASFER_PLAN_OWNERSHIP,
+            COUNT_IF(EVENT_TYPE = 'test_http_task') AS TEST_HTTP_TASK,
+            COUNT_IF(EVENT_TYPE = 'manage_plan_parameters') AS MANAGE_PLAN_PARAMETERS,
+            COUNT_IF(EVENT_TYPE = 'visit_previous_plan_run') AS VISIT_PREVIOUS_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'add_workflow_task') AS ADD_WORKFLOW_TASK,
+            COUNT_IF(EVENT_TYPE = 'visit_plan') AS VISIT_PLAN,
+            COUNT_IF(EVENT_TYPE = 'add_flow_task') AS ADD_FLOW_TASK,
+            COUNT_IF(EVENT_TYPE = 'add_slack_task') AS ADD_SLACK_TASK,
+            COUNT_IF(EVENT_TYPE = 'import_plan') AS IMPORT_PLAN,
+            COUNT_IF(EVENT_TYPE = 'visit_original_plan_run') AS VISIT_ORIGINAL_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'test_slack_task') AS TEST_SLACK_TASK,
+            COUNT_IF(EVENT_TYPE = 'save_slack_task') AS SAVE_SLACK_TASK,
+            COUNT_IF(EVENT_TYPE = 'add_http_task') AS ADD_HTTP_TASK,
+            COUNT_IF(EVENT_TYPE = 'rename_task') AS RENAME_TASK,
+            COUNT_IF(EVENT_TYPE = 'save_http_task') AS SAVE_HTTP_TASK,
+            COUNT_IF(EVENT_TYPE = 'add_ml_project_update_task') AS ADD_ML_PROJECT_UPDATE_TASK,
+            COUNT_IF(EVENT_TYPE = 'visit_next_plan_run') AS VISIT_NEXT_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'add_delete_file_task') AS ADD_DELETE_FILE_TASK,
+            COUNT_IF(EVENT_TYPE = 'manage_plan_notifications') AS MANAGE_PLAN_NOTIFICATIONS,
+            COUNT_IF(EVENT_TYPE = 'add_ml_predict_task') AS ADD_ML_PREDICT_TASK,
+            COUNT_IF(EVENT_TYPE = 'open_plans_landing_page') AS OPEN_PLANS_LANDING_PAGE,
+            COUNT_IF(EVENT_TYPE = 'visit_latest_plan_run') AS VISIT_LATEST_PLAN_RUN,
+
+            COUNT(*) AS TOTAL_EVENTS,
+
+            IFF(
+                COUNT_IF(EVENT_TYPE IN (
+                    'create_plan', 'import_plan', 'export_plan', 'rename_plan',
+                    'delete_plan', 'share_plan', 'add_workflow_task', 'add_flow_task',
+                    'add_slack_task', 'add_http_task', 'add_ml_project_update_task',
+                    'add_ml_predict_task', 'add_delete_file_task', 'save_http_task',
+                    'save_slack_task', 'rename_task', 'test_http_task', 'test_slack_task'
+                )) > 0,
+                1,
+                0
+            ) AS ACTIVE_USERS,
+
+            IFF(
+                COUNT_IF(EVENT_TYPE IN (
+                    'create_plan', 'import_plan', 'export_plan', 'rename_plan',
+                    'delete_plan', 'share_plan', 'add_workflow_task', 'add_flow_task',
+                    'add_slack_task', 'add_http_task', 'add_ml_project_update_task',
+                    'add_ml_predict_task', 'add_delete_file_task', 'save_http_task',
+                    'save_slack_task', 'rename_task', 'test_http_task', 'test_slack_task'
+                )) > 0
+                AND COUNT_IF(EVENT_TYPE IN (
+                    'run_plan', 'retry_plan_run', 'schedule_plan',
+                    'plan_create_new_schedule', 'cancel_plan_run'
+                )) > 0,
+                1,
+                0
+            ) AS ENGAGED_USERS_AMPLITUDE
+
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_CLOUD.AMPLITUDE_ALL_EVENTS_WITH_LICENSE
+        GROUP BY 1, 2, 3, 4
+    )
+
+    SELECT
+        U.DATE AS DATE,
+        U.USER_ID AS USER_ID,
+        U.USER_ID_RAW AS USER_ID_RAW,
+        U.USER_EMAIL AS USER_EMAIL,
+        U.WORKSPACE_ID AS WORKSPACE_ID,
+        U.WORKSPACE_ID_RAW AS WORKSPACE_ID_RAW,
+        U.PIPELINE_REGION AS PIPELINE_REGION,
+        U.BILLING_ACCOUNT_ID AS BILLING_ACCOUNT_ID,
+        U.BILLING_ACCOUNT_ID_RAW AS BILLING_ACCOUNT_ID_RAW,
+        U.SFDC_ACCOUNT_ID AS SFDC_ACCOUNT_ID,
+        U.ACCOUNT_CID AS ACCOUNT_CID,
+        U.BILLING_ACCOUNT_NAME AS BILLING_ACCOUNT_NAME,
+        U.NAMED_COMPANY AS NAMED_COMPANY,
+        U.LICENSE_TYPE AS LICENSE_TYPE,
+        U.ACCOUNT_EDITION AS ACCOUNT_EDITION,
+        U.PRICING_AND_PACKAGING AS PRICING_AND_PACKAGING,
+        U.STATUS AS STATUS,
+        U.ACTIVATION_DATE AS ACTIVATION_DATE,
+
+        COALESCE(P.AVAILABLE_PLANS, 0) AS AVAILABLE_PLANS,
+        COALESCE(P.CREATED_PLAN, 0) AS CREATED_PLAN,
+        COALESCE(P.PLANS_WITH_WORKFLOW_TASK, 0) AS PLANS_WITH_WORKFLOW_TASK,
+        COALESCE(P.PLANS_WITH_FLOW_TASK, 0) AS PLANS_WITH_FLOW_TASK,
+        COALESCE(P.PLANS_WITH_HTTP_TASK, 0) AS PLANS_WITH_HTTP_TASK,
+        COALESCE(P.PLANS_WITH_EMAIL_TASK, 0) AS PLANS_WITH_EMAIL_TASK,
+        COALESCE(P.PLANS_WITH_AI_DATASET_TASK, 0) AS PLANS_WITH_AI_DATASET_TASK,
+        COALESCE(P.PLANS_WITH_CEFD_TASK, 0) AS PLANS_WITH_CEFD_TASK,
+        COALESCE(P.PLANS_WITH_ML_TASK, 0) AS PLANS_WITH_ML_TASK,
+        COALESCE(P.PLANS_WITHOUT_TASK, 0) AS PLANS_WITHOUT_TASK,
+        COALESCE(P.PLANS_WITH_APPROVAL_TASK, 0) AS PLANS_WITH_APPROVAL_TASK,
+        COALESCE(P.PLANS_WITH_CONDITION_TASK, 0) AS PLANS_WITH_CONDITION_TASK,
+        COALESCE(P.PLANS_WITH_DELAY_TASK, 0) AS PLANS_WITH_DELAY_TASK,
+        COALESCE(P.PLANS_WITH_LI_PROJECT_REPLY_TASK, 0) AS PLANS_WITH_LI_PROJECT_REPLY_TASK,
+        COALESCE(P.PLANS_WITH_ML_PROJECT_UPDATE_TASK, 0) AS PLANS_WITH_ML_PROJECT_UPDATE_TASK,
+        COALESCE(P.PLANS_WITH_REPORTING_GENERATE_TASK, 0) AS PLANS_WITH_REPORTING_GENERATE_TASK,
+        COALESCE(P.PLANS_WITH_STORAGE_TASK, 0) AS PLANS_WITH_STORAGE_TASK,
+        COALESCE(P.TOTAL_TASKS_EVER, 0) AS TOTAL_TASKS_EVER,
+        COALESCE(P.AVG_TASKS_PER_PLAN_EVER, 0) AS AVG_TASKS_PER_PLAN_EVER,
+
+        COALESCE(G.PLAN_RUN, 0) AS PLAN_RUN,
+        COALESCE(G.COMPLETED_PLAN_RUNS, 0) AS COMPLETED_PLAN_RUNS,
+        COALESCE(G.INPROGRESS_PLAN_RUNS, 0) AS INPROGRESS_PLAN_RUNS,
+        COALESCE(G.CREATED_PLAN_RUNS, 0) AS CREATED_PLAN_RUNS,
+        COALESCE(G.CANCELLED_PLAN_RUNS, 0) AS CANCELLED_PLAN_RUNS,
+        COALESCE(G.FAILED_PLAN_RUNS, 0) AS FAILED_PLAN_RUNS,
+        COALESCE(G.MANUAL_PLAN_RUNS, 0) AS MANUAL_PLAN_RUNS,
+        COALESCE(G.SCHEDULE_PLAN_RUNS, 0) AS SCHEDULE_PLAN_RUNS,
+        COALESCE(G.API_PLAN_RUNS, 0) AS API_PLAN_RUNS,
+        COALESCE(G.AUTOMATED_PLAN_RUNS, 0) AS AUTOMATED_PLAN_RUNS,
+        COALESCE(G.PLAN_WITH_RUNS, 0) AS PLAN_WITH_RUNS,
+        COALESCE(G.AUTOMATED_PLANS, 0) AS AUTOMATED_PLANS,
+
+        F.FIRST_PLAN_CREATED_AT AS FIRST_PLAN_CREATED_AT,
+        R.FIRST_PLAN_RUN_AT AS FIRST_PLAN_RUN_AT,
+
+        COALESCE(A.DELETE_PLAN, 0) AS DELETE_PLAN,
+        COALESCE(A.EXPORT_PLAN, 0) AS EXPORT_PLAN,
+        COALESCE(A.CANCEL_PLAN_RUN, 0) AS CANCEL_PLAN_RUN,
+        COALESCE(A.SHARE_PLAN, 0) AS SHARE_PLAN,
+        COALESCE(A.CREATE_PLAN, 0) AS CREATE_PLAN,
+        COALESCE(A.OPEN_PLAN_RUN_PAGE, 0) AS OPEN_PLAN_RUN_PAGE,
+        COALESCE(A.DELETE_TASK, 0) AS DELETE_TASK,
+        COALESCE(A.RENAME_PLAN, 0) AS RENAME_PLAN,
+        COALESCE(A.RETRY_PLAN_RUN, 0) AS RETRY_PLAN_RUN,
+        COALESCE(A.RUN_PLAN, 0) AS RUN_PLAN,
+        COALESCE(A.TRASFER_PLAN_OWNERSHIP, 0) AS TRASFER_PLAN_OWNERSHIP,
+        COALESCE(A.TEST_HTTP_TASK, 0) AS TEST_HTTP_TASK,
+        COALESCE(A.MANAGE_PLAN_PARAMETERS, 0) AS MANAGE_PLAN_PARAMETERS,
+        COALESCE(A.VISIT_PREVIOUS_PLAN_RUN, 0) AS VISIT_PREVIOUS_PLAN_RUN,
+        COALESCE(A.ADD_WORKFLOW_TASK, 0) AS ADD_WORKFLOW_TASK,
+        COALESCE(A.VISIT_PLAN, 0) AS VISIT_PLAN,
+        COALESCE(A.ADD_FLOW_TASK, 0) AS ADD_FLOW_TASK,
+        COALESCE(A.ADD_SLACK_TASK, 0) AS ADD_SLACK_TASK,
+        COALESCE(A.IMPORT_PLAN, 0) AS IMPORT_PLAN,
+        COALESCE(A.VISIT_ORIGINAL_PLAN_RUN, 0) AS VISIT_ORIGINAL_PLAN_RUN,
+        COALESCE(A.TEST_SLACK_TASK, 0) AS TEST_SLACK_TASK,
+        COALESCE(A.SAVE_SLACK_TASK, 0) AS SAVE_SLACK_TASK,
+        COALESCE(A.ADD_HTTP_TASK, 0) AS ADD_HTTP_TASK,
+        COALESCE(A.RENAME_TASK, 0) AS RENAME_TASK,
+        COALESCE(A.SAVE_HTTP_TASK, 0) AS SAVE_HTTP_TASK,
+        COALESCE(A.ADD_ML_PROJECT_UPDATE_TASK, 0) AS ADD_ML_PROJECT_UPDATE_TASK,
+        COALESCE(A.VISIT_NEXT_PLAN_RUN, 0) AS VISIT_NEXT_PLAN_RUN,
+        COALESCE(A.ADD_DELETE_FILE_TASK, 0) AS ADD_DELETE_FILE_TASK,
+        COALESCE(A.MANAGE_PLAN_NOTIFICATIONS, 0) AS MANAGE_PLAN_NOTIFICATIONS,
+        COALESCE(A.ADD_ML_PREDICT_TASK, 0) AS ADD_ML_PREDICT_TASK,
+        COALESCE(A.OPEN_PLANS_LANDING_PAGE, 0) AS OPEN_PLANS_LANDING_PAGE,
+        COALESCE(A.VISIT_LATEST_PLAN_RUN, 0) AS VISIT_LATEST_PLAN_RUN,
+        COALESCE(A.TOTAL_EVENTS, 0) AS TOTAL_EVENTS,
+        COALESCE(A.ACTIVE_USERS, 0) AS ACTIVE_USERS,
+        COALESCE(A.ENGAGED_USERS_AMPLITUDE, 0) AS ENGAGED_USERS_AMPLITUDE,
+
+        /* New granular activity fields */
+        COALESCE(G.PLANS_WORKED_ON, 0) AS PLANS_WORKED_ON,
+        COALESCE(G.PLANS_CREATED_BY_ACTIVITY, 0) AS PLANS_CREATED_BY_ACTIVITY,
+        COALESCE(G.PLANS_EDITED, 0) AS PLANS_EDITED,
+        COALESCE(G.PLANS_WITH_TASK_CHANGES, 0) AS PLANS_WITH_TASK_CHANGES,
+        COALESCE(G.PLANS_RUN_BY_USER, 0) AS PLANS_RUN_BY_USER,
+        COALESCE(G.PLAN_CREATED_ACTIVITY_COUNT, 0) AS PLAN_CREATED_ACTIVITY_COUNT,
+        COALESCE(G.PLAN_EDIT_COUNT, 0) AS PLAN_EDIT_COUNT,
+        COALESCE(G.TASK_CREATED_COUNT, 0) AS TASK_CREATED_COUNT,
+        COALESCE(G.TASK_UPDATED_COUNT, 0) AS TASK_UPDATED_COUNT,
+        COALESCE(G.TASK_DELETED_COUNT, 0) AS TASK_DELETED_COUNT,
+        G.FIRST_RUN_ON_DATE_AT AS FIRST_RUN_ON_DATE_AT,
+        G.LAST_RUN_ON_DATE_AT AS LAST_RUN_ON_DATE_AT
+
+    FROM USERS_BASE U
+    LEFT JOIN PLAN_CREATION_STATE_AGG P
+      ON U.DATE = P.ACTIVITY_DATE
+     AND U.USER_ID = P.USER_ID
+     AND U.WORKSPACE_ID = P.WORKSPACE_ID
+    LEFT JOIN GRANULAR_USER_DAY G
+      ON U.DATE = G.ACTIVITY_DATE
+     AND U.USER_ID = G.USER_ID
+     AND U.WORKSPACE_ID = G.WORKSPACE_ID
+    LEFT JOIN USER_FIRST_PLAN_CREATED_DATE F
+      ON U.USER_ID = F.USER_ID
+     AND U.WORKSPACE_ID = F.WORKSPACE_ID
+    LEFT JOIN USER_FIRST_PLAN_RUN_DATE R
+      ON U.USER_ID = R.USER_ID
+     AND U.WORKSPACE_ID = R.WORKSPACE_ID
+    LEFT JOIN AMPLITUDE_EVENTS_DAILY A
+      ON U.DATE = A.ACTIVITY_DATE
+     AND U.USER_EMAIL = A.USER_EMAIL
+     AND U.WORKSPACE_ID = A.WORKSPACE_ID
+     AND U.PIPELINE_REGION = A.PIPELINE_REGION
+    ;
+- name: monthly
+  description: Monthly aggregated metrics
+  query: |-
+    SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_AT
+    ),
+
+    PLANS_FACT AS (
+        SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.Plans_fact_at
+    ),
+
+    PLANS_GRANULAR AS (
+        SELECT *
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_DAILY_USER_GRANULAR_AT
+    ),
+
+    /*
+       Plan creation-date and current plan-state metrics.
+
+       Important definition:
+       - CREATED_PLAN: plans created by the user on the row date.
+       - AVAILABLE_PLANS: those created plans that are currently not soft deleted.
+       - Task-composition metrics use the current task state from PLANS_FACT_AT_TEST.
+       - TOTAL_TASKS_EVER and AVG_TASKS_PER_PLAN_EVER retain lifetime source semantics.
+    */
+    PLAN_CREATION_STATE_AGG AS (
+        SELECT
+            F.ACTIVITY_DATE,
+            F.USER_ID,
+            F.WORKSPACE_ID,
+
+            COUNT(DISTINCT F.PLAN_ID) AS CREATED_PLAN,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.IS_PLAN_DELETED, 0) = 0,
+                F.PLAN_ID,
+                NULL
+            )) AS AVAILABLE_PLANS,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_WORKFLOW_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_WORKFLOW_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_FLOW_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_FLOW_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_HTTP_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_HTTP_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_EMAIL_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_EMAIL_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_AI_DATASET_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_AI_DATASET_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_CEFD_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_CEFD_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_ML_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_ML_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_APPROVAL_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_APPROVAL_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_CONDITION_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_CONDITION_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_DELAY_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_DELAY_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_LI_PROJECT_REPLAY_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_LI_PROJECT_REPLY_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_ML_PROJECT_UPDATE_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_ML_PROJECT_UPDATE_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_REPORTING_GENERATE_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_REPORTING_GENERATE_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_STORAGE_TASK_COUNT, 0) > 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_STORAGE_TASK,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(F.CURRENT_TASK_COUNT, 0) = 0,
+                F.PLAN_ID,
+                NULL
+            )) AS PLANS_WITHOUT_TASK,
+
+            SUM(COALESCE(F.TOTAL_TASKS_EVER, 0)) AS TOTAL_TASKS_EVER,
+
+            DIV0(
+                SUM(COALESCE(F.TOTAL_TASKS_EVER, 0)),
+                COUNT(DISTINCT F.PLAN_ID)
+            ) AS AVG_TASKS_PER_PLAN_EVER
+
+        FROM PLANS_FACT F
+        WHERE F.ACTIVITY_DATE IS NOT NULL
+          AND F.USER_ID IS NOT NULL
+          AND F.WORKSPACE_ID IS NOT NULL
+        GROUP BY 1, 2, 3
+    ),
+
+    /*
+       Primary daily user activity aggregation.
+       All plan-user relationships and run metrics come from the granular table.
+    */
+    GRANULAR_USER_DAY AS (
+        SELECT
+            G.ACTIVITY_DATE,
+            G.USER_ID,
+            G.WORKSPACE_ID,
+
+            COUNT(DISTINCT G.PLAN_ID) AS PLANS_WORKED_ON,
+
+            COUNT(DISTINCT IFF(
+                G.IS_PLAN_CREATOR = 1,
+                G.PLAN_ID,
+                NULL
+            )) AS PLANS_CREATED_BY_ACTIVITY,
+
+            COUNT(DISTINCT IFF(
+                G.IS_PLAN_EDITOR_PRIMARY = 1,
+                G.PLAN_ID,
+                NULL
+            )) AS PLANS_EDITED,
+
+            COUNT(DISTINCT IFF(
+                G.IS_TASK_CONTRIBUTOR = 1,
+                G.PLAN_ID,
+                NULL
+            )) AS PLANS_WITH_TASK_CHANGES,
+
+            COUNT(DISTINCT IFF(
+                G.IS_PLAN_RUNNER = 1,
+                G.PLAN_ID,
+                NULL
+            )) AS PLANS_RUN_BY_USER,
+
+            SUM(COALESCE(G.PLAN_CREATED_COUNT, 0)) AS PLAN_CREATED_ACTIVITY_COUNT,
+            SUM(COALESCE(G.PLAN_EDITED_COUNT, 0)) AS PLAN_EDIT_COUNT,
+            SUM(COALESCE(G.TASK_CREATED_COUNT, 0)) AS TASK_CREATED_COUNT,
+            SUM(COALESCE(G.TASK_UPDATED_COUNT, 0)) AS TASK_UPDATED_COUNT,
+            SUM(COALESCE(G.TASK_DELETED_COUNT, 0)) AS TASK_DELETED_COUNT,
+
+            SUM(COALESCE(G.PLAN_RUN_COUNT, 0)) AS PLAN_RUN,
+            SUM(COALESCE(G.COMPLETED_PLAN_RUN_COUNT, 0)) AS COMPLETED_PLAN_RUNS,
+            SUM(COALESCE(G.INPROGRESS_PLAN_RUN_COUNT, 0)) AS INPROGRESS_PLAN_RUNS,
+            SUM(COALESCE(G.CREATED_PLAN_RUN_COUNT, 0)) AS CREATED_PLAN_RUNS,
+            SUM(COALESCE(G.CANCELLED_PLAN_RUN_COUNT, 0)) AS CANCELLED_PLAN_RUNS,
+            SUM(COALESCE(G.FAILED_PLAN_RUN_COUNT, 0)) AS FAILED_PLAN_RUNS,
+            SUM(COALESCE(G.MANUAL_PLAN_RUN_COUNT, 0)) AS MANUAL_PLAN_RUNS,
+            SUM(COALESCE(G.SCHEDULED_PLAN_RUN_COUNT, 0)) AS SCHEDULE_PLAN_RUNS,
+            SUM(COALESCE(G.API_PLAN_RUN_COUNT, 0)) AS API_PLAN_RUNS,
+            SUM(COALESCE(G.AUTOMATED_PLAN_RUN_COUNT, 0)) AS AUTOMATED_PLAN_RUNS,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(G.PLAN_RUN_COUNT, 0) > 0,
+                G.PLAN_ID,
+                NULL
+            )) AS PLAN_WITH_RUNS,
+
+            COUNT(DISTINCT IFF(
+                COALESCE(G.AUTOMATED_PLAN_RUN_COUNT, 0) > 0,
+                G.PLAN_ID,
+                NULL
+            )) AS AUTOMATED_PLANS,
+
+            MIN(G.FIRST_RUN_AT) AS FIRST_RUN_ON_DATE_AT,
+            MAX(G.LAST_RUN_AT) AS LAST_RUN_ON_DATE_AT
+
+        FROM PLANS_GRANULAR G
+        GROUP BY 1, 2, 3
+    ),
+
+    USER_FIRST_PLAN_CREATED_DATE AS (
+        SELECT
+            F.USER_ID,
+            F.WORKSPACE_ID,
+            MIN(F.ACTIVITY_DATE) AS FIRST_PLAN_CREATED_AT
+        FROM PLANS_FACT F
+        WHERE F.USER_ID IS NOT NULL
+          AND F.WORKSPACE_ID IS NOT NULL
+          AND F.ACTIVITY_DATE IS NOT NULL
+        GROUP BY 1, 2
+    ),
+
+    USER_FIRST_PLAN_RUN_DATE AS (
+        SELECT
+            G.USER_ID,
+            G.WORKSPACE_ID,
+            MIN(DATE(G.FIRST_RUN_AT)) AS FIRST_PLAN_RUN_AT
+        FROM PLANS_GRANULAR G
+        WHERE COALESCE(G.PLAN_RUN_COUNT, 0) > 0
+          AND G.FIRST_RUN_AT IS NOT NULL
+        GROUP BY 1, 2
+    ),
+
+    /*
+       Amplitude remains user/workspace/day level because the supplied source
+       does not yet provide a validated PLAN_ID mapping for these events.
+    */
+    AMPLITUDE_EVENTS_DAILY AS (
+        SELECT
+            TO_DATE(EVENT_TIME) AS ACTIVITY_DATE,
+            USER_EMAIL,
+            BASE64_ENCODE(CONCAT(WORKSPACE_ID, '_', PIPELINE_REGION)) AS WORKSPACE_ID,
+            PIPELINE_REGION,
+
+            COUNT_IF(EVENT_TYPE = 'delete_plan') AS DELETE_PLAN,
+            COUNT_IF(EVENT_TYPE = 'export_plan') AS EXPORT_PLAN,
+            COUNT_IF(EVENT_TYPE = 'cancel_plan_run') AS CANCEL_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'share_plan') AS SHARE_PLAN,
+            COUNT_IF(EVENT_TYPE = 'create_plan') AS CREATE_PLAN,
+            COUNT_IF(EVENT_TYPE = 'open_plan_run_page') AS OPEN_PLAN_RUN_PAGE,
+            COUNT_IF(EVENT_TYPE = 'delete_task') AS DELETE_TASK,
+            COUNT_IF(EVENT_TYPE = 'rename_plan') AS RENAME_PLAN,
+            COUNT_IF(EVENT_TYPE = 'retry_plan_run') AS RETRY_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'run_plan') AS RUN_PLAN,
+            COUNT_IF(EVENT_TYPE = 'transfer_plan_ownership') AS TRASFER_PLAN_OWNERSHIP,
+            COUNT_IF(EVENT_TYPE = 'test_http_task') AS TEST_HTTP_TASK,
+            COUNT_IF(EVENT_TYPE = 'manage_plan_parameters') AS MANAGE_PLAN_PARAMETERS,
+            COUNT_IF(EVENT_TYPE = 'visit_previous_plan_run') AS VISIT_PREVIOUS_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'add_workflow_task') AS ADD_WORKFLOW_TASK,
+            COUNT_IF(EVENT_TYPE = 'visit_plan') AS VISIT_PLAN,
+            COUNT_IF(EVENT_TYPE = 'add_flow_task') AS ADD_FLOW_TASK,
+            COUNT_IF(EVENT_TYPE = 'add_slack_task') AS ADD_SLACK_TASK,
+            COUNT_IF(EVENT_TYPE = 'import_plan') AS IMPORT_PLAN,
+            COUNT_IF(EVENT_TYPE = 'visit_original_plan_run') AS VISIT_ORIGINAL_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'test_slack_task') AS TEST_SLACK_TASK,
+            COUNT_IF(EVENT_TYPE = 'save_slack_task') AS SAVE_SLACK_TASK,
+            COUNT_IF(EVENT_TYPE = 'add_http_task') AS ADD_HTTP_TASK,
+            COUNT_IF(EVENT_TYPE = 'rename_task') AS RENAME_TASK,
+            COUNT_IF(EVENT_TYPE = 'save_http_task') AS SAVE_HTTP_TASK,
+            COUNT_IF(EVENT_TYPE = 'add_ml_project_update_task') AS ADD_ML_PROJECT_UPDATE_TASK,
+            COUNT_IF(EVENT_TYPE = 'visit_next_plan_run') AS VISIT_NEXT_PLAN_RUN,
+            COUNT_IF(EVENT_TYPE = 'add_delete_file_task') AS ADD_DELETE_FILE_TASK,
+            COUNT_IF(EVENT_TYPE = 'manage_plan_notifications') AS MANAGE_PLAN_NOTIFICATIONS,
+            COUNT_IF(EVENT_TYPE = 'add_ml_predict_task') AS ADD_ML_PREDICT_TASK,
+            COUNT_IF(EVENT_TYPE = 'open_plans_landing_page') AS OPEN_PLANS_LANDING_PAGE,
+            COUNT_IF(EVENT_TYPE = 'visit_latest_plan_run') AS VISIT_LATEST_PLAN_RUN,
+
+            COUNT(*) AS TOTAL_EVENTS,
+
+            IFF(
+                COUNT_IF(EVENT_TYPE IN (
+                    'create_plan', 'import_plan', 'export_plan', 'rename_plan',
+                    'delete_plan', 'share_plan', 'add_workflow_task', 'add_flow_task',
+                    'add_slack_task', 'add_http_task', 'add_ml_project_update_task',
+                    'add_ml_predict_task', 'add_delete_file_task', 'save_http_task',
+                    'save_slack_task', 'rename_task', 'test_http_task', 'test_slack_task'
+                )) > 0,
+                1,
+                0
+            ) AS ACTIVE_USERS,
+
+            IFF(
+                COUNT_IF(EVENT_TYPE IN (
+                    'create_plan', 'import_plan', 'export_plan', 'rename_plan',
+                    'delete_plan', 'share_plan', 'add_workflow_task', 'add_flow_task',
+                    'add_slack_task', 'add_http_task', 'add_ml_project_update_task',
+                    'add_ml_predict_task', 'add_delete_file_task', 'save_http_task',
+                    'save_slack_task', 'rename_task', 'test_http_task', 'test_slack_task'
+                )) > 0
+                AND COUNT_IF(EVENT_TYPE IN (
+                    'run_plan', 'retry_plan_run', 'schedule_plan',
+                    'plan_create_new_schedule', 'cancel_plan_run'
+                )) > 0,
+                1,
+                0
+            ) AS ENGAGED_USERS_AMPLITUDE
+
+        FROM DISCOVERY_PRODUCT_MANAGEMENT.PI_CLOUD.AMPLITUDE_ALL_EVENTS_WITH_LICENSE
+        GROUP BY 1, 2, 3, 4
+    )
+
+    SELECT
+        U.DATE AS DATE,
+        U.USER_ID AS USER_ID,
+        U.USER_ID_RAW AS USER_ID_RAW,
+        U.USER_EMAIL AS USER_EMAIL,
+        U.WORKSPACE_ID AS WORKSPACE_ID,
+        U.WORKSPACE_ID_RAW AS WORKSPACE_ID_RAW,
+        U.PIPELINE_REGION AS PIPELINE_REGION,
+        U.BILLING_ACCOUNT_ID AS BILLING_ACCOUNT_ID,
+        U.BILLING_ACCOUNT_ID_RAW AS BILLING_ACCOUNT_ID_RAW,
+        U.SFDC_ACCOUNT_ID AS SFDC_ACCOUNT_ID,
+        U.ACCOUNT_CID AS ACCOUNT_CID,
+        U.BILLING_ACCOUNT_NAME AS BILLING_ACCOUNT_NAME,
+        U.NAMED_COMPANY AS NAMED_COMPANY,
+        U.LICENSE_TYPE AS LICENSE_TYPE,
+        U.ACCOUNT_EDITION AS ACCOUNT_EDITION,
+        U.PRICING_AND_PACKAGING AS PRICING_AND_PACKAGING,
+        U.STATUS AS STATUS,
+        U.ACTIVATION_DATE AS ACTIVATION_DATE,
+
+        COALESCE(P.AVAILABLE_PLANS, 0) AS AVAILABLE_PLANS,
+        COALESCE(P.CREATED_PLAN, 0) AS CREATED_PLAN,
+        COALESCE(P.PLANS_WITH_WORKFLOW_TASK, 0) AS PLANS_WITH_WORKFLOW_TASK,
+        COALESCE(P.PLANS_WITH_FLOW_TASK, 0) AS PLANS_WITH_FLOW_TASK,
+        COALESCE(P.PLANS_WITH_HTTP_TASK, 0) AS PLANS_WITH_HTTP_TASK,
+        COALESCE(P.PLANS_WITH_EMAIL_TASK, 0) AS PLANS_WITH_EMAIL_TASK,
+        COALESCE(P.PLANS_WITH_AI_DATASET_TASK, 0) AS PLANS_WITH_AI_DATASET_TASK,
+        COALESCE(P.PLANS_WITH_CEFD_TASK, 0) AS PLANS_WITH_CEFD_TASK,
+        COALESCE(P.PLANS_WITH_ML_TASK, 0) AS PLANS_WITH_ML_TASK,
+        COALESCE(P.PLANS_WITHOUT_TASK, 0) AS PLANS_WITHOUT_TASK,
+        COALESCE(P.PLANS_WITH_APPROVAL_TASK, 0) AS PLANS_WITH_APPROVAL_TASK,
+        COALESCE(P.PLANS_WITH_CONDITION_TASK, 0) AS PLANS_WITH_CONDITION_TASK,
+        COALESCE(P.PLANS_WITH_DELAY_TASK, 0) AS PLANS_WITH_DELAY_TASK,
+        COALESCE(P.PLANS_WITH_LI_PROJECT_REPLY_TASK, 0) AS PLANS_WITH_LI_PROJECT_REPLY_TASK,
+        COALESCE(P.PLANS_WITH_ML_PROJECT_UPDATE_TASK, 0) AS PLANS_WITH_ML_PROJECT_UPDATE_TASK,
+        COALESCE(P.PLANS_WITH_REPORTING_GENERATE_TASK, 0) AS PLANS_WITH_REPORTING_GENERATE_TASK,
+        COALESCE(P.PLANS_WITH_STORAGE_TASK, 0) AS PLANS_WITH_STORAGE_TASK,
+        COALESCE(P.TOTAL_TASKS_EVER, 0) AS TOTAL_TASKS_EVER,
+        COALESCE(P.AVG_TASKS_PER_PLAN_EVER, 0) AS AVG_TASKS_PER_PLAN_EVER,
+
+        COALESCE(G.PLAN_RUN, 0) AS PLAN_RUN,
+        COALESCE(G.COMPLETED_PLAN_RUNS, 0) AS COMPLETED_PLAN_RUNS,
+        COALESCE(G.INPROGRESS_PLAN_RUNS, 0) AS INPROGRESS_PLAN_RUNS,
+        COALESCE(G.CREATED_PLAN_RUNS, 0) AS CREATED_PLAN_RUNS,
+        COALESCE(G.CANCELLED_PLAN_RUNS, 0) AS CANCELLED_PLAN_RUNS,
+        COALESCE(G.FAILED_PLAN_RUNS, 0) AS FAILED_PLAN_RUNS,
+        COALESCE(G.MANUAL_PLAN_RUNS, 0) AS MANUAL_PLAN_RUNS,
+        COALESCE(G.SCHEDULE_PLAN_RUNS, 0) AS SCHEDULE_PLAN_RUNS,
+        COALESCE(G.API_PLAN_RUNS, 0) AS API_PLAN_RUNS,
+        COALESCE(G.AUTOMATED_PLAN_RUNS, 0) AS AUTOMATED_PLAN_RUNS,
+        COALESCE(G.PLAN_WITH_RUNS, 0) AS PLAN_WITH_RUNS,
+        COALESCE(G.AUTOMATED_PLANS, 0) AS AUTOMATED_PLANS,
+
+        F.FIRST_PLAN_CREATED_AT AS FIRST_PLAN_CREATED_AT,
+        R.FIRST_PLAN_RUN_AT AS FIRST_PLAN_RUN_AT,
+
+        COALESCE(A.DELETE_PLAN, 0) AS DELETE_PLAN,
+        COALESCE(A.EXPORT_PLAN, 0) AS EXPORT_PLAN,
+        COALESCE(A.CANCEL_PLAN_RUN, 0) AS CANCEL_PLAN_RUN,
+        COALESCE(A.SHARE_PLAN, 0) AS SHARE_PLAN,
+        COALESCE(A.CREATE_PLAN, 0) AS CREATE_PLAN,
+        COALESCE(A.OPEN_PLAN_RUN_PAGE, 0) AS OPEN_PLAN_RUN_PAGE,
+        COALESCE(A.DELETE_TASK, 0) AS DELETE_TASK,
+        COALESCE(A.RENAME_PLAN, 0) AS RENAME_PLAN,
+        COALESCE(A.RETRY_PLAN_RUN, 0) AS RETRY_PLAN_RUN,
+        COALESCE(A.RUN_PLAN, 0) AS RUN_PLAN,
+        COALESCE(A.TRASFER_PLAN_OWNERSHIP, 0) AS TRASFER_PLAN_OWNERSHIP,
+        COALESCE(A.TEST_HTTP_TASK, 0) AS TEST_HTTP_TASK,
+        COALESCE(A.MANAGE_PLAN_PARAMETERS, 0) AS MANAGE_PLAN_PARAMETERS,
+        COALESCE(A.VISIT_PREVIOUS_PLAN_RUN, 0) AS VISIT_PREVIOUS_PLAN_RUN,
+        COALESCE(A.ADD_WORKFLOW_TASK, 0) AS ADD_WORKFLOW_TASK,
+        COALESCE(A.VISIT_PLAN, 0) AS VISIT_PLAN,
+        COALESCE(A.ADD_FLOW_TASK, 0) AS ADD_FLOW_TASK,
+        COALESCE(A.ADD_SLACK_TASK, 0) AS ADD_SLACK_TASK,
+        COALESCE(A.IMPORT_PLAN, 0) AS IMPORT_PLAN,
+        COALESCE(A.VISIT_ORIGINAL_PLAN_RUN, 0) AS VISIT_ORIGINAL_PLAN_RUN,
+        COALESCE(A.TEST_SLACK_TASK, 0) AS TEST_SLACK_TASK,
+        COALESCE(A.SAVE_SLACK_TASK, 0) AS SAVE_SLACK_TASK,
+        COALESCE(A.ADD_HTTP_TASK, 0) AS ADD_HTTP_TASK,
+        COALESCE(A.RENAME_TASK, 0) AS RENAME_TASK,
+        COALESCE(A.SAVE_HTTP_TASK, 0) AS SAVE_HTTP_TASK,
+        COALESCE(A.ADD_ML_PROJECT_UPDATE_TASK, 0) AS ADD_ML_PROJECT_UPDATE_TASK,
+        COALESCE(A.VISIT_NEXT_PLAN_RUN, 0) AS VISIT_NEXT_PLAN_RUN,
+        COALESCE(A.ADD_DELETE_FILE_TASK, 0) AS ADD_DELETE_FILE_TASK,
+        COALESCE(A.MANAGE_PLAN_NOTIFICATIONS, 0) AS MANAGE_PLAN_NOTIFICATIONS,
+        COALESCE(A.ADD_ML_PREDICT_TASK, 0) AS ADD_ML_PREDICT_TASK,
+        COALESCE(A.OPEN_PLANS_LANDING_PAGE, 0) AS OPEN_PLANS_LANDING_PAGE,
+        COALESCE(A.VISIT_LATEST_PLAN_RUN, 0) AS VISIT_LATEST_PLAN_RUN,
+        COALESCE(A.TOTAL_EVENTS, 0) AS TOTAL_EVENTS,
+        COALESCE(A.ACTIVE_USERS, 0) AS ACTIVE_USERS,
+        COALESCE(A.ENGAGED_USERS_AMPLITUDE, 0) AS ENGAGED_USERS_AMPLITUDE,
+
+        /* New granular activity fields */
+        COALESCE(G.PLANS_WORKED_ON, 0) AS PLANS_WORKED_ON,
+        COALESCE(G.PLANS_CREATED_BY_ACTIVITY, 0) AS PLANS_CREATED_BY_ACTIVITY,
+        COALESCE(G.PLANS_EDITED, 0) AS PLANS_EDITED,
+        COALESCE(G.PLANS_WITH_TASK_CHANGES, 0) AS PLANS_WITH_TASK_CHANGES,
+        COALESCE(G.PLANS_RUN_BY_USER, 0) AS PLANS_RUN_BY_USER,
+        COALESCE(G.PLAN_CREATED_ACTIVITY_COUNT, 0) AS PLAN_CREATED_ACTIVITY_COUNT,
+        COALESCE(G.PLAN_EDIT_COUNT, 0) AS PLAN_EDIT_COUNT,
+        COALESCE(G.TASK_CREATED_COUNT, 0) AS TASK_CREATED_COUNT,
+        COALESCE(G.TASK_UPDATED_COUNT, 0) AS TASK_UPDATED_COUNT,
+        COALESCE(G.TASK_DELETED_COUNT, 0) AS TASK_DELETED_COUNT,
+        G.FIRST_RUN_ON_DATE_AT AS FIRST_RUN_ON_DATE_AT,
+        G.LAST_RUN_ON_DATE_AT AS LAST_RUN_ON_DATE_AT
+
+    FROM USERS_BASE U
+    LEFT JOIN PLAN_CREATION_STATE_AGG P
+      ON U.DATE = P.ACTIVITY_DATE
+     AND U.USER_ID = P.USER_ID
+     AND U.WORKSPACE_ID = P.WORKSPACE_ID
+    LEFT JOIN GRANULAR_USER_DAY G
+      ON U.DATE = G.ACTIVITY_DATE
+     AND U.USER_ID = G.USER_ID
+     AND U.WORKSPACE_ID = G.WORKSPACE_ID
+    LEFT JOIN USER_FIRST_PLAN_CREATED_DATE F
+      ON U.USER_ID = F.USER_ID
+     AND U.WORKSPACE_ID = F.WORKSPACE_ID
+    LEFT JOIN USER_FIRST_PLAN_RUN_DATE R
+      ON U.USER_ID = R.USER_ID
+     AND U.WORKSPACE_ID = R.WORKSPACE_ID
+    LEFT JOIN AMPLITUDE_EVENTS_DAILY A
+      ON U.DATE = A.ACTIVITY_DATE
+     AND U.USER_EMAIL = A.USER_EMAIL
+     AND U.WORKSPACE_ID = A.WORKSPACE_ID
+     AND U.PIPELINE_REGION = A.PIPELINE_REGION
+    ;
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: data-engineering@alteryx.com
+tags:
+- plans
+- product_metric
+last_updated: '2026-08-04'
+version: '1.0'

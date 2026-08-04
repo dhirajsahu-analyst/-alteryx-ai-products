@@ -1,0 +1,37 @@
+id: trial_to_sales_accepted_lead_sal_conversion_rate
+name: Trial to Sales Accepted Lead (SAL) Conversion Rate
+description: Percentage of trial signups reaching Sales Accepted Lead stage
+product: trial
+status: validated
+category: funnel
+definition:
+  business: Sales engagement metric showing trial qualification quality for sales team
+  technical: 'From TRIAL_FUNNEL_METRICS_OVERALL_VIEW: SAL / TOTAL_TRIAL_REGISTRATION * 100'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    TOTAL_TRIAL_REGISTRATION,
+    SAL,
+    ROUND((SAL / NULLIF(TOTAL_TRIAL_REGISTRATION, 0)) * 100, 2) AS sal_conversion_rate_pct,
+    QL,
+    ROUND((SAL / NULLIF(QL, 0)) * 100, 2) AS sal_from_ql_rate_pct
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.TRIAL_FUNNEL_METRICS_OVERALL_VIEW
+  LIMIT 1
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- trial_002
+- trial_004
+maintainer: analytics@alteryx.com
+tags:
+- funnel
+- trial
+last_updated: '2026-08-03'
+version: '1.0'

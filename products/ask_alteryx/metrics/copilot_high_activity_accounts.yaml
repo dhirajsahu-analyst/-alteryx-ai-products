@@ -1,0 +1,34 @@
+id: copilot_high_activity_accounts
+name: Copilot High Activity Accounts
+description: Count of accounts with high Copilot usage and engagement activity
+product: ask_alteryx
+status: validated
+category: engagement
+definition:
+  business: Count of accounts with high Copilot usage and engagement activity
+  technical: '[''ENGAGED_ACCOUNTS''] from COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT ENGAGED_ACCOUNTS as high_activity_accounts_count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW WHERE ENGAGED_ACCOUNTS > 0 LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- ENGAGED_ACCOUNTS > 0
+depends_on:
+- copilot_onboarded_accounts
+related_metrics:
+- copilot_highly_engaged_users
+- copilot_account_engagement_rate
+maintainer: analytics@alteryx.com
+tags:
+- engagement
+- copilot
+- high-value-accounts
+- volume
+last_updated: '2026-08-03'
+version: '1.0'

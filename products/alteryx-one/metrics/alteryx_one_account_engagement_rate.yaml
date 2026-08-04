@@ -1,0 +1,28 @@
+id: alteryx_one_account_engagement_rate
+name: Alteryx One Account Engagement Rate
+description: Percentage of active accounts with at least one highly engaged user.
+product: alteryx_one
+status: validated
+category: engagement
+definition:
+  business: Percentage of active accounts with at least one highly engaged user.
+  technical: From ALTERYX_ONE_ENGAGED_ACCOUNTS_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT PERCENTAGE_ENGAGED_ACCOUNTS as engagement_rate FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ENGAGED_ACCOUNTS_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: analytics@alteryx.com
+tags:
+- engagement
+- alteryx-one
+last_updated: '2026-08-03'
+version: '1.0'

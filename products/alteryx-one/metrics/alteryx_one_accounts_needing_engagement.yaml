@@ -1,0 +1,28 @@
+id: alteryx_one_accounts_needing_engagement
+name: Alteryx One Accounts Needing Engagement
+description: Accounts that have been deployed but have no active users (engagement opportunity).
+product: alteryx_one
+status: validated
+category: active_accounts
+definition:
+  business: Accounts that have been deployed but have no active users (engagement opportunity).
+  technical: From ALTERYX_ONE_ACTIVE_ACCOUNTS_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT (SELECT COUNT(*) FROM (SELECT YEAR_MONTH FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DEPLOYED_ACCOUNT_VIEW)) - TOTAL_ACTIVE_ACCOUNTS as accounts_needing_engagement FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ACTIVE_ACCOUNTS_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: analytics@alteryx.com
+tags:
+- active_accounts
+- alteryx-one
+last_updated: '2026-08-03'
+version: '1.0'

@@ -1,0 +1,43 @@
+id: copilot_7_15_day_retention
+name: Copilot 7-15 Day Retention Rate
+description: Percentage of Copilot users who remain active 7-15 days after first activation
+product: ask_alteryx
+status: validated
+category: retention
+definition:
+  business: Measures early user retention after the critical first 1-7 day window. Critical for understanding onboarding success and product-market fit.
+  technical: RETURNING_RATE_PCT from COPILOT_7_15_RETENTION_RATE_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    RETURNING_RATE_PCT as retention_rate_pct,
+    RETURNING_USERS_7_15D as returning_users_count,
+    TOTAL_USERS as cohort_size
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_7_15_RETENTION_RATE_VIEW
+  WHERE RETURNING_RATE_PCT IS NOT NULL
+  LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: monthly
+filters:
+- RETURNING_RATE_PCT IS NOT NULL
+depends_on:
+- copilot_activation_rate
+- copilot_new_users
+related_metrics:
+- copilot_30_60_day_retention
+- copilot_user_activation_rate
+- copilot_engagement_rate
+maintainer: analytics@alteryx.com
+tags:
+- retention
+- copilot
+- early-stage
+- user-health
+- funnel-metric
+last_updated: '2026-08-03'
+version: '1.0'

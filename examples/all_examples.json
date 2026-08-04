@@ -1,0 +1,146 @@
+{
+  "alteryx_one": [
+    {
+      "question": "How many active users did we have last month?",
+      "metric": "Alteryx One Monthly Active Users",
+      "grain": "monthly",
+      "tags": ["activation", "users", "trending"]
+    },
+    {
+      "question": "What is our month-over-month activation rate?",
+      "metric": "Activation Rate",
+      "grain": "monthly",
+      "tags": ["activation", "funnel", "trending"]
+    },
+    {
+      "question": "Show me the activation funnel",
+      "metric": "Activation Funnel",
+      "grain": "monthly",
+      "tags": ["funnel", "onboarding", "conversion"]
+    },
+    {
+      "question": "How many users deployed to production last month?",
+      "metric": "Deployment Rate",
+      "grain": "monthly",
+      "tags": ["deployment", "production", "advanced"]
+    },
+    {
+      "question": "What is our user retention rate?",
+      "metric": "User Retention",
+      "grain": "30_days",
+      "tags": ["retention", "engagement", "churn"]
+    }
+  ],
+  "ask_alteryx": [
+    {
+      "question": "What is our Copilot adoption rate?",
+      "metric": "Copilot Adoption Rate",
+      "grain": "monthly",
+      "tags": ["adoption", "copilot", "growth"]
+    },
+    {
+      "question": "How many users are engaging with Copilot?",
+      "metric": "Copilot Monthly Active Users",
+      "grain": "monthly",
+      "tags": ["mau", "copilot", "engagement"]
+    },
+    {
+      "question": "Show me 7-15 day retention for Copilot",
+      "metric": "Copilot 7-15 Day Retention",
+      "grain": "7_days",
+      "tags": ["retention", "early-stage", "engagement"]
+    },
+    {
+      "question": "What is our 30-60 day retention for Copilot users?",
+      "metric": "Copilot 30-60 Day Retention",
+      "grain": "30_days",
+      "tags": ["retention", "long-term", "engagement"]
+    },
+    {
+      "question": "How engaged are Copilot users?",
+      "metric": "Copilot Engagement Rate",
+      "grain": "monthly",
+      "tags": ["engagement", "copilot", "quality"]
+    }
+  ],
+  "version_adoption": [
+    {
+      "question": "What percentage of users are on the latest Designer version?",
+      "metric": "Latest Designer Version %",
+      "grain": "monthly",
+      "tags": ["adoption", "version", "latest"]
+    },
+    {
+      "question": "Show me Designer version adoption trends",
+      "metric": "Designer Version Adoption Rate",
+      "grain": "monthly",
+      "tags": ["adoption", "trending", "version"]
+    },
+    {
+      "question": "How many users adopted the new version in the first month?",
+      "metric": "Version Adoption 30-60-90 Days",
+      "grain": "30_days",
+      "tags": ["adoption", "early-stage", "new-version"]
+    },
+    {
+      "question": "What is the overall product version adoption?",
+      "metric": "Product Version Adoption",
+      "grain": "monthly",
+      "tags": ["adoption", "all-products", "version"]
+    }
+  ],
+  "designer": [
+    {
+      "question": "What percentage of accounts are on supported Designer versions?",
+      "metric": "Designer Supported Version %",
+      "grain": "monthly",
+      "tags": ["support", "version", "compliance"]
+    },
+    {
+      "question": "How many accounts are using Designer?",
+      "metric": "Designer Active Accounts",
+      "grain": "monthly",
+      "tags": ["accounts", "active", "designer"]
+    },
+    {
+      "question": "What types of assets are being created in Designer?",
+      "metric": "Designer Runs by Asset Type",
+      "grain": "monthly",
+      "tags": ["assets", "workflows", "usage"]
+    }
+  ],
+  "account_user": [
+    {
+      "question": "What percentage of accounts are on supported versions?",
+      "metric": "Supported Version % by Account",
+      "grain": "monthly",
+      "tags": ["support", "version", "compliance"]
+    },
+    {
+      "question": "How many active users do we have?",
+      "metric": "Active User Count",
+      "grain": "monthly",
+      "tags": ["users", "active", "overall"]
+    },
+    {
+      "question": "How are accounts distributed across versions?",
+      "metric": "Account Version Distribution",
+      "grain": "monthly",
+      "tags": ["distribution", "version", "accounts"]
+    }
+  ],
+  "trial": [
+    {
+      "question": "How many trial signups do we have?",
+      "metric": "Trial Signups",
+      "grain": "daily",
+      "tags": ["trial", "onboarding", "growth"]
+    },
+    {
+      "question": "What is our trial conversion rate?",
+      "metric": "Trial Conversion Rate",
+      "grain": "monthly",
+      "tags": ["conversion", "trial", "funnel"]
+    }
+  ]
+}

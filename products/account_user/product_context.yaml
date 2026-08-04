@@ -1,0 +1,14 @@
+last_updated: '2026-08-03T12:46:05.544703'
+metric_count: 4
+product_description: Cross-product account and user metrics
+product_id: account_user
+product_name: Account & User Analytics
+source_database: DISCOVERY_PRODUCT_MANAGEMENT
+source_schema: METRIC_STORE
+typical_grain: Monthly aggregated
+views:
+- ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+- MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+- PREVAILING_VERSION_ACCOUNT_DIST_MONTHLY_VIEW
+- VERSION_RUNNING_SUM_ACCOUNTS_VIEW
+- VERSION_RUNNING_SUM_USERS_AND_MACHINE_VIEW

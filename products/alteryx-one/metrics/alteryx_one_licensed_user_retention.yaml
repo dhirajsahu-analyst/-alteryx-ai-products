@@ -1,0 +1,29 @@
+id: alteryx_one_licensed_user_retention
+name: Alteryx One Licensed User Retention
+description: Retention rates for users with Licensed roles (Full/Basic Users).
+product: alteryx_one
+status: validated
+category: retention
+definition:
+  business: Retention rates for users with Licensed roles (Full/Basic Users).
+  technical: From ALTERYX_ONE_USERS_RETENTIONS_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT SEGMENT, PERCENTAGE_1_TO_7D, PERCENTAGE_7_TO_14D, PERCENTAGE_14_TO_30D, PERCENTAGE_30_TO_60D FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_USERS_RETENTIONS_VIEW WHERE SEGMENT = 'Licensed' LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- SEGMENT = 'Licensed'
+depends_on: []
+related_metrics: []
+maintainer: analytics@alteryx.com
+tags:
+- retention
+- alteryx-one
+last_updated: '2026-08-03'
+version: '1.0'

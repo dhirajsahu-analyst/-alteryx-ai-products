@@ -1,0 +1,7 @@
+product_owner: Product Management Team
+technical_lead: Data Engineering Team
+maintainers:
+- dhiraj.sahu@alteryx.com
+on_call_rotation: data-engineering-oncall
+review_required: true
+approval_authority: Product Management

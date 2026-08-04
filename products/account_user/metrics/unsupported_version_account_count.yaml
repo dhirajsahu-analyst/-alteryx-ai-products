@@ -1,0 +1,40 @@
+id: unsupported_version_account_count
+name: Unsupported Version Account Count
+description: Monthly count of accounts running unsupported (end-of-life) versions
+product: account_user
+status: validated
+category: volume
+definition:
+  business: Risk metric identifying at-risk accounts requiring support escalation and upgrade campaigns
+  technical: From ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW where SUPPORTED_UNSUPPORTED_PREVAILING_VERSION = 'Unsupported'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    PRODUCT_ID,
+    TOTAL_ACCOUNTS AS unsupported_accounts,
+    LAG(TOTAL_ACCOUNTS) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH) AS prev_month_unsupported,
+    ROUND((TOTAL_ACCOUNTS - LAG(TOTAL_ACCOUNTS) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH)), 2) AS month_change
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+  WHERE SUPPORTED_UNSUPPORTED_PREVAILING_VERSION = 'Unsupported'
+  ORDER BY MONTH DESC, PRODUCT_ID
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters:
+- SUPPORTED_UNSUPPORTED_PREVAILING_VERSION = 'Unsupported'
+depends_on: []
+related_metrics:
+- account_user_001
+- account_user_004
+maintainer: analytics@alteryx.com
+tags:
+- volume
+- account_user
+last_updated: '2026-08-03'
+version: '1.0'

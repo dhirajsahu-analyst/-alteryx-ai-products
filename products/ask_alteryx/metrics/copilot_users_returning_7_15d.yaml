@@ -1,0 +1,30 @@
+id: copilot_users_returning_7_15d
+name: Copilot Users Returning 7-15 Days
+description: Count of users from activation cohort who returned between days 7-15
+product: ask_alteryx
+status: validated
+category: retention
+definition:
+  business: Count of users from activation cohort who returned between days 7-15
+  technical: '[''RETURNING_USERS_7_15D''] from COPILOT_7_15_RETENTION_RATE_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT RETURNING_USERS_7_15D as returning_users_count, TOTAL_USERS as cohort_size, RETURNING_RATE_PCT as retention_rate_pct FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_7_15_RETENTION_RATE_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- copilot_7_15_day_retention
+maintainer: analytics@alteryx.com
+tags:
+- retention
+- copilot
+- volume
+last_updated: '2026-08-03'
+version: '1.0'

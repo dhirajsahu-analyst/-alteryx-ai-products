@@ -1,0 +1,32 @@
+id: copilot_eligible_accounts
+name: Copilot Eligible Accounts
+description: Total count of customer accounts that qualify for Copilot based on license and features
+product: ask_alteryx
+status: validated
+category: market_size
+definition:
+  business: Total count of customer accounts that qualify for Copilot based on license and features
+  technical: '[''COPILOT_ELIGIBLE_ACCOUNTS''] from COPILOT_ELIGIBLE_ACCOUNT_FUNNEL_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT COPILOT_ELIGIBLE_ACCOUNTS as eligible_accounts_count, MONTH_YEAR as period FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ELIGIBLE_ACCOUNT_FUNNEL_VIEW ORDER BY MONTH_YEAR DESC LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- copilot_adoption_rate
+- copilot_account_eligibility_rate
+maintainer: analytics@alteryx.com
+tags:
+- market-size
+- copilot
+- tam
+- account-base
+last_updated: '2026-08-03'
+version: '1.0'

@@ -1,0 +1,42 @@
+id: copilot_30_60_day_retention
+name: Copilot 30-60 Day Retention Rate
+description: Percentage of Copilot users who remain active 30-60 days after activation
+product: ask_alteryx
+status: validated
+category: retention
+definition:
+  business: Measures sustained usage after the first month. Indicates whether Copilot provides ongoing value and prevents churn.
+  technical: RETURNING_RATE_PCT from COPILOT_30_60_RETENTION_RATE_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    RETURNING_RATE_PCT as retention_rate_pct,
+    RETURNING_USERS_30_60D as returning_users_count,
+    TOTAL_USERS as cohort_size
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_30_60_RETENTION_RATE_VIEW
+  WHERE RETURNING_RATE_PCT IS NOT NULL
+  LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: monthly
+filters:
+- RETURNING_RATE_PCT IS NOT NULL
+depends_on:
+- copilot_7_15_day_retention
+related_metrics:
+- copilot_7_15_day_retention
+- copilot_retention_decay_rate
+- copilot_user_churn_rate
+maintainer: analytics@alteryx.com
+tags:
+- retention
+- copilot
+- long-term-health
+- user-value
+- churn-prevention
+last_updated: '2026-08-03'
+version: '1.0'

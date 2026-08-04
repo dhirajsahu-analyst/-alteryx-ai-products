@@ -1,0 +1,40 @@
+id: trial_product_engagement_workflow_creation
+name: Trial Product Engagement - Workflow Creation
+description: Monthly count and rate of trial users creating workflows in Designer
+product: trial
+status: validated
+category: engagement
+definition:
+  business: Product engagement metric showing trial users taking product action
+  technical: 'From TRIAL_FUNNEL_METRICS_MONTHLY_VIEW: USERS_CREATED_NEW_WORKFLOW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    RESPONSE_MONTH,
+    TOTAL_TRIAL_REGISTRATION,
+    USERS_CREATED_NEW_WORKFLOW,
+    ROUND((USERS_CREATED_NEW_WORKFLOW / NULLIF(TOTAL_TRIAL_REGISTRATION, 0)) * 100, 2) AS workflow_creation_rate_pct,
+    LAG(USERS_CREATED_NEW_WORKFLOW) OVER (ORDER BY RESPONSE_MONTH) AS prev_month_creators,
+    ROUND((USERS_CREATED_NEW_WORKFLOW - LAG(USERS_CREATED_NEW_WORKFLOW) OVER (ORDER BY RESPONSE_MONTH)) /
+          NULLIF(LAG(USERS_CREATED_NEW_WORKFLOW) OVER (ORDER BY RESPONSE_MONTH), 0) * 100, 2) AS mom_growth_pct
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.TRIAL_FUNNEL_METRICS_MONTHLY_VIEW
+  ORDER BY RESPONSE_MONTH DESC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- trial_009
+- trial_011
+maintainer: analytics@alteryx.com
+tags:
+- engagement
+- trial
+last_updated: '2026-08-03'
+version: '1.0'

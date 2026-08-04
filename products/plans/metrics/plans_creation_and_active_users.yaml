@@ -1,0 +1,165 @@
+id: plans_creation_and_active_users
+name: Plans Creation and Active Users
+description: Tracks plans creation and active user counts
+product: plans
+status: validated
+category: product_metric
+definition:
+  business: Plans Creation and Active Users - Tracks plans creation and active user counts
+  technical: Query from PLANS_CREATION_AND_ACTIVE_USERS_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables:
+  - DISCOVERY_PRODUCT_MANAGEMENT
+sql_template: |-
+  SELECT
+      TO_CHAR(
+          DATE_TRUNC('MONTH', YEAR_MONTH),
+          'Mon-YYYY'
+      ) AS MONTH,
+
+      COUNT(
+          DISTINCT IFF(
+              CREATED_PLAN > 0,
+              BILLING_ACCOUNT_ID,
+              NULL
+          )
+      ) AS ACCOUNTS_CREATED_PLANS,
+
+      SUM(ACTIVE_USERS_AMPLITUDE) AS PLANS_ACTIVE_USERS
+
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+  WHERE YEAR_MONTH >= DATE_TRUNC(
+      'MONTH',
+      DATEADD(
+          MONTH,
+          -2,
+          CURRENT_DATE()
+      )
+  )
+
+  GROUP BY
+      DATE_TRUNC('MONTH', YEAR_MONTH)
+
+  ORDER BY
+      DATE_TRUNC('MONTH', YEAR_MONTH);
+queries:
+- name: base
+  description: Base metric query
+  query: |-
+    SELECT
+        TO_CHAR(
+            DATE_TRUNC('MONTH', YEAR_MONTH),
+            'Mon-YYYY'
+        ) AS MONTH,
+
+        COUNT(
+            DISTINCT IFF(
+                CREATED_PLAN > 0,
+                BILLING_ACCOUNT_ID,
+                NULL
+            )
+        ) AS ACCOUNTS_CREATED_PLANS,
+
+        SUM(ACTIVE_USERS_AMPLITUDE) AS PLANS_ACTIVE_USERS
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+    WHERE YEAR_MONTH >= DATE_TRUNC(
+        'MONTH',
+        DATEADD(
+            MONTH,
+            -2,
+            CURRENT_DATE()
+        )
+    )
+
+    GROUP BY
+        DATE_TRUNC('MONTH', YEAR_MONTH)
+
+    ORDER BY
+        DATE_TRUNC('MONTH', YEAR_MONTH);
+- name: daily
+  description: Daily metrics
+  query: |-
+    SELECT
+        TO_CHAR(
+            DATE_TRUNC('MONTH', YEAR_MONTH),
+            'Mon-YYYY'
+        ) AS MONTH,
+
+        COUNT(
+            DISTINCT IFF(
+                CREATED_PLAN > 0,
+                BILLING_ACCOUNT_ID,
+                NULL
+            )
+        ) AS ACCOUNTS_CREATED_PLANS,
+
+        SUM(ACTIVE_USERS_AMPLITUDE) AS PLANS_ACTIVE_USERS
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+    WHERE YEAR_MONTH >= DATE_TRUNC(
+        'MONTH',
+        DATEADD(
+            MONTH,
+            -2,
+            CURRENT_DATE()
+        )
+    )
+
+    GROUP BY
+        DATE_TRUNC('MONTH', YEAR_MONTH)
+
+    ORDER BY
+        DATE_TRUNC('MONTH', YEAR_MONTH);
+- name: monthly
+  description: Monthly aggregated metrics
+  query: |-
+    SELECT
+        TO_CHAR(
+            DATE_TRUNC('MONTH', YEAR_MONTH),
+            'Mon-YYYY'
+        ) AS MONTH,
+
+        COUNT(
+            DISTINCT IFF(
+                CREATED_PLAN > 0,
+                BILLING_ACCOUNT_ID,
+                NULL
+            )
+        ) AS ACCOUNTS_CREATED_PLANS,
+
+        SUM(ACTIVE_USERS_AMPLITUDE) AS PLANS_ACTIVE_USERS
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
+
+    WHERE YEAR_MONTH >= DATE_TRUNC(
+        'MONTH',
+        DATEADD(
+            MONTH,
+            -2,
+            CURRENT_DATE()
+        )
+    )
+
+    GROUP BY
+        DATE_TRUNC('MONTH', YEAR_MONTH)
+
+    ORDER BY
+        DATE_TRUNC('MONTH', YEAR_MONTH);
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: data-engineering@alteryx.com
+tags:
+- plans
+- product_metric
+last_updated: '2026-08-04'
+version: '1.0'

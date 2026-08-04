@@ -1,0 +1,30 @@
+id: copilot_enterprise_pro_users
+name: Copilot Enterprise/Pro Users
+description: Count of users with Enterprise or Professional tier licenses eligible for Copilot
+product: ask_alteryx
+status: validated
+category: market_size
+definition:
+  business: Count of users with Enterprise or Professional tier licenses eligible for Copilot
+  technical: '[''ENTERPRISE_PRO_USERS''] from COPILOT_ELIGBLE_USERS_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT ENTERPRISE_PRO_USERS as enterprise_pro_users_count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ELIGBLE_USERS_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- copilot_eligible_users
+maintainer: analytics@alteryx.com
+tags:
+- market-size
+- copilot
+- high-value-segment
+last_updated: '2026-08-03'
+version: '1.0'

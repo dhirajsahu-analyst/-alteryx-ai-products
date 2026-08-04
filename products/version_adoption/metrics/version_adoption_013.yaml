@@ -1,0 +1,48 @@
+id: version_adoption_013
+name: Version Adoption by Time-to-Upgrade
+description: Adoption rate measurements at 30, 60, 90, and 180 days post-release for Designer and Server
+product: version_adoption
+status: validated
+category: adoption
+definition:
+  business: Benchmarking metric showing upgrade speed and identifying slower adoption versions
+  technical: From VERSION_ADOPTION_30_60_90_DAYS_VIEW with multi-day milestone tracking
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    VERSION,
+    RELEASE_DATE,
+    DAYS,
+    DESIGNER_VERSION_USERS,
+    DESIGNER_TOTAL_USERS,
+    ROUND((DESIGNER_VERSION_USERS / NULLIF(DESIGNER_TOTAL_USERS, 0)) * 100, 2) AS designer_adoption_pct,
+    SERVER_VERSION_MACHINES,
+    SERVER_TOTAL_MACHINES,
+    ROUND((SERVER_VERSION_MACHINES / NULLIF(SERVER_TOTAL_MACHINES, 0)) * 100, 2) AS server_adoption_pct,
+    DESIGNER_ADOPTION_AVG_BY_DAYS AS designer_benchmark,
+    SERVER_ADOPTION_AVG_BY_DAYS AS server_benchmark,
+    ROUND((DESIGNER_ADOPTION - DESIGNER_ADOPTION_AVG_BY_DAYS), 2) AS designer_vs_benchmark,
+    ROUND((SERVER_ADOPTION - SERVER_ADOPTION_AVG_BY_DAYS), 2) AS server_vs_benchmark
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.VERSION_ADOPTION_30_60_90_DAYS_VIEW
+  WHERE DAYS IN (30, 60, 90, 180)
+  ORDER BY RELEASE_DATE DESC, DAYS ASC
+  LIMIT 100
+queries: []
+aggregation_level: cohort
+grain: cohort
+freshness: daily
+filters:
+- DAYS IN (30, 60, 90, 180)
+depends_on: []
+related_metrics:
+- version_adoption_001
+- version_adoption_002
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- version_adoption
+last_updated: '2026-08-03'
+version: '1.0'

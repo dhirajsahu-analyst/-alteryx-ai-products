@@ -1,0 +1,28 @@
+id: alteryx_one_deployed_starter_accounts
+name: Alteryx One Deployed Starter Edition Accounts
+description: Count of deployed accounts on the Starter edition.
+product: alteryx_one
+status: validated
+category: deployment
+definition:
+  business: Count of deployed accounts on the Starter edition.
+  technical: From ALTERYX_ONE_DEPLOYED_ACCOUNT_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT TOTAL_DEPLOYED_STARTER_ACCOUNTS as count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DEPLOYED_ACCOUNT_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: analytics@alteryx.com
+tags:
+- deployment
+- alteryx-one
+last_updated: '2026-08-03'
+version: '1.0'

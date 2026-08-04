@@ -1,0 +1,28 @@
+id: alteryx_one_seat_availability_rate
+name: Alteryx One Seat Availability Rate
+description: Percentage of purchased seats that are available for assignment. Measures seat utilization opportunity.
+product: alteryx_one
+status: validated
+category: activation
+definition:
+  business: Percentage of purchased seats that are available for assignment. Measures seat utilization opportunity.
+  technical: From ALTERYX_ONE_ACTIVATION_FUNNEL_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT PERCENTAGE_AVAILABLE_SEATS as seat_availability_rate FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_ACTIVATION_FUNNEL_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: analytics@alteryx.com
+tags:
+- activation
+- alteryx-one
+last_updated: '2026-08-03'
+version: '1.0'

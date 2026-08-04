@@ -1,0 +1,41 @@
+# Code Owners for Product Insights AI
+
+# Root files (critical) - require analytics lead review
+README.md                    @analytics-lead
+CONTRIBUTING.md              @analytics-lead
+DEPLOYMENT.md                @analytics-lead
+setup.sh                     @engineering-lead
+VERSION                      @analytics-lead
+CHANGELOG.md                 @analytics-lead
+.gitignore                   @engineering-lead
+
+# Documentation - require relevant owner review
+docs/QUICK_START.md          @analytics-lead
+docs/FAQ.md                  @analytics-lead
+docs/GOVERNANCE.md           @analytics-lead
+
+# CI/CD and workflows - require engineering lead review
+.github/workflows/           @engineering-lead
+.github/CODEOWNERS          @engineering-lead
+
+# CLI System - require engineering lead review
+agent/cli/                   @engineering-lead
+
+# Product modules - require product owner review
+products/alteryx-one/        @alteryx-one-owner
+products/ask-alteryx/        @ask-alteryx-owner
+products/version-adoption/   @version-adoption-owner
+products/designer/           @designer-owner
+products/account-user/       @account-user-owner
+products/trial/              @trial-owner
+
+# Global indexes - require analytics lead review
+catalog/                     @analytics-lead
+shared/                      @analytics-lead
+
+# Examples and queries - require analytics lead review
+examples/                    @analytics-lead
+queries/                     @analytics-lead
+
+# Default - require analytics lead review
+*                            @analytics-lead

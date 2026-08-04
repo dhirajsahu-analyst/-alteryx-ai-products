@@ -1,0 +1,42 @@
+id: version_adoption_014
+name: Designer Supported User Percentage Monthly
+description: Monthly percentage of Designer users running a supported product version
+product: version_adoption
+status: validated
+category: adoption
+definition:
+  business: User-level support health metric showing coverage of support obligation
+  technical: From DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_USERS_PERCENTAGE_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    DESIGNER_PCT_SUPPORTED,
+    SERVER_PCT_SUPPORTED,
+    ROUND(DESIGNER_PCT_SUPPORTED, 2) AS designer_supported_pct,
+    ROUND(100 - DESIGNER_PCT_SUPPORTED, 2) AS designer_unsupported_pct,
+    LAG(DESIGNER_PCT_SUPPORTED) OVER (ORDER BY MONTH) AS prev_designer_pct,
+    ROUND(DESIGNER_PCT_SUPPORTED - LAG(DESIGNER_PCT_SUPPORTED) OVER (ORDER BY MONTH), 2) AS month_over_month_change
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_USERS_PERCENTAGE_VIEW
+  WHERE MONTH >= DATEADD('MONTH', -12, CURRENT_DATE())
+  ORDER BY MONTH DESC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters:
+- MONTH >= DATEADD('MONTH', -12, CURRENT_DATE())
+depends_on: []
+related_metrics:
+- version_adoption_003
+- version_adoption_011
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- version_adoption
+last_updated: '2026-08-03'
+version: '1.0'

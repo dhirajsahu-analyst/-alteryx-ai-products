@@ -1,0 +1,42 @@
+id: version_adoption_002
+name: Server Version Adoption Rate
+description: Percentage of Server machines running supported versions, measured across installed base
+product: version_adoption
+status: validated
+category: adoption
+definition:
+  business: Monitors Server product upgrade health and identifies machines running unsupported versions requiring attention
+  technical: 'Calculated from VERSION_ADOPTION_30_60_90_DAYS_VIEW: SERVER_VERSION_MACHINES / SERVER_TOTAL_MACHINES * 100'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    VERSION,
+    DAYS,
+    RELEASE_DATE,
+    SERVER_VERSION_MACHINES,
+    SERVER_TOTAL_MACHINES,
+    ROUND((SERVER_VERSION_MACHINES / NULLIF(SERVER_TOTAL_MACHINES, 0)) * 100, 2) AS adoption_pct,
+    ROUND(SERVER_ADOPTION_AVG_BY_DAYS, 2) AS benchmark_avg
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.VERSION_ADOPTION_30_60_90_DAYS_VIEW
+  WHERE DAYS IN (30, 60, 90, 180)
+  ORDER BY RELEASE_DATE DESC, DAYS ASC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters:
+- DAYS IN (30, 60, 90, 180)
+depends_on: []
+related_metrics:
+- version_adoption_001
+- version_adoption_004
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- version_adoption
+last_updated: '2026-08-03'
+version: '1.0'

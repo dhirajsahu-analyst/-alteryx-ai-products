@@ -1,0 +1,10 @@
+last_updated: '2026-08-03T12:46:05.548594'
+metric_count: 4
+product_description: Trial conversion and funnel metrics
+product_id: trial
+product_name: Trial
+source_database: DISCOVERY_PRODUCT_MANAGEMENT
+source_schema: METRIC_STORE
+typical_grain: Monthly aggregated
+views:
+- TRIAL_FUNNEL_METRICS_VIEW

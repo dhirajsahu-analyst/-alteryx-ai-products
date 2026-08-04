@@ -1,0 +1,253 @@
+id: plan_health_summary
+name: Plan Health Summary
+description: Health metrics for Plans
+product: plans
+status: validated
+category: product_metric
+definition:
+  business: Plan Health Summary - Health metrics for Plans
+  technical: Query from PLAN_HEALTH_SUMMARY_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables:
+  - DISCOVERY_PRODUCT_MANAGEMENT
+sql_template: |-
+  SELECT
+
+      TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY') AS MONTH,
+
+      -- Number of plans created during the month.
+      COUNT(DISTINCT PLAN_ID) AS CREATED_PLANS,
+
+      -- Number of plans created during the month that currently have no active tasks.
+      COUNT(
+          DISTINCT CASE
+              WHEN CURRENT_TASK_COUNT = 0 THEN PLAN_ID
+          END
+      ) AS EMPTY_PLANS,
+
+      -- Number of plans created during the month that currently have exactly one active task.
+      COUNT(
+          DISTINCT CASE
+              WHEN CURRENT_TASK_COUNT = 1 THEN PLAN_ID
+          END
+      ) AS SINGLE_TASK_PLANS,
+
+      -- Number of plans created during the month that currently have more than ten active tasks.
+      COUNT(
+          DISTINCT CASE
+              WHEN CURRENT_TASK_COUNT > 10 THEN PLAN_ID
+          END
+      ) AS COMPLEX_PLANS,
+
+      -- Average number of currently active tasks per plan created during the month.
+      ROUND(
+          AVG(CURRENT_TASK_COUNT),
+          2
+      ) AS AVG_TASKS_PER_PLAN
+
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
+
+  WHERE PLAN_CREATED_AT >= DATEADD(
+          MONTH,
+          -2,
+          DATE_TRUNC('MONTH', CURRENT_DATE())
+      )
+    AND LICENSE_TYPE = 'Purchase'
+
+  -- Optional Dimension Filters
+  -- AND BILLING_ACCOUNT_ID_RAW = '<billing-account-id>'
+  -- AND PIPELINE_REGION = 'US'
+  -- AND ACCOUNT_EDITION = 'Enterprise'
+  -- AND PRICING_AND_PACKAGING = '2025'
+  -- AND WORKSPACE_ID = '<workspace-id>'
+  -- AND USER_ID = '<user-id>'
+
+  GROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)
+
+  ORDER BY DATE_TRUNC('MONTH', PLAN_CREATED_AT);
+queries:
+- name: base
+  description: Base metric query
+  query: |-
+    SELECT
+
+        TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY') AS MONTH,
+
+        -- Number of plans created during the month.
+        COUNT(DISTINCT PLAN_ID) AS CREATED_PLANS,
+
+        -- Number of plans created during the month that currently have no active tasks.
+        COUNT(
+            DISTINCT CASE
+                WHEN CURRENT_TASK_COUNT = 0 THEN PLAN_ID
+            END
+        ) AS EMPTY_PLANS,
+
+        -- Number of plans created during the month that currently have exactly one active task.
+        COUNT(
+            DISTINCT CASE
+                WHEN CURRENT_TASK_COUNT = 1 THEN PLAN_ID
+            END
+        ) AS SINGLE_TASK_PLANS,
+
+        -- Number of plans created during the month that currently have more than ten active tasks.
+        COUNT(
+            DISTINCT CASE
+                WHEN CURRENT_TASK_COUNT > 10 THEN PLAN_ID
+            END
+        ) AS COMPLEX_PLANS,
+
+        -- Average number of currently active tasks per plan created during the month.
+        ROUND(
+            AVG(CURRENT_TASK_COUNT),
+            2
+        ) AS AVG_TASKS_PER_PLAN
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
+
+    WHERE PLAN_CREATED_AT >= DATEADD(
+            MONTH,
+            -2,
+            DATE_TRUNC('MONTH', CURRENT_DATE())
+        )
+      AND LICENSE_TYPE = 'Purchase'
+
+    -- Optional Dimension Filters
+    -- AND BILLING_ACCOUNT_ID_RAW = '<billing-account-id>'
+    -- AND PIPELINE_REGION = 'US'
+    -- AND ACCOUNT_EDITION = 'Enterprise'
+    -- AND PRICING_AND_PACKAGING = '2025'
+    -- AND WORKSPACE_ID = '<workspace-id>'
+    -- AND USER_ID = '<user-id>'
+
+    GROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)
+
+    ORDER BY DATE_TRUNC('MONTH', PLAN_CREATED_AT);
+- name: daily
+  description: Daily metrics
+  query: |-
+    SELECT
+
+        TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY') AS MONTH,
+
+        -- Number of plans created during the month.
+        COUNT(DISTINCT PLAN_ID) AS CREATED_PLANS,
+
+        -- Number of plans created during the month that currently have no active tasks.
+        COUNT(
+            DISTINCT CASE
+                WHEN CURRENT_TASK_COUNT = 0 THEN PLAN_ID
+            END
+        ) AS EMPTY_PLANS,
+
+        -- Number of plans created during the month that currently have exactly one active task.
+        COUNT(
+            DISTINCT CASE
+                WHEN CURRENT_TASK_COUNT = 1 THEN PLAN_ID
+            END
+        ) AS SINGLE_TASK_PLANS,
+
+        -- Number of plans created during the month that currently have more than ten active tasks.
+        COUNT(
+            DISTINCT CASE
+                WHEN CURRENT_TASK_COUNT > 10 THEN PLAN_ID
+            END
+        ) AS COMPLEX_PLANS,
+
+        -- Average number of currently active tasks per plan created during the month.
+        ROUND(
+            AVG(CURRENT_TASK_COUNT),
+            2
+        ) AS AVG_TASKS_PER_PLAN
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
+
+    WHERE PLAN_CREATED_AT >= DATEADD(
+            MONTH,
+            -2,
+            DATE_TRUNC('MONTH', CURRENT_DATE())
+        )
+      AND LICENSE_TYPE = 'Purchase'
+
+    -- Optional Dimension Filters
+    -- AND BILLING_ACCOUNT_ID_RAW = '<billing-account-id>'
+    -- AND PIPELINE_REGION = 'US'
+    -- AND ACCOUNT_EDITION = 'Enterprise'
+    -- AND PRICING_AND_PACKAGING = '2025'
+    -- AND WORKSPACE_ID = '<workspace-id>'
+    -- AND USER_ID = '<user-id>'
+
+    GROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)
+
+    ORDER BY DATE_TRUNC('MONTH', PLAN_CREATED_AT);
+- name: monthly
+  description: Monthly aggregated metrics
+  query: |-
+    SELECT
+
+        TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY') AS MONTH,
+
+        -- Number of plans created during the month.
+        COUNT(DISTINCT PLAN_ID) AS CREATED_PLANS,
+
+        -- Number of plans created during the month that currently have no active tasks.
+        COUNT(
+            DISTINCT CASE
+                WHEN CURRENT_TASK_COUNT = 0 THEN PLAN_ID
+            END
+        ) AS EMPTY_PLANS,
+
+        -- Number of plans created during the month that currently have exactly one active task.
+        COUNT(
+            DISTINCT CASE
+                WHEN CURRENT_TASK_COUNT = 1 THEN PLAN_ID
+            END
+        ) AS SINGLE_TASK_PLANS,
+
+        -- Number of plans created during the month that currently have more than ten active tasks.
+        COUNT(
+            DISTINCT CASE
+                WHEN CURRENT_TASK_COUNT > 10 THEN PLAN_ID
+            END
+        ) AS COMPLEX_PLANS,
+
+        -- Average number of currently active tasks per plan created during the month.
+        ROUND(
+            AVG(CURRENT_TASK_COUNT),
+            2
+        ) AS AVG_TASKS_PER_PLAN
+
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
+
+    WHERE PLAN_CREATED_AT >= DATEADD(
+            MONTH,
+            -2,
+            DATE_TRUNC('MONTH', CURRENT_DATE())
+        )
+      AND LICENSE_TYPE = 'Purchase'
+
+    -- Optional Dimension Filters
+    -- AND BILLING_ACCOUNT_ID_RAW = '<billing-account-id>'
+    -- AND PIPELINE_REGION = 'US'
+    -- AND ACCOUNT_EDITION = 'Enterprise'
+    -- AND PRICING_AND_PACKAGING = '2025'
+    -- AND WORKSPACE_ID = '<workspace-id>'
+    -- AND USER_ID = '<user-id>'
+
+    GROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)
+
+    ORDER BY DATE_TRUNC('MONTH', PLAN_CREATED_AT);
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: data-engineering@alteryx.com
+tags:
+- plans
+- product_metric
+last_updated: '2026-08-04'
+version: '1.0'

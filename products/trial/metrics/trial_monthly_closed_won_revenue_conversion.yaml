@@ -1,0 +1,41 @@
+id: trial_monthly_closed_won_revenue_conversion
+name: Trial Monthly Closed Won Revenue Conversion
+description: Monthly trial-to-paid conversion with adjusted rate accounting for filtered responses
+product: trial
+status: validated
+category: funnel
+definition:
+  business: Key metric showing trial program revenue contribution and conversion quality
+  technical: 'From TRIAL_FUNNEL_METRICS_MONTHLY_VIEW: CLOSED_WON and ADJUSTED_CLOSED_WON_RATE_PCT'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    RESPONSE_MONTH,
+    TOTAL_TRIAL_REGISTRATION,
+    CLOSED_WON,
+    ADJUSTED_CLOSED_WON_RATE_PCT,
+    FILTERED_RESPONSE_COUNT,
+    ROUND((CLOSED_WON / NULLIF(TOTAL_TRIAL_REGISTRATION, 0)) * 100, 2) AS raw_conversion_rate_pct,
+    LAG(CLOSED_WON) OVER (ORDER BY RESPONSE_MONTH) AS prev_month_closed_won,
+    ROUND((CLOSED_WON - LAG(CLOSED_WON) OVER (ORDER BY RESPONSE_MONTH)), 2) AS mom_change
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.TRIAL_FUNNEL_METRICS_MONTHLY_VIEW
+  ORDER BY RESPONSE_MONTH DESC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- trial_008
+- trial_010
+maintainer: analytics@alteryx.com
+tags:
+- funnel
+- trial
+last_updated: '2026-08-03'
+version: '1.0'

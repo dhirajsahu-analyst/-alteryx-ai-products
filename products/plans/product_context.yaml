@@ -1,0 +1,12 @@
+product_name: plans
+full_name: Alteryx Plans
+description: Plan-based workflow automation and scheduling product
+team: Product Management
+repository: https://github.com/alteryx/plans
+metrics_source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  view_prefix: PLAN
+created_date: '2026-08-04'
+last_updated: '2026-08-04'
+status: active

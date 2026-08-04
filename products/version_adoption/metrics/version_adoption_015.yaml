@@ -1,0 +1,41 @@
+id: version_adoption_015
+name: Designer Supported Machine Percentage Monthly
+description: Monthly percentage of Designer machines running supported versions
+product: version_adoption
+status: validated
+category: adoption
+definition:
+  business: Infrastructure health metric ensuring physical machines have support coverage
+  technical: From DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_MACHINE_PERCENTAGE_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    DESIGNER_PCT_SUPPORTED,
+    SERVER_PCT_SUPPORTED,
+    ROUND(DESIGNER_PCT_SUPPORTED, 2) AS designer_machines_supported,
+    ROUND(100 - DESIGNER_PCT_SUPPORTED, 2) AS designer_machines_unsupported,
+    ROUND((DESIGNER_PCT_SUPPORTED + SERVER_PCT_SUPPORTED) / 2, 2) AS blended_machine_support
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_MACHINE_PERCENTAGE_VIEW
+  WHERE MONTH >= DATEADD('MONTH', -12, CURRENT_DATE())
+  ORDER BY MONTH DESC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters:
+- MONTH >= DATEADD('MONTH', -12, CURRENT_DATE())
+depends_on: []
+related_metrics:
+- version_adoption_011
+- version_adoption_014
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- version_adoption
+last_updated: '2026-08-03'
+version: '1.0'

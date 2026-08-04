@@ -1,0 +1,41 @@
+id: prevailing_version_account_distribution
+name: Prevailing Version Account Distribution
+description: Monthly distribution of accounts across version buckets (2024+, <=2023) showing version concentration
+product: account_user
+status: validated
+category: adoption
+definition:
+  business: Version distribution metric helping understand customer base composition and upgrade urgency
+  technical: From PREVAILING_VERSION_ACCOUNT_DIST_MONTHLY_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    PRODUCT_ID,
+    PREVAILING_VERSION_BUCKET,
+    TOTAL_ACCOUNTS,
+    ROUND(ACCOUNT_PERCENT, 2) AS pct_of_total,
+    LAG(TOTAL_ACCOUNTS) OVER (PARTITION BY PRODUCT_ID, PREVAILING_VERSION_BUCKET ORDER BY MONTH) AS prev_month_accounts,
+    ROUND((TOTAL_ACCOUNTS - LAG(TOTAL_ACCOUNTS) OVER (PARTITION BY PRODUCT_ID, PREVAILING_VERSION_BUCKET ORDER BY MONTH)) /
+          NULLIF(LAG(TOTAL_ACCOUNTS) OVER (PARTITION BY PRODUCT_ID, PREVAILING_VERSION_BUCKET ORDER BY MONTH), 0) * 100, 2) AS mom_growth_pct
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PREVAILING_VERSION_ACCOUNT_DIST_MONTHLY_VIEW
+  ORDER BY MONTH DESC, PRODUCT_ID, ACCOUNT_PERCENT DESC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters: []
+depends_on: []
+related_metrics:
+- account_user_001
+- account_user_011
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- account_user
+last_updated: '2026-08-03'
+version: '1.0'

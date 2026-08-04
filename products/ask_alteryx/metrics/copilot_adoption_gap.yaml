@@ -1,0 +1,35 @@
+id: copilot_adoption_gap
+name: Copilot Adoption Gap
+description: Count of eligible users who have not yet adopted Copilot (growth opportunity)
+product: ask_alteryx
+status: validated
+category: adoption
+definition:
+  business: Count of eligible users who have not yet adopted Copilot (growth opportunity)
+  technical: '[''ELIGIBLE_USERS'', ''ACTIVE_USERS''] from COPILOT_USERS_ADOPTION_RATE_VIEW'
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT (ELIGIBLE_USERS - ACTIVE_USERS) as adoption_gap_users, ELIGIBLE_USERS as total_eligible, ACTIVE_USERS as currently_adopted, ROUND((ELIGIBLE_USERS - ACTIVE_USERS) / ELIGIBLE_USERS * 100, 2) as adoption_gap_pct FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ADOPTION_RATE_VIEW WHERE ELIGIBLE_USERS > 0 LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters:
+- ELIGIBLE_USERS > 0
+depends_on:
+- copilot_eligible_users
+- copilot_active_users
+related_metrics:
+- copilot_adoption_rate
+- copilot_adoption_velocity
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- copilot
+- opportunity
+- gap-analysis
+last_updated: '2026-08-03'
+version: '1.0'

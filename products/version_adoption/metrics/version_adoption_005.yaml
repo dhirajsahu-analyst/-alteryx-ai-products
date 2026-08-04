@@ -1,0 +1,38 @@
+id: version_adoption_005
+name: Server Supported Version Account Percentage
+description: Monthly percentage of Server accounts running a supported version
+product: version_adoption
+status: validated
+category: adoption
+definition:
+  business: Monitors Server customer upgrade patterns and identifies accounts at risk due to unsupported versions
+  technical: From DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_ACCOUNT_PERCENTAGE_VIEW, SERVER_PCT_SUPPORTED
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |
+  SELECT
+    MONTH,
+    SERVER_PCT_SUPPORTED,
+    ROUND(100 - SERVER_PCT_SUPPORTED, 2) AS pct_unsupported
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_ACCOUNT_PERCENTAGE_VIEW
+  WHERE MONTH >= DATEADD('MONTH', -12, CURRENT_DATE())
+  ORDER BY MONTH DESC
+  LIMIT 100
+queries: []
+aggregation_level: monthly
+grain: monthly
+freshness: daily
+filters:
+- MONTH >= DATEADD('MONTH', -12, CURRENT_DATE())
+depends_on: []
+related_metrics:
+- version_adoption_003
+- version_adoption_006
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- version_adoption
+last_updated: '2026-08-03'
+version: '1.0'

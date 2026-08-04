@@ -1,0 +1,28 @@
+id: alteryx_one_invited_full_users
+name: Alteryx One Invited Full Users
+description: Count of invited users allocated with a Full User role.
+product: alteryx_one
+status: validated
+category: adoption
+definition:
+  business: Count of invited users allocated with a Full User role.
+  technical: From ALTERYX_ONE_INVITED_USERS_PER_USER_ROLE_VIEW
+source:
+  database: DISCOVERY_PRODUCT_MANAGEMENT
+  schema: METRIC_STORE
+  base_tables: []
+sql_template: |-
+  SELECT INVITED_FULL_USERS as count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_INVITED_USERS_PER_USER_ROLE_VIEW LIMIT 100
+queries: []
+aggregation_level: overall
+grain: overall
+freshness: daily
+filters: []
+depends_on: []
+related_metrics: []
+maintainer: analytics@alteryx.com
+tags:
+- adoption
+- alteryx-one
+last_updated: '2026-08-03'
+version: '1.0'

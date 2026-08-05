@@ -12,20 +12,26 @@ definition:
     between day 7 and day 15 after their first use.
   technical: Count of distinct users who appear in the eligible cohort and have at
     least one activity record within the 7-15 day window after their first_date.
-source: COPILOT_VIEWS
-sql_template: "WITH user_activity AS (\n    SELECT\n        USER_EMAIL AS CREATED_BY_ID,\n\
-  \        CAST(CONV_CREATED_DATE AS DATE) AS activity_date\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
-  \    WHERE ACCOUNT_EDITION IN ('Professional','Enterprise')\n      AND LICENSE_TYPE\
-  \ = 'Purchase'\n      AND CHAT_ID IS NOT NULL\n),\nfirst_use AS (\n    SELECT\n\
-  \        CREATED_BY_ID,\n        MIN(activity_date) AS first_date\n    FROM user_activity\n\
-  \    GROUP BY CREATED_BY_ID\n),\neligible_cohort AS (\n    SELECT\n        CREATED_BY_ID,\n\
-  \        first_date\n    FROM first_use\n    WHERE first_date <= DATEADD(day, -7,\
-  \ CURRENT_DATE())\n),\nreturns_7_15 AS (\n    SELECT\n        fu.CREATED_BY_ID,\n\
-  \        MIN(ua.activity_date) AS first_return_date_in_window\n    FROM eligible_cohort\
-  \ fu\n    JOIN user_activity ua\n      ON ua.CREATED_BY_ID = fu.CREATED_BY_ID\n\
-  \     AND ua.activity_date BETWEEN DATEADD(day, 7, fu.first_date)\n            \
-  \                  AND DATEADD(day, 15, fu.first_date)\n    GROUP BY fu.CREATED_BY_ID\n\
-  )\nSELECT COUNT(*) AS returning_users_7_15d\nFROM returns_7_15"
+source: COPILOT_ACTIVITY_USAGE_AT
+sql_template: 'WITH user_activity AS (
+    SELECT USER_EMAIL AS CREATED_BY_ID, CAST(CONV_CREATED_DATE AS DATE) AS activity_date
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+    WHERE ACCOUNT_EDITION IN (''Professional'',''Enterprise'') AND LICENSE_TYPE = ''Purchase'' AND CHAT_ID IS NOT NULL
+),
+first_use AS (
+    SELECT CREATED_BY_ID, MIN(activity_date) AS first_date FROM user_activity GROUP BY CREATED_BY_ID
+),
+eligible_cohort AS (
+    SELECT CREATED_BY_ID, first_date FROM first_use WHERE first_date <= DATEADD(day, -7, CURRENT_DATE())
+),
+returns_7_15 AS (
+    SELECT fu.CREATED_BY_ID, MIN(ua.activity_date) AS first_return_date_in_window
+    FROM eligible_cohort fu
+    JOIN user_activity ua ON ua.CREATED_BY_ID = fu.CREATED_BY_ID
+    AND ua.activity_date BETWEEN DATEADD(day, 7, fu.first_date) AND DATEADD(day, 15, fu.first_date)
+    GROUP BY fu.CREATED_BY_ID
+)
+SELECT COUNT(*) AS returning_users_7_15d FROM returns_7_15'
 tags:
 - copilot
 - engagement

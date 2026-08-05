@@ -9,10 +9,10 @@ grain: point_in_time
 definition:
   business: Users actively using Copilot (numerator for adoption rate calculation).
   technical: Count of distinct USER_ID_RAW with CHAT_ID IS NOT NULL.
-source: COPILOT_VIEWS
-sql_template: "SELECT COUNT(DISTINCT USER_ID_RAW) AS active_users\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
-  WHERE LICENSE_TYPE = 'Purchase'\n  AND USER_TYPE = 'aacp'\n  AND USER_ID_RAW IS\
-  \ NOT NULL\n  AND USER_EMAIL IS NOT NULL\n  AND CHAT_ID IS NOT NULL"
+source: COPILOT_ACTIVITY_USAGE_AT
+sql_template: 'SELECT COUNT(DISTINCT USER_ID_RAW) AS active_users
+FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+WHERE LICENSE_TYPE = ''Purchase'' AND USER_TYPE = ''aacp'' AND USER_ID_RAW IS NOT NULL AND USER_EMAIL IS NOT NULL AND CHAT_ID IS NOT NULL'
 tags:
 - copilot
 - engagement

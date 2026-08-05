@@ -9,9 +9,26 @@ grain: point_in_time
 definition:
   business: The percentage of users in the 30-day cohort who returned between day 30-60 (returns as decimal ratio).
   technical: Calculated as (returning_users_30_60 / total_users) * 100, returned as decimal ratio.
-source: COPILOT_30_60_RETENTION_RATE_VIEW
-sql_template: |
-  WITH user_activity AS (SELECT USER_EMAIL AS CREATED_BY_ID, CAST(CONV_CREATED_DATE AS DATE) AS activity_date FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT WHERE ACCOUNT_EDITION IN ('Professional','Enterprise') AND LICENSE_TYPE = 'Purchase' AND CHAT_ID IS NOT NULL), first_use AS (SELECT CREATED_BY_ID, MIN(activity_date) AS first_date FROM user_activity GROUP BY CREATED_BY_ID), eligible_cohort AS (SELECT CREATED_BY_ID, first_date FROM first_use WHERE first_date <= DATEADD(day, -30, CURRENT_DATE())), returns_30_60 AS (SELECT e.CREATED_BY_ID, MIN(ua.activity_date) AS first_return_date_in_window FROM eligible_cohort e JOIN user_activity ua ON ua.CREATED_BY_ID = e.CREATED_BY_ID AND ua.activity_date BETWEEN DATEADD(day, 30, e.first_date) AND DATEADD(day, 60, e.first_date) GROUP BY e.CREATED_BY_ID) SELECT ROUND(ROUND((SELECT COUNT(*) FROM returns_30_60) * 100.0 / NULLIF((SELECT COUNT(*) FROM eligible_cohort), 0), 2) / 100.0, 4) AS returning_rate_pct
+source: COPILOT_ACTIVITY_USAGE_AT
+sql_template: 'WITH user_activity AS (
+    SELECT USER_EMAIL AS CREATED_BY_ID, CAST(CONV_CREATED_DATE AS DATE) AS activity_date
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+    WHERE ACCOUNT_EDITION IN (''Professional'',''Enterprise'') AND LICENSE_TYPE = ''Purchase'' AND CHAT_ID IS NOT NULL
+),
+first_use AS (
+    SELECT CREATED_BY_ID, MIN(activity_date) AS first_date FROM user_activity GROUP BY CREATED_BY_ID
+),
+eligible_cohort AS (
+    SELECT CREATED_BY_ID, first_date FROM first_use WHERE first_date <= DATEADD(day, -30, CURRENT_DATE())
+),
+returns_30_60 AS (
+    SELECT e.CREATED_BY_ID, MIN(ua.activity_date) AS first_return_date_in_window
+    FROM eligible_cohort e
+    JOIN user_activity ua ON ua.CREATED_BY_ID = e.CREATED_BY_ID
+    AND ua.activity_date BETWEEN DATEADD(day, 30, e.first_date) AND DATEADD(day, 60, e.first_date)
+    GROUP BY e.CREATED_BY_ID
+)
+SELECT ROUND(ROUND((SELECT COUNT(*) FROM returns_30_60) * 100.0 / NULLIF((SELECT COUNT(*) FROM eligible_cohort), 0), 2) / 100.0, 4) AS returning_rate_pct'
 tags: [retention, cohort-analysis, copilot-engagement, rate-metric]
 maintainer: product-insights@alteryx.com
 version: 1.0

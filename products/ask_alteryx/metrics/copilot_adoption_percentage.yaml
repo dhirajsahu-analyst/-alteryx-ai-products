@@ -12,21 +12,19 @@ definition:
     engaging with Copilot.
   technical: 'Calculated as: (active_users / eligible_users) * 100, returned as decimal
     ratio.'
-source: COPILOT_VIEWS
-sql_template: "WITH numerator AS (\n    SELECT\n        COUNT(DISTINCT USER_ID_RAW)\
-  \ AS num\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
-  \    WHERE LICENSE_TYPE = 'Purchase'\n      AND USER_TYPE = 'aacp'\n      AND USER_ID_RAW\
-  \ IS NOT NULL\n      AND USER_EMAIL IS NOT NULL\n      AND CHAT_ID IS NOT NULL\n\
-  ),\ndenominator AS (\n    SELECT\n        COUNT(DISTINCT USER_ID_RAW) AS denom\n\
-  \    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
-  \    WHERE LICENSE_TYPE = 'Purchase'\n      AND PRICING_AND_PACKAGING = '2025'\n\
-  \      AND ACCOUNT_EDITION IN ('Enterprise', 'Professional')\n      AND STATUS =\
-  \ 'ACTIVATED'\n      AND ALTERYX_USER_EMAIL IS NOT NULL\n      AND COPILOT_ENABLED\
-  \ = TRUE\n      AND DESIGNER_ACTIVATION_STATUS = TRUE\n      AND DESIGNER_OFFLINE_ACTIVATION\
-  \ = FALSE\n      AND TRY_TO_DECIMAL(MAXIMUM_RAW_PRODUCT_VERSION, 10, 2) >= 2025.2\n\
-  )\nSELECT\n    ROUND(\n        ROUND(\n            100.0 * numerator.num / NULLIF(denominator.denom,\
-  \ 0),\n            2\n        ) / 100.0,\n        4\n    ) AS adoption_percentage\n\
-  FROM numerator,\n     denominator"
+source: COPILOT_ACTIVITY_USAGE_AT
+sql_template: 'WITH numerator AS (
+    SELECT COUNT(DISTINCT USER_ID_RAW) AS num
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+    WHERE LICENSE_TYPE = ''Purchase'' AND USER_TYPE = ''aacp'' AND USER_ID_RAW IS NOT NULL AND USER_EMAIL IS NOT NULL AND CHAT_ID IS NOT NULL
+),
+denominator AS (
+    SELECT COUNT(DISTINCT USER_ID_RAW) AS denom
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+    WHERE LICENSE_TYPE = ''Purchase'' AND PRICING_AND_PACKAGING = ''2025'' AND ACCOUNT_EDITION IN (''Enterprise'', ''Professional'') AND STATUS = ''ACTIVATED'' AND ALTERYX_USER_EMAIL IS NOT NULL AND COPILOT_ENABLED = TRUE AND DESIGNER_ACTIVATION_STATUS = TRUE AND DESIGNER_OFFLINE_ACTIVATION = FALSE AND TRY_TO_DECIMAL(MAXIMUM_RAW_PRODUCT_VERSION, 10, 2) >= 2025.2
+)
+SELECT ROUND(ROUND(100.0 * numerator.num / NULLIF(denominator.denom, 0), 2) / 100.0, 4) AS adoption_percentage
+FROM numerator, denominator'
 tags:
 - copilot
 - engagement

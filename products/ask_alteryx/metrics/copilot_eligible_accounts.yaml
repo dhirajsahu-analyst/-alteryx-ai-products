@@ -1,28 +1,45 @@
 id: copilot_eligible_accounts
-name: Copilot Account Funnel - Eligible
-description: Count of accounts with 2025 pricing, Enterprise/Professional edition,
-  AND product version 2025.2+ for the given month.
+name: Copilot Eligible Accounts Funnel
+description: Complete eligibility funnel for accounts including total AYX, AYX1, Enterprise/Professional, and Copilot-eligible accounts for each month.
 product: ask_alteryx
 category: copilot_engagement
 status: active
 freshness: daily
 grain: point_in_time
 definition:
-  business: Fully eligible accounts with all technical requirements for Copilot support.
-  technical: Count of distinct BILLING_ACCOUNT_ID_RAW where PRICING_AND_PACKAGING
-    = 2025 AND ACCOUNT_EDITION IN ('Enterprise', 'Professional') AND ACCOUNT_MAX_VERSION
-    >= '2025.2'.
+  business: Account eligibility progression showing funnel from total Alteryx accounts to those fully eligible for Copilot (2025 pricing, Enterprise/Professional edition, version 2025.2+).
+  technical: Funnel metrics from COPILOT_ELIGIBLE_ACCOUNT_FUNNEL_VIEW showing distinct BILLING_ACCOUNT_ID_RAW at each eligibility stage.
 source: COPILOT_VIEWS
-sql_template: "SELECT\n    YEAR_MONTH::DATE AS MONTH_YEAR,\n    COUNT(DISTINCT CASE\n\
-  \        WHEN PRICING_AND_PACKAGING = 2025\n         AND ACCOUNT_EDITION IN ('Enterprise',\
-  \ 'Professional')\n         AND ACCOUNT_MAX_VERSION >= '2025.2'\n        THEN BILLING_ACCOUNT_ID_RAW\n\
-  \    END) AS \"COPILOT_ELIGIBLE_ACCOUNTS\"\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_MONTHLY_ACCOUNT_ONBOARDING_ADAPTION_USAGE_AT\n\
-  WHERE PRODUCT_NAME = 'ALTERYX'\n  AND LICENSE_TYPE = 'Purchase'\n  AND YEAR_MONTH\
-  \ > '2026-01-01'\nGROUP BY YEAR_MONTH::DATE\nORDER BY YEAR_MONTH::DATE DESC"
+sql_template: 'SELECT
+    YEAR_MONTH::DATE AS MONTH_YEAR,
+    COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW) AS TOTAL_AYX_ACCOUNTS,
+    COUNT(DISTINCT CASE
+        WHEN PRICING_AND_PACKAGING = 2025
+        THEN BILLING_ACCOUNT_ID_RAW
+    END) AS TOTAL_AYX1_ACCOUNTS,
+    COUNT(DISTINCT CASE
+        WHEN PRICING_AND_PACKAGING = 2025
+         AND ACCOUNT_EDITION IN (''Enterprise'', ''Professional'')
+        THEN BILLING_ACCOUNT_ID_RAW
+    END) AS ACCOUNTS_WITH_ENT_AND_PRO,
+    COUNT(DISTINCT CASE
+        WHEN PRICING_AND_PACKAGING = 2025
+         AND ACCOUNT_EDITION IN (''Enterprise'', ''Professional'')
+         AND ACCOUNT_MAX_VERSION >= ''2025.2''
+        THEN BILLING_ACCOUNT_ID_RAW
+    END) AS COPILOT_ELIGIBLE_ACCOUNTS
+FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_MONTHLY_ACCOUNT_ONBOARDING_ADAPTION_USAGE_AT
+WHERE PRODUCT_NAME = ''ALTERYX''
+  AND LICENSE_TYPE = ''Purchase''
+  AND YEAR_MONTH > ''2026-01-01''
+GROUP BY YEAR_MONTH::DATE
+ORDER BY YEAR_MONTH::DATE DESC'
 tags:
 - copilot
-- engagement
+- eligibility
+- funnel
+- accounts
 - metrics
 maintainer: product-insights@alteryx.com
 last_updated: '2026-08-05'
-version: '1.0'
+version: '2.0'

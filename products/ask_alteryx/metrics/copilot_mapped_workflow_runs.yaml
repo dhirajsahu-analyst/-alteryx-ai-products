@@ -1,0 +1,35 @@
+id: copilot_mapped_workflow_runs
+name: Copilot Mapped Workflow Runs
+description: Total number of Designer workflow runs that have been successfully mapped
+  to Ask Alteryx (Copilot)-generated workflows.
+product: ask_alteryx
+category: copilot_engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Count of distinct workflows generated or created via Copilot assistance.
+  technical: Count of distinct workflow_id from Copilot activity that match Designer
+    engine runs.
+source: COPILOT_VIEWS
+sql_template: "WITH copilot_eligible_users AS (\n    SELECT DISTINCT\n        alteryx_user_email\n\
+  \    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
+  \    WHERE license_type = 'Purchase'\n      AND status = 'ACTIVATED'\n      AND\
+  \ chat_id IS NOT NULL\n),\nfirst_copilot_interaction AS (\n    SELECT\n        LOWER(alteryx_user_email)\
+  \ AS user_email,\n        MIN(conv_created_date) AS first_conv_created_at\n    FROM\
+  \ DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n    WHERE\
+  \ chat_id IS NOT NULL\n      AND alteryx_user_email IS NOT NULL\n    GROUP BY 1\n\
+  ),\nnumerator AS (\n    SELECT DISTINCT\n        es.workflow_id,\n        co.user_email\
+  \ AS copilot_email,\n        es.email_final AS engine_email\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\
+  \ co\n    LEFT JOIN DISCOVERY_PRODUCT_MANAGEMENT.TEL_STRAT.COPILOT_ENGINE_RUN_VW\
+  \ es\n        ON co.workflow_id = es.workflow_id\n    WHERE co.workflow_id IS NOT\
+  \ NULL\n      AND co.user_email IN (SELECT alteryx_user_email FROM copilot_eligible_users)\n\
+  \      AND co.chat_id IS NOT NULL\n)\nSELECT COUNT(DISTINCT workflow_id) AS copilot_mapped_workflow_runs\n\
+  FROM numerator"
+tags:
+- copilot
+- engagement
+- metrics
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

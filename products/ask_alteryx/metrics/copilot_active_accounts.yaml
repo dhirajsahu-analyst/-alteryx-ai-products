@@ -1,46 +1,23 @@
 id: copilot_active_accounts
 name: Copilot Active Accounts
-description: Count of customer accounts with active Copilot users
+description: Number of accounts with at least one Copilot chat activity.
 product: ask_alteryx
-status: validated
-category: volume
-definition:
-  business: Count of customer accounts with active Copilot users
-  technical: '[''ACTIVE_ACCOUNTS'']'
-source:
-  database: DISCOVERY_PRODUCT_MANAGEMENT
-  schema: METRIC_STORE
-  base_tables: []
-sql_template: "WITH engaged_accounts AS (\n    SELECT\n        billing_account_id_raw\n\
-  \    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
-  \    WHERE license_type = 'Purchase'\n      AND user_type = 'aacp'\n      AND chat_id\
-  \ IS NOT NULL\n      AND billing_account_id_raw IS NOT NULL\n    GROUP BY\n    \
-  \    billing_account_id_raw,\n        created_by_id\n    HAVING COUNT(DISTINCT conversation_id)\
-  \ >= 5\n)\nSELECT\n    COUNT(DISTINCT billing_account_id_raw) AS onboarded_accounts,\n\
-  \    COUNT(DISTINCT CASE\n        WHEN chat_id IS NOT NULL\n        THEN billing_account_id_raw\n\
-  \    END) AS active_accounts,\n    COUNT(DISTINCT CASE\n        WHEN chat_id IS\
-  \ NOT NULL\n         AND workflow_id IS NOT NULL\n         AND workflow_id <> ''\n\
-  \        THEN billing_account_id_raw\n    END) AS accounts_with_at_least_1_workflow,\n\
-  \    COUNT(DISTINCT CASE\n        WHEN billing_account_id_raw IN (\n           \
-  \ SELECT billing_account_id_raw\n            FROM engaged_accounts\n        )\n\
-  \        THEN billing_account_id_raw\n    END) AS engaged_accounts\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
-  WHERE license_type = 'Purchase'\n  AND user_type = 'aacp'\n  AND billing_account_id_raw\
-  \ IS NOT NULL;"
-queries: []
-aggregation_level: overall
-grain: overall
+category: copilot_engagement
+status: active
 freshness: daily
-filters:
-- ACTIVE_ACCOUNTS > 0
-depends_on: []
-related_metrics:
-- copilot_account_activation_rate
-- copilot_adoption_rate
-maintainer: analytics@alteryx.com
+grain: point_in_time
+definition:
+  business: Accounts where users have demonstrated engagement by creating at least
+    one chat conversation.
+  technical: Count of distinct billing_account_id_raw where chat_id IS NOT NULL.
+source: COPILOT_VIEWS
+sql_template: |
+  SELECT ACTIVE_ACCOUNTS
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW
 tags:
-- volume
 - copilot
-- active-accounts
-- key-metric
-last_updated: '2026-08-03'
+- engagement
+- metrics
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
 version: '1.0'

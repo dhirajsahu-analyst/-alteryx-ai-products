@@ -1,0 +1,27 @@
+id: copilot_version_eligible_users
+name: Copilot Version Eligible Users
+description: Count of Enterprise/Professional users with Copilot enabled AND product
+  version 2025.2 or higher.
+product: ask_alteryx
+category: copilot_engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: 'Third tier of eligibility: enabled users with sufficient product version
+    for Copilot features.'
+  technical: Count of distinct USER_ID_RAW meeting enabled criteria AND MAXIMUM_RAW_PRODUCT_VERSION
+    >= '2025.2'.
+source: COPILOT_VIEWS
+sql_template: "SELECT COUNT(DISTINCT CASE\n    WHEN LICENSE_TYPE = 'Purchase'\n  \
+  \   AND PRICING_AND_PACKAGING = '2025'\n     AND ACCOUNT_EDITION IN ('Enterprise',\
+  \ 'Professional')\n     AND STATUS = 'ACTIVATED'\n     AND ALTERYX_USER_EMAIL IS\
+  \ NOT NULL\n     AND COPILOT_ENABLED = TRUE\n     AND MAXIMUM_RAW_PRODUCT_VERSION\
+  \ >= '2025.2'\n    THEN USER_ID_RAW\nEND) AS ELIGIBLE_USERS_2025_2\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT"
+tags:
+- copilot
+- engagement
+- metrics
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

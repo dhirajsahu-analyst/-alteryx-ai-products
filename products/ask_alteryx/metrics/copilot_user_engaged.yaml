@@ -1,0 +1,23 @@
+id: copilot_user_engaged
+name: Copilot Engaged Users
+description: Number of users with 5+ Copilot conversations (indicating engagement).
+product: ask_alteryx
+category: copilot_engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: High-engagement users demonstrating strong adoption through multiple conversations.
+  technical: Count of distinct USER_ID_RAW having COUNT(DISTINCT CONVERSATION_ID)
+    >= 5.
+source: COPILOT_VIEWS
+sql_template: |
+  SELECT ENGAGED_USERS
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ACTIVITY_FUNNEL_VIEW
+tags:
+- copilot
+- engagement
+- metrics
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

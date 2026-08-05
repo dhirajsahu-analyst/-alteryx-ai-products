@@ -1,0 +1,36 @@
+id: copilot_adoption_percentage
+name: Copilot User Adoption Rate
+description: Percentage of eligible users who are actively using Copilot (decimal
+  ratio).
+product: ask_alteryx
+category: copilot_engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: The adoption rate showing what percentage of eligible users are actively
+    engaging with Copilot.
+  technical: 'Calculated as: (active_users / eligible_users) * 100, returned as decimal
+    ratio.'
+source: COPILOT_VIEWS
+sql_template: "WITH numerator AS (\n    SELECT\n        COUNT(DISTINCT USER_ID_RAW)\
+  \ AS num\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
+  \    WHERE LICENSE_TYPE = 'Purchase'\n      AND USER_TYPE = 'aacp'\n      AND USER_ID_RAW\
+  \ IS NOT NULL\n      AND USER_EMAIL IS NOT NULL\n      AND CHAT_ID IS NOT NULL\n\
+  ),\ndenominator AS (\n    SELECT\n        COUNT(DISTINCT USER_ID_RAW) AS denom\n\
+  \    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
+  \    WHERE LICENSE_TYPE = 'Purchase'\n      AND PRICING_AND_PACKAGING = '2025'\n\
+  \      AND ACCOUNT_EDITION IN ('Enterprise', 'Professional')\n      AND STATUS =\
+  \ 'ACTIVATED'\n      AND ALTERYX_USER_EMAIL IS NOT NULL\n      AND COPILOT_ENABLED\
+  \ = TRUE\n      AND DESIGNER_ACTIVATION_STATUS = TRUE\n      AND DESIGNER_OFFLINE_ACTIVATION\
+  \ = FALSE\n      AND TRY_TO_DECIMAL(MAXIMUM_RAW_PRODUCT_VERSION, 10, 2) >= 2025.2\n\
+  )\nSELECT\n    ROUND(\n        ROUND(\n            100.0 * numerator.num / NULLIF(denominator.denom,\
+  \ 0),\n            2\n        ) / 100.0,\n        4\n    ) AS adoption_percentage\n\
+  FROM numerator,\n     denominator"
+tags:
+- copilot
+- engagement
+- metrics
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

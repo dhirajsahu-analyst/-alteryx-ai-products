@@ -1,50 +1,26 @@
 id: copilot_enterprise_pro_users
-name: Copilot Enterprise/Pro Users
-description: Count of users with Enterprise or Professional tier licenses eligible
-  for Copilot
+name: Copilot Enterprise/Professional Users
+description: Count of users with Purchase license, 2025 pricing, Enterprise or Professional
+  edition, and ACTIVATED status.
 product: ask_alteryx
-status: validated
-category: market_size
-definition:
-  business: Count of users with Enterprise or Professional tier licenses eligible
-    for Copilot
-  technical: '[''ENTERPRISE_PRO_USERS'']'
-source:
-  database: DISCOVERY_PRODUCT_MANAGEMENT
-  schema: METRIC_STORE
-  base_tables: []
-sql_template: "SELECT\n    COUNT(DISTINCT CASE\n        WHEN LICENSE_TYPE = 'Purchase'\n\
-  \         AND PRICING_AND_PACKAGING = '2025'\n         AND ACCOUNT_EDITION IN ('Enterprise',\
-  \ 'Professional')\n         AND STATUS = 'ACTIVATED'\n         AND ALTERYX_USER_EMAIL\
-  \ IS NOT NULL\n        THEN USER_ID_RAW\n    END) AS ENTERPRISE_PRO_USERS,\n   \
-  \ COUNT(DISTINCT CASE\n        WHEN LICENSE_TYPE = 'Purchase'\n         AND PRICING_AND_PACKAGING\
-  \ = '2025'\n         AND ACCOUNT_EDITION IN ('Enterprise', 'Professional')\n   \
-  \      AND STATUS = 'ACTIVATED'\n         AND ALTERYX_USER_EMAIL IS NOT NULL\n \
-  \        AND COPILOT_ENABLED = TRUE\n        THEN USER_ID_RAW\n    END) AS COPILOT_ENABLED_USERS,\n\
-  \    COUNT(DISTINCT CASE\n        WHEN LICENSE_TYPE = 'Purchase'\n         AND PRICING_AND_PACKAGING\
-  \ = '2025'\n         AND ACCOUNT_EDITION IN ('Enterprise', 'Professional')\n   \
-  \      AND STATUS = 'ACTIVATED'\n         AND ALTERYX_USER_EMAIL IS NOT NULL\n \
-  \        AND COPILOT_ENABLED = TRUE\n         AND MAXIMUM_RAW_PRODUCT_VERSION >=\
-  \ '2025.2'\n        THEN USER_ID_RAW\n    END) AS ELIGIBLE_USERS_2025_2,\n    COUNT(DISTINCT\
-  \ CASE\n        WHEN LICENSE_TYPE = 'Purchase'\n         AND PRICING_AND_PACKAGING\
-  \ = '2025'\n         AND ACCOUNT_EDITION IN ('Enterprise', 'Professional')\n   \
-  \      AND STATUS = 'ACTIVATED'\n         AND ALTERYX_USER_EMAIL IS NOT NULL\n \
-  \        AND COPILOT_ENABLED = TRUE\n         AND DESIGNER_ACTIVATION_STATUS = TRUE\n\
-  \         AND DESIGNER_OFFLINE_ACTIVATION = FALSE\n         AND MAXIMUM_RAW_PRODUCT_VERSION\
-  \ = '2025.2'\n        THEN USER_ID_RAW\n    END) AS COPILOT_ELIGIBLE_USERS\nFROM\
-  \ DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT;"
-queries: []
-aggregation_level: overall
-grain: overall
+category: copilot_engagement
+status: active
 freshness: daily
-filters: []
-depends_on: []
-related_metrics:
-- copilot_eligible_users
-maintainer: analytics@alteryx.com
+grain: point_in_time
+definition:
+  business: 'Base tier of user eligibility: users from target account tiers with active
+    status.'
+  technical: Count of distinct USER_ID_RAW meeting all edition, license, and status
+    criteria.
+source: COPILOT_VIEWS
+sql_template: "SELECT COUNT(DISTINCT CASE\n    WHEN LICENSE_TYPE = 'Purchase'\n  \
+  \   AND PRICING_AND_PACKAGING = '2025'\n     AND ACCOUNT_EDITION IN ('Enterprise',\
+  \ 'Professional')\n     AND STATUS = 'ACTIVATED'\n     AND ALTERYX_USER_EMAIL IS\
+  \ NOT NULL\n    THEN USER_ID_RAW\nEND) AS ENTERPRISE_PRO_USERS\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT"
 tags:
-- market-size
 - copilot
-- high-value-segment
-last_updated: '2026-08-03'
+- engagement
+- metrics
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
 version: '1.0'

@@ -1,0 +1,21 @@
+id: trial_funnel_signups
+name: Trial Funnel - Signups
+description: Total number of trial signups in the period.
+product: trial
+category: funnel
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Users who initiated a trial account.
+  technical: Count of unique trial signup records.
+source: PRODUCT_TABLES
+sql_template: SELECT COUNT(DISTINCT TRIAL_ID) FROM TRIALS WHERE STATUS IN ('ACTIVE',
+  'CONVERTED', 'EXPIRED')
+tags:
+- funnel
+- funnel-stage
+- trial-conversion
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

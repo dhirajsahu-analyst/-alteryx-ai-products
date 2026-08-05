@@ -1,0 +1,21 @@
+id: alteryx_one_activated_viewers
+name: Alteryx One Activated Viewers
+description: View-only users who have logged in.
+product: alteryx-one
+category: activation
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Read-only users viewing content.
+  technical: Count of users with ROLE = 'VIEWER' and LAST_LOGIN IS NOT NULL.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT COUNT(DISTINCT USER_ID) FROM ALTERYX_ONE_USERS WHERE ROLE = 'VIEWER'
+  AND LAST_LOGIN IS NOT NULL
+tags:
+- activation
+- role-based
+- viewer
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

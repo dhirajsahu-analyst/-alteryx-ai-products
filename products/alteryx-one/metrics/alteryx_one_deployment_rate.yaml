@@ -1,20 +1,21 @@
 id: alteryx_one_deployment_rate
-status: validated
-category: unknown
-definition:
-  business: ''
-  technical: Query from VIEW_NAME
-source:
-  database: DISCOVERY_PRODUCT_MANAGEMENT
-  schema: METRIC_STORE
-  base_tables: []
-queries: []
-aggregation_level: monthly
-grain: monthly
+name: Alteryx One Deployment Rate
+description: '% of accounts that have deployed workflows.'
+product: alteryx-one
+category: adoption
+status: active
 freshness: daily
-filters: []
-depends_on: []
-related_metrics: []
-tags: []
-last_updated: '2026-08-04'
+grain: point_in_time
+definition:
+  business: Accounts moving from build to production.
+  technical: Accounts with DEPLOYED_WORKFLOWS >= 1 / total accounts * 100.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT ROUND(100.0 * COUNT(CASE WHEN DEPLOYED_WORKFLOWS >= 1 THEN ACCOUNT_ID
+  END) / NULLIF(COUNT(ACCOUNT_ID), 0), 2) FROM ALTERYX_ONE_ACCOUNTS
+tags:
+- adoption
+- adoption-rate
+- deployment
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
 version: '1.0'

@@ -1,0 +1,20 @@
+id: alteryx_one_workspace_creation_rate
+name: Alteryx One Workspace Creation Rate
+description: Monthly workspaces created per active user.
+product: alteryx-one
+category: engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Platform adoption signal via workspace creation.
+  technical: WORKSPACE_COUNT / ACTIVE_USERS.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT ROUND(SUM(WORKSPACE_COUNT) / NULLIF(COUNT(DISTINCT USER_ID),
+  0), 2) FROM ALTERYX_ONE_MONTHLY_USERS WHERE ACTIVE_USERS >= 1
+tags:
+- engagement
+- usage-metric
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

@@ -1,0 +1,21 @@
+id: trial_user_engagement
+name: Trial User Engagement Rate
+description: Percentage of trial users who are actively using the product.
+product: trial
+category: engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Share of trial users demonstrating active engagement.
+  technical: active_trial_users / total_trial_users * 100
+source: PRODUCT_TABLES
+sql_template: SELECT ROUND(100.0 * COUNT(CASE WHEN ACTIVITY_COUNT >= 5 THEN TRIAL_ID
+  END) / NULLIF(COUNT(TRIAL_ID), 0), 2) FROM TRIALS
+tags:
+- engagement
+- rate-metric
+- trial-engagement
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

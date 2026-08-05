@@ -1,38 +1,21 @@
 id: alteryx_one_activated_account_admins
 name: Alteryx One Activated Account Admins
-description: Count of successfully activated Account Administrator users.
-product: alteryx_one
-status: validated
+description: Account admins who have logged in.
+product: alteryx-one
 category: activation
-definition:
-  business: Count of successfully activated Account Administrator users.
-  technical: ''
-source:
-  database: DISCOVERY_PRODUCT_MANAGEMENT
-  schema: METRIC_STORE
-  base_tables: []
-sql_template: "SELECT YEAR_MONTH,\n    SUM(ACTIVATED_FULL_USERS) as \"ACTIVATED_FULL_USERS\"\
-  ,\n    SUM(ACTIVATED_BASIC_USERS) as \"ACTIVATED_BASIC_USERS\",\n    SUM(ACTIVATED_VIEWER_USERS)\
-  \ as \"ACTIVATED_VIEWER_USERS\",\n    SUM(ACTIVATED_ACCOUNT_ADMINS) as \"ACTIVATED_ACCOUNT_ADMINS\"\
-  ,\n    SUM(ACTIVATED_WORKSPACE_ADMINS) as \"ACTIVATED_WORKSPACE_ADMINS\",\n    (SUM(ACTIVATED_FULL_USERS)/NULLIFZERO(SUM(ACTIVATED_USERS)))\
-  \ AS \"PERCENTAGE_ACTIVATED_FULL_USERS\",\n    (SUM(ACTIVATED_BASIC_USERS)/NULLIFZERO(SUM(ACTIVATED_USERS)))\
-  \ AS \"PERCENTAGE_ACTIVATED_BASIC_USERS\",\n    (SUM(ACTIVATED_VIEWER_USERS)/NULLIFZERO(SUM(ACTIVATED_USERS)))\
-  \ AS \"PERCENTAGE_ACTIVATED_VIEWER_USERS\",\n    (SUM(ACTIVATED_ACCOUNT_ADMINS)/NULLIFZERO(SUM(ACTIVATED_USERS)))\
-  \ AS \"PERCENTAGE_ACTIVATED_ACCOUNT_ADMINS\",\n    (SUM(ACTIVATED_WORKSPACE_ADMINS)/NULLIFZERO(SUM(ACTIVATED_USERS)))\
-  \ AS \"PERCENTAGE_ACTIVATED_WORKSPACE_ADMINS\"\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_MONTHLY_ACCOUNT_ONBOARDING_ADAPTION_USAGE_AT\n\
-  \    WHERE LICENSE_TYPE = 'Purchase'\n    AND PRICING_AND_PACKAGING = '2025'\n \
-  \   AND YEAR_MONTH > DATEADD('YEAR', -1, YEAR_MONTH)\n    GROUP BY YEAR_MONTH\n\
-  \    ORDER BY YEAR_MONTH DESC;"
-queries: []
-aggregation_level: overall
-grain: overall
+status: active
 freshness: daily
-filters: []
-depends_on: []
-related_metrics: []
-maintainer: analytics@alteryx.com
+grain: point_in_time
+definition:
+  business: Account admins taking active role in platform.
+  technical: Count of users with ROLE = 'ACCOUNT_ADMIN' and LAST_LOGIN IS NOT NULL.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT COUNT(DISTINCT USER_ID) FROM ALTERYX_ONE_USERS WHERE ROLE = 'ACCOUNT_ADMIN'
+  AND LAST_LOGIN IS NOT NULL
 tags:
 - activation
-- alteryx-one
-last_updated: '2026-08-03'
+- role-based
+- account-admin
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
 version: '1.0'

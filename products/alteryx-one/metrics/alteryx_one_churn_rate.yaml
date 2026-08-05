@@ -1,0 +1,21 @@
+id: alteryx_one_churn_rate
+name: Alteryx One Churn Rate
+description: '% of previously active accounts with no activity last 60 days.'
+product: alteryx-one
+category: health
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Account attrition metric.
+  technical: Previously active but dormant accounts / previously active total * 100.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT ROUND(100.0 * COUNT(CASE WHEN LAST_ACTIVITY < DATEADD(DAY, -60,
+  CURRENT_DATE()) THEN ACCOUNT_ID END) / NULLIF(COUNT(ACCOUNT_ID), 0), 2) FROM ALTERYX_ONE_ACCOUNTS
+  WHERE PREVIOUSLY_ACTIVE = 1
+tags:
+- health
+- churn-rate
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

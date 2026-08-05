@@ -1,0 +1,22 @@
+id: alteryx_one_account_funnel_onboarded
+name: Alteryx One Account Funnel - Onboarded
+description: Accounts with at least one active user in first 30 days.
+product: alteryx-one
+category: funnel
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Accounts successfully onboarded with active usage.
+  technical: Count of accounts with ACTIVE_USERS >= 1 in onboarding period.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT COUNT(DISTINCT ACCOUNT_ID) FROM ALTERYX_ONE_ACCOUNTS WHERE ACTIVE_USERS
+  >= 1 AND DAYS_SINCE_CREATION <= 30
+tags:
+- funnel
+- funnel-stage
+- account
+- onboarding
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

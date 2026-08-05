@@ -1,0 +1,21 @@
+id: version_adoption_compliance_rate
+name: Version Adoption Compliance Rate
+description: Percentage of users on supported/eligible versions.
+product: version_adoption
+category: adoption
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Share of users meeting minimum version standards.
+  technical: eligible_users / total_users * 100
+source: PRODUCT_TABLES
+sql_template: SELECT ROUND(100.0 * COUNT(CASE WHEN VERSION >= '2025.2' THEN USER_ID
+  END) / NULLIF(COUNT(USER_ID), 0), 2) FROM USER_VERSIONS
+tags:
+- adoption-rate
+- rate-metric
+- version-compliance
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

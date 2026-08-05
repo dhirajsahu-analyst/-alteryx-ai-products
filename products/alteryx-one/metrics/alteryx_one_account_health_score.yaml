@@ -1,0 +1,20 @@
+id: alteryx_one_account_health_score
+name: Alteryx One Account Health Score
+description: Average health score across all accounts (1-100).
+product: alteryx-one
+category: health
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Overall platform health assessment.
+  technical: AVG(HEALTH_SCORE) where HEALTH_SCORE = activity*50% + adoption*30% +
+    deployment*20%.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT ROUND(AVG(HEALTH_SCORE), 1) FROM ALTERYX_ONE_ACCOUNTS
+tags:
+- health
+- indicator
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

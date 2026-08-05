@@ -1,0 +1,27 @@
+id: version_adoption_adoption_adoption_rate
+name: Version Adoption - Adoption - Adoption Rate
+description: Overall version adoption rate
+product: version_adoption
+category: adoption
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Overall version adoption rate
+  technical: Count of distinct entities meeting adoption_rate criteria from version
+    adoption data sources.
+source: VERSION_ADOPTION_METRIC_VIEW
+tables:
+- DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.VERSION_DEPLOYMENT_AT
+sql_template: "WITH base_metrics AS (\n    SELECT\n        DISTINCT CASE\n       \
+  \     WHEN ADOPTION_RATE IS NOT NULL THEN 1\n            ELSE 0\n        END AS\
+  \ is_active\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.VERSION_DEPLOYMENT_AT\n\
+  \    WHERE CREATED_AT >= DATEADD(day, -30, CURRENT_DATE())\n)\nSELECT\n    COUNT(*)\
+  \ AS adoption_rate\nFROM base_metrics\nWHERE is_active = 1"
+tags:
+- adoption
+- adoption
+- rate-metric
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-04'
+version: '1.0'

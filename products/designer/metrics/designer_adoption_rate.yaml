@@ -1,0 +1,22 @@
+id: designer_adoption_rate
+name: Designer Adoption Rate
+description: Percentage of eligible users who are actively using Designer.
+product: designer
+category: adoption
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Share of eligible users adopting Designer for workflow creation.
+  technical: adopted_users / eligible_users * 100
+source: PRODUCT_TABLES
+sql_template: SELECT ROUND(100.0 * (SELECT COUNT(DISTINCT USER_ID) FROM DESIGNER_USAGE
+  WHERE WORKFLOW_COUNT > 0) / NULLIF((SELECT COUNT(DISTINCT USER_ID) FROM USERS WHERE
+  DESIGNER_ENABLED = TRUE), 0), 2)
+tags:
+- adoption-rate
+- rate-metric
+- designer-adoption
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

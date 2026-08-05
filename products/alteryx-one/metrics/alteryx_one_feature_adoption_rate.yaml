@@ -1,0 +1,22 @@
+id: alteryx_one_feature_adoption_rate
+name: Alteryx One Feature Adoption Rate
+description: '% of active users using advanced features.'
+product: alteryx-one
+category: adoption
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Adoption of platform features beyond basics.
+  technical: Users using advanced features / active users * 100.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT ROUND(100.0 * COUNT(DISTINCT CASE WHEN ADVANCED_FEATURE_USED
+  = 1 THEN USER_ID END) / NULLIF(COUNT(DISTINCT CASE WHEN LAST_LOGIN IS NOT NULL THEN
+  USER_ID END), 0), 2) FROM ALTERYX_ONE_USERS
+tags:
+- adoption
+- adoption-rate
+- feature-adoption
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

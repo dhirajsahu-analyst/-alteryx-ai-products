@@ -1,86 +1,20 @@
 id: alteryx_one_user_retention_30_60d
-name: Alteryx One User Retention 30-60 Days
-description: Percentage of new users active within 30-60 days of activation.
-product: alteryx_one
-status: validated
+name: Alteryx One User Retention - 30-60 Day
+description: '% of new users returning in days 30-60.'
+product: alteryx-one
 category: retention
-definition:
-  business: Percentage of new users active within 30-60 days of activation.
-  technical: ''
-source:
-  database: DISCOVERY_PRODUCT_MANAGEMENT
-  schema: METRIC_STORE
-  base_tables: []
-sql_template: "create or replace view ALTERYX_ONE_USERS_RETENTIONS_BY_BUCKET_DAYS_VIEW(\n\
-  \tCOHORT_MONTH COMMENT 'The specific month when this cohort of users first activated\
-  \ their accounts.',\n\tSEGMENT COMMENT 'The user segment category (Overall, Licensed,\
-  \ Unlicensed).',\n\tCOHORT_SIZE COMMENT 'The total number of unique users in this\
-  \ cohort.',\n\tACTIVE_1_TO_7D COMMENT 'The number of users from this cohort who\
-  \ were active between days 1 and 7.',\n\tPERCENTAGE_1_TO_7D COMMENT 'The percentage\
-  \ ratio of cohort users active between days 1 and 7.',\n\tACTIVE_7_TO_14D COMMENT\
-  \ 'The number of users from this cohort who were active between days 7 and 14.',\n\
-  \tPERCENTAGE_7_TO_14D COMMENT 'The percentage ratio of cohort users active between\
-  \ days 7 and 14.',\n\tACTIVE_14_TO_30D COMMENT 'The number of users from this cohort\
-  \ who were active between days 14 and 30.',\n\tPERCENTAGE_14_TO_30D COMMENT 'The\
-  \ percentage ratio of cohort users active between days 14 and 30.',\n\tACTIVE_30_TO_60D\
-  \ COMMENT 'The number of users from this cohort who were active between days 31\
-  \ and 60.',\n\tPERCENTAGE_30_TO_60D COMMENT 'The percentage ratio of cohort users\
-  \ active between days 31 and 60.'\n)\n as\n    WITH activated_users AS (\n     \
-  \   SELECT\n            USER_ID,\n            BILLING_ACCOUNT_ID,\n            ACTIVATION_DATE,\n\
-  \            DATE_TRUNC('MONTH', ACTIVATION_DATE) AS COHORT_MONTH,\n           \
-  \ CASE\n                WHEN USER_ROLE_TYPE IN ('Full User', 'Basic User') THEN\
-  \ 'Licensed'\n                WHEN USER_ROLE_TYPE = 'Viewer User' THEN 'Unlicensed'\n\
-  \                WHEN IS_ACCOUNT_ADMIN = TRUE THEN 'Unlicensed'\n              \
-  \  WHEN IS_WORKSPACE_ADMIN = TRUE THEN 'Unlicensed'\n                ELSE 'Other'\n\
-  \            END AS USER_SEGMENT\n        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_ADAPTION_USAGE_AT\n\
-  \        WHERE LICENSE_TYPE = 'Purchase'\n          AND PRICING_AND_PACKAGING =\
-  \ '2025'\n          AND ACTIVATION_DATE IS NOT NULL\n          AND STATUS = 'ACTIVATED'\n\
-  \          AND DATE = ACTIVATION_DATE\n        GROUP BY ALL\n    )\n    ,\n\n  \
-  \  activity AS (\n        SELECT USER_ID, BILLING_ACCOUNT_ID, DATE\n        FROM\
-  \ DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_ADAPTION_USAGE_AT\n\
-  \        WHERE LICENSE_TYPE = 'Purchase'\n          AND PRICING_AND_PACKAGING =\
-  \ '2025'\n          AND (PLATFORM + DESIGNER_CLOUD + APP_BUILDER + AUTO_INSIGHTS\n\
-  \               + MACHINE_LEARNING + CLOUD_EXECUTION_FOR_DESKTOP + CONNECTION\n\
-  \               + DATASET + PLANS + SCHEDULE ) > 0\n    ),\n\n    retention AS (\n\
-  \        SELECT\n            a.USER_ID,\n            a.BILLING_ACCOUNT_ID,\n   \
-  \         a.ACTIVATION_DATE,\n            a.COHORT_MONTH,\n            a.USER_SEGMENT,\n\
-  \            MAX(CASE WHEN DATEDIFF('day', a.ACTIVATION_DATE, b.DATE) BETWEEN 1\
-  \ AND 7 THEN 1 ELSE 0 END) AS ACTIVE_1_TO_7D,\n            MAX(CASE WHEN DATEDIFF('day',\
-  \ a.ACTIVATION_DATE, b.DATE) BETWEEN 8 AND 14 THEN 1 ELSE 0 END) AS ACTIVE_7_TO_14D,\n\
-  \            MAX(CASE WHEN DATEDIFF('day', a.ACTIVATION_DATE, b.DATE) BETWEEN 15\
-  \ AND 30 THEN 1 ELSE 0 END) AS ACTIVE_14_TO_30D,\n            MAX(CASE WHEN DATEDIFF('day',\
-  \ a.ACTIVATION_DATE, b.DATE) BETWEEN 31 AND 60 THEN 1 ELSE 0 END) AS ACTIVE_30_TO_60D\n\
-  \        FROM activated_users a\n        LEFT JOIN activity b\n            ON a.USER_ID\
-  \ = b.USER_ID\n           AND a.BILLING_ACCOUNT_ID = b.BILLING_ACCOUNT_ID\n    \
-  \       AND b.DATE > a.ACTIVATION_DATE\n           AND b.DATE <= DATEADD('day',\
-  \ 60, a.ACTIVATION_DATE)\n        GROUP BY a.USER_ID, a.BILLING_ACCOUNT_ID, a.ACTIVATION_DATE,\
-  \ a.COHORT_MONTH, a.USER_SEGMENT\n    )\n\n    SELECT\n        COHORT_MONTH,\n \
-  \       SEGMENT,\n        COHORT_SIZE,\n        ACTIVE_1_TO_7D,  ROUND(ACTIVE_1_TO_7D\
-  \  / COHORT_SIZE, 2) AS PERCENTAGE_1_TO_7D,\n        ACTIVE_7_TO_14D, ROUND(ACTIVE_7_TO_14D\
-  \ / COHORT_SIZE, 2) AS PERCENTAGE_7_TO_14D,\n        ACTIVE_14_TO_30D, ROUND(ACTIVE_14_TO_30D\
-  \ / COHORT_SIZE, 2) AS PERCENTAGE_14_TO_30D,\n        ACTIVE_30_TO_60D, ROUND(ACTIVE_30_TO_60D\
-  \ / COHORT_SIZE, 2) AS PERCENTAGE_30_TO_60D\n    FROM (\n        SELECT COHORT_MONTH,\
-  \ 'Overall' AS SEGMENT,\n            COUNT(DISTINCT USER_ID) AS COHORT_SIZE,\n \
-  \           SUM(ACTIVE_1_TO_7D) AS ACTIVE_1_TO_7D, SUM(ACTIVE_7_TO_14D) AS ACTIVE_7_TO_14D,\n\
-  \            SUM(ACTIVE_14_TO_30D) AS ACTIVE_14_TO_30D, SUM(ACTIVE_30_TO_60D) AS\
-  \ ACTIVE_30_TO_60D\n        FROM retention\n        GROUP BY COHORT_MONTH\n\n  \
-  \      UNION ALL\n\n        SELECT COHORT_MONTH, USER_SEGMENT AS SEGMENT,\n    \
-  \        COUNT(DISTINCT USER_ID) AS COHORT_SIZE,\n            SUM(ACTIVE_1_TO_7D)\
-  \ AS ACTIVE_1_TO_7D, SUM(ACTIVE_7_TO_14D) AS ACTIVE_7_TO_14D,\n            SUM(ACTIVE_14_TO_30D)\
-  \ AS ACTIVE_14_TO_30D, SUM(ACTIVE_30_TO_60D) AS ACTIVE_30_TO_60D\n        FROM retention\n\
-  \        GROUP BY COHORT_MONTH, USER_SEGMENT\n    )\n    ORDER BY COHORT_MONTH,\
-  \ CASE SEGMENT WHEN 'Overall' THEN 0 WHEN 'Licensed' THEN 1 WHEN 'Unlicensed' THEN\
-  \ 2 ELSE 3 END;"
-queries: []
-aggregation_level: overall
-grain: overall
+status: active
 freshness: daily
-filters: []
-depends_on: []
-related_metrics: []
-maintainer: analytics@alteryx.com
+grain: point_in_time
+definition:
+  business: Two-month engagement signal.
+  technical: Users with activity in days 30-60 / total new users.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT ROUND(100.0 * COUNT(CASE WHEN DAYS_TO_FIRST_LOGIN BETWEEN 30
+  AND 60 THEN USER_ID END) / NULLIF(COUNT(USER_ID), 0), 2) FROM ALTERYX_ONE_USERS
 tags:
 - retention
-- alteryx-one
-last_updated: '2026-08-03'
+- rate-metric
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
 version: '1.0'

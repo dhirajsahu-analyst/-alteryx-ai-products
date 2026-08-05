@@ -3,7 +3,7 @@
 import os
 from typing import Optional, Dict, Any, List
 import pandas as pd
-from snowflake.connector import connect, DProgrammingError
+from snowflake.connector import connect
 from snowflake.connector.errors import DatabaseError, ProgrammingError
 from engine.error_handler import SnowflakeError, AuthError
 

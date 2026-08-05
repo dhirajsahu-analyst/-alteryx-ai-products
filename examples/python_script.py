@@ -78,10 +78,11 @@ def main():
     
     # Get audit logs
     logs = engine.audit_logger.get_logs(filters={'user_id': 'demo_user'})
-    
+
     print(f"\nFound {len(logs)} audit log entries for demo_user:")
     for log in logs[-3:]:
-        print(f"  {log['timestamp']}: {log['action']} - {log['metric_id']}")
+        metric = log.get('metric_id') or log.get('query') or log.get('product', 'N/A')
+        print(f"  {log['timestamp']}: {log['action']} - {metric}")
     
     # Clean up
     engine.close()

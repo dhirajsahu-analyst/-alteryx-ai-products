@@ -1,21 +1,22 @@
-id: account_user_engagement_rate
-name: Account User Engagement Rate
-description: Percentage of registered users who are active.
-product: account_user
 category: engagement
-status: active
-freshness: daily
-grain: point_in_time
 definition:
   business: Share of users engaged with the platform.
   technical: active_users / registered_users * 100
+description: Percentage of registered users who are active.
+freshness: daily
+grain: point_in_time
+id: account_user_engagement_rate
+last_updated: '2026-08-05'
+maintainer: product-insights@alteryx.com
+name: Account User Engagement Rate
+product: account_user
 source: PRODUCT_TABLES
-sql_template: SELECT ROUND(100.0 * COUNT(CASE WHEN LAST_LOGIN >= DATEADD(DAY, -30,
-  CURRENT_DATE()) THEN USER_ID END) / NULLIF(COUNT(USER_ID), 0), 2) FROM USERS
+sql_template: SELECT ROUND((COUNT(DISTINCT CASE WHEN ENGAGEMENT_SCORE >= 50 THEN USER_ID
+  END) / NULLIF(COUNT(DISTINCT USER_ID), 0)) * 100, 2) AS ENGAGEMENT_RATE FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.USER_LIFECYCLE_AT
+  WHERE STATUS = 'ACTIVE'
+status: active
 tags:
 - engagement
 - rate-metric
 - adoption-rate
-maintainer: product-insights@alteryx.com
-last_updated: '2026-08-05'
 version: '1.0'

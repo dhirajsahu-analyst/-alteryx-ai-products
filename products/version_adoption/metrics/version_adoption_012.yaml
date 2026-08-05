@@ -8,7 +8,7 @@ category: adoption
 definition:
   business: Adoption velocity metric for latest Designer generation showing feature
     enablement progress
-  technical: From DESIGNER_LATEST_VERSION_ADOPTION_MONTHLY_VIEW
+  technical: ''
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

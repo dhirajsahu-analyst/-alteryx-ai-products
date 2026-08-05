@@ -5,26 +5,20 @@ product: designer
 status: validated
 category: usage
 definition:
-  business: Feature adoption metric showing which workflow types are most used in Designer
-  technical: From ENGINE_DESIGNER_SERVER_RUN_WITH_ASSET_TYPE_VIEW aggregated by WORKFLOW_TYPE
+  business: Feature adoption metric showing which workflow types are most used in
+    Designer
+  technical: aggregated by WORKFLOW_TYPE
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |
-  SELECT
-    MONTH,
-    WORKFLOW_TYPE,
-    COUNT(DISTINCT PAYLOAD_ID) AS execution_count,
-    COUNT(DISTINCT MACHINE_ID_DECODED) AS machine_count,
-    COUNT(DISTINCT USER_EMAIL) AS user_count,
-    ROUND(COUNT(DISTINCT PAYLOAD_ID) / SUM(COUNT(DISTINCT PAYLOAD_ID)) OVER (PARTITION BY MONTH) * 100, 2) AS pct_of_total,
-    ROUND(AVG(DURATION_NUM), 2) AS avg_duration_seconds
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ENGINE_DESIGNER_SERVER_RUN_WITH_ASSET_TYPE_VIEW
-  WHERE PRODUCT_NAME = 'Designer'
-  GROUP BY MONTH, WORKFLOW_TYPE
-  ORDER BY MONTH DESC, execution_count DESC
-  LIMIT 100
+sql_template: "SELECT\n  MONTH,\n  WORKFLOW_TYPE,\n  COUNT(DISTINCT PAYLOAD_ID) AS\
+  \ execution_count,\n  COUNT(DISTINCT MACHINE_ID_DECODED) AS machine_count,\n  COUNT(DISTINCT\
+  \ USER_EMAIL) AS user_count,\n  ROUND(COUNT(DISTINCT PAYLOAD_ID) / SUM(COUNT(DISTINCT\
+  \ PAYLOAD_ID)) OVER (PARTITION BY MONTH) * 100, 2) AS pct_of_total,\n  ROUND(AVG(DURATION_NUM),\
+  \ 2) AS avg_duration_seconds\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ENGINE_DESIGNER_SERVER_RUN_WITH_ASSET_TYPE_VIEW\n\
+  WHERE PRODUCT_NAME = 'Designer'\nGROUP BY MONTH, WORKFLOW_TYPE\nORDER BY MONTH DESC,\
+  \ execution_count DESC\nLIMIT 100"
 queries: []
 aggregation_level: monthly
 grain: monthly

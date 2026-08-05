@@ -6,259 +6,95 @@ status: validated
 category: product_metric
 definition:
   business: Plans Task Distribution - Distribution of tasks in Plans
-  technical: Query from PLNAS_TASK_DISTRIBUTAION_VIEW
+  technical: Query
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables:
   - DISCOVERY_PRODUCT_MANAGEMENT
-sql_template: |-
-  SELECT
-      -- Reporting month
-      TO_CHAR(
-          DATE_TRUNC('MONTH', YEAR_MONTH),
-          'Mon-YYYY'
-      ) AS MONTH,
-
-      -- Total created plans containing at least one task
-      COALESCE(SUM(CREATED_PLAN), 0)
-          - COALESCE(SUM(PLANS_WITHOUT_TASK), 0)
-          AS PLANS_WITH_AT_LEAST_ONE_TASK,
-
-      -- Plans containing workflow tasks
-      COALESCE(SUM(PLANS_WITH_WORKFLOW_TASK), 0) AS WORKFLOW_TASKS,
-
-      -- Plans containing flow tasks
-      COALESCE(SUM(PLANS_WITH_FLOW_TASK), 0) AS FLOW_TASKS,
-
-      -- Plans containing HTTP tasks
-      COALESCE(SUM(PLANS_WITH_HTTP_TASK), 0) AS HTTP_TASKS,
-
-      -- Plans containing email tasks
-      COALESCE(SUM(PLANS_WITH_EMAIL_TASK), 0) AS EMAIL_TASKS,
-
-      -- Plans containing AI dataset tasks
-      COALESCE(SUM(PLANS_WITH_AI_DATASET_TASK), 0) AS AI_DATASET_TASKS,
-
-      -- Plans containing CEFD tasks
-      COALESCE(SUM(PLANS_WITH_CEFD_TASK), 0) AS CEFD_TASKS,
-
-      -- Plans containing machine learning tasks
-      COALESCE(SUM(PLANS_WITH_ML_TASK), 0) AS ML_TASKS
-
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
-
-  WHERE
-      -- Current month and previous three months
-      YEAR_MONTH >= DATE_TRUNC(
-          'MONTH',
-          DATEADD(
-              MONTH,
-              -3,
-              CURRENT_DATE()
-          )
-      )
-
-      -- Purchased accounts only
-      AND LICENSE_TYPE = 'Purchase'
-
-      -- Optional filters
-      -- AND PIPELINE_REGION = 'AMER'
-      -- AND ACCOUNT_EDITION = 'Enterprise'
-      -- AND PRICING_AND_PACKAGING = '2025'
-
-  GROUP BY
-      DATE_TRUNC('MONTH', YEAR_MONTH)
-
-  ORDER BY
-      DATE_TRUNC('MONTH', YEAR_MONTH);
+sql_template: "SELECT\n    -- Reporting month\n    TO_CHAR(\n        DATE_TRUNC('MONTH',\
+  \ YEAR_MONTH),\n        'Mon-YYYY'\n    ) AS MONTH,\n\n    -- Total created plans\
+  \ containing at least one task\n    COALESCE(SUM(CREATED_PLAN), 0)\n        - COALESCE(SUM(PLANS_WITHOUT_TASK),\
+  \ 0)\n        AS PLANS_WITH_AT_LEAST_ONE_TASK,\n\n    -- Plans containing workflow\
+  \ tasks\n    COALESCE(SUM(PLANS_WITH_WORKFLOW_TASK), 0) AS WORKFLOW_TASKS,\n\n \
+  \   -- Plans containing flow tasks\n    COALESCE(SUM(PLANS_WITH_FLOW_TASK), 0) AS\
+  \ FLOW_TASKS,\n\n    -- Plans containing HTTP tasks\n    COALESCE(SUM(PLANS_WITH_HTTP_TASK),\
+  \ 0) AS HTTP_TASKS,\n\n    -- Plans containing email tasks\n    COALESCE(SUM(PLANS_WITH_EMAIL_TASK),\
+  \ 0) AS EMAIL_TASKS,\n\n    -- Plans containing AI dataset tasks\n    COALESCE(SUM(PLANS_WITH_AI_DATASET_TASK),\
+  \ 0) AS AI_DATASET_TASKS,\n\n    -- Plans containing CEFD tasks\n    COALESCE(SUM(PLANS_WITH_CEFD_TASK),\
+  \ 0) AS CEFD_TASKS,\n\n    -- Plans containing machine learning tasks\n    COALESCE(SUM(PLANS_WITH_ML_TASK),\
+  \ 0) AS ML_TASKS\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT\n\
+  \nWHERE\n    -- Current month and previous three months\n    YEAR_MONTH >= DATE_TRUNC(\n\
+  \        'MONTH',\n        DATEADD(\n            MONTH,\n            -3,\n     \
+  \       CURRENT_DATE()\n        )\n    )\n\n    -- Purchased accounts only\n   \
+  \ AND LICENSE_TYPE = 'Purchase'\n\n    -- Optional filters\n    -- AND PIPELINE_REGION\
+  \ = 'AMER'\n    -- AND ACCOUNT_EDITION = 'Enterprise'\n    -- AND PRICING_AND_PACKAGING\
+  \ = '2025'\n\nGROUP BY\n    DATE_TRUNC('MONTH', YEAR_MONTH)\n\nORDER BY\n    DATE_TRUNC('MONTH',\
+  \ YEAR_MONTH);"
 queries:
 - name: base
   description: Base metric query
-  query: |-
-    SELECT
-        -- Reporting month
-        TO_CHAR(
-            DATE_TRUNC('MONTH', YEAR_MONTH),
-            'Mon-YYYY'
-        ) AS MONTH,
-
-        -- Total created plans containing at least one task
-        COALESCE(SUM(CREATED_PLAN), 0)
-            - COALESCE(SUM(PLANS_WITHOUT_TASK), 0)
-            AS PLANS_WITH_AT_LEAST_ONE_TASK,
-
-        -- Plans containing workflow tasks
-        COALESCE(SUM(PLANS_WITH_WORKFLOW_TASK), 0) AS WORKFLOW_TASKS,
-
-        -- Plans containing flow tasks
-        COALESCE(SUM(PLANS_WITH_FLOW_TASK), 0) AS FLOW_TASKS,
-
-        -- Plans containing HTTP tasks
-        COALESCE(SUM(PLANS_WITH_HTTP_TASK), 0) AS HTTP_TASKS,
-
-        -- Plans containing email tasks
-        COALESCE(SUM(PLANS_WITH_EMAIL_TASK), 0) AS EMAIL_TASKS,
-
-        -- Plans containing AI dataset tasks
-        COALESCE(SUM(PLANS_WITH_AI_DATASET_TASK), 0) AS AI_DATASET_TASKS,
-
-        -- Plans containing CEFD tasks
-        COALESCE(SUM(PLANS_WITH_CEFD_TASK), 0) AS CEFD_TASKS,
-
-        -- Plans containing machine learning tasks
-        COALESCE(SUM(PLANS_WITH_ML_TASK), 0) AS ML_TASKS
-
-    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
-
-    WHERE
-        -- Current month and previous three months
-        YEAR_MONTH >= DATE_TRUNC(
-            'MONTH',
-            DATEADD(
-                MONTH,
-                -3,
-                CURRENT_DATE()
-            )
-        )
-
-        -- Purchased accounts only
-        AND LICENSE_TYPE = 'Purchase'
-
-        -- Optional filters
-        -- AND PIPELINE_REGION = 'AMER'
-        -- AND ACCOUNT_EDITION = 'Enterprise'
-        -- AND PRICING_AND_PACKAGING = '2025'
-
-    GROUP BY
-        DATE_TRUNC('MONTH', YEAR_MONTH)
-
-    ORDER BY
-        DATE_TRUNC('MONTH', YEAR_MONTH);
+  query: "SELECT\n    -- Reporting month\n    TO_CHAR(\n        DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH),\n        'Mon-YYYY'\n    ) AS MONTH,\n\n    -- Total created plans\
+    \ containing at least one task\n    COALESCE(SUM(CREATED_PLAN), 0)\n        -\
+    \ COALESCE(SUM(PLANS_WITHOUT_TASK), 0)\n        AS PLANS_WITH_AT_LEAST_ONE_TASK,\n\
+    \n    -- Plans containing workflow tasks\n    COALESCE(SUM(PLANS_WITH_WORKFLOW_TASK),\
+    \ 0) AS WORKFLOW_TASKS,\n\n    -- Plans containing flow tasks\n    COALESCE(SUM(PLANS_WITH_FLOW_TASK),\
+    \ 0) AS FLOW_TASKS,\n\n    -- Plans containing HTTP tasks\n    COALESCE(SUM(PLANS_WITH_HTTP_TASK),\
+    \ 0) AS HTTP_TASKS,\n\n    -- Plans containing email tasks\n    COALESCE(SUM(PLANS_WITH_EMAIL_TASK),\
+    \ 0) AS EMAIL_TASKS,\n\n    -- Plans containing AI dataset tasks\n    COALESCE(SUM(PLANS_WITH_AI_DATASET_TASK),\
+    \ 0) AS AI_DATASET_TASKS,\n\n    -- Plans containing CEFD tasks\n    COALESCE(SUM(PLANS_WITH_CEFD_TASK),\
+    \ 0) AS CEFD_TASKS,\n\n    -- Plans containing machine learning tasks\n    COALESCE(SUM(PLANS_WITH_ML_TASK),\
+    \ 0) AS ML_TASKS\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT\n\
+    \nWHERE\n    -- Current month and previous three months\n    YEAR_MONTH >= DATE_TRUNC(\n\
+    \        'MONTH',\n        DATEADD(\n            MONTH,\n            -3,\n   \
+    \         CURRENT_DATE()\n        )\n    )\n\n    -- Purchased accounts only\n\
+    \    AND LICENSE_TYPE = 'Purchase'\n\n    -- Optional filters\n    -- AND PIPELINE_REGION\
+    \ = 'AMER'\n    -- AND ACCOUNT_EDITION = 'Enterprise'\n    -- AND PRICING_AND_PACKAGING\
+    \ = '2025'\n\nGROUP BY\n    DATE_TRUNC('MONTH', YEAR_MONTH)\n\nORDER BY\n    DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH);"
 - name: daily
   description: Daily metrics
-  query: |-
-    SELECT
-        -- Reporting month
-        TO_CHAR(
-            DATE_TRUNC('MONTH', YEAR_MONTH),
-            'Mon-YYYY'
-        ) AS MONTH,
-
-        -- Total created plans containing at least one task
-        COALESCE(SUM(CREATED_PLAN), 0)
-            - COALESCE(SUM(PLANS_WITHOUT_TASK), 0)
-            AS PLANS_WITH_AT_LEAST_ONE_TASK,
-
-        -- Plans containing workflow tasks
-        COALESCE(SUM(PLANS_WITH_WORKFLOW_TASK), 0) AS WORKFLOW_TASKS,
-
-        -- Plans containing flow tasks
-        COALESCE(SUM(PLANS_WITH_FLOW_TASK), 0) AS FLOW_TASKS,
-
-        -- Plans containing HTTP tasks
-        COALESCE(SUM(PLANS_WITH_HTTP_TASK), 0) AS HTTP_TASKS,
-
-        -- Plans containing email tasks
-        COALESCE(SUM(PLANS_WITH_EMAIL_TASK), 0) AS EMAIL_TASKS,
-
-        -- Plans containing AI dataset tasks
-        COALESCE(SUM(PLANS_WITH_AI_DATASET_TASK), 0) AS AI_DATASET_TASKS,
-
-        -- Plans containing CEFD tasks
-        COALESCE(SUM(PLANS_WITH_CEFD_TASK), 0) AS CEFD_TASKS,
-
-        -- Plans containing machine learning tasks
-        COALESCE(SUM(PLANS_WITH_ML_TASK), 0) AS ML_TASKS
-
-    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
-
-    WHERE
-        -- Current month and previous three months
-        YEAR_MONTH >= DATE_TRUNC(
-            'MONTH',
-            DATEADD(
-                MONTH,
-                -3,
-                CURRENT_DATE()
-            )
-        )
-
-        -- Purchased accounts only
-        AND LICENSE_TYPE = 'Purchase'
-
-        -- Optional filters
-        -- AND PIPELINE_REGION = 'AMER'
-        -- AND ACCOUNT_EDITION = 'Enterprise'
-        -- AND PRICING_AND_PACKAGING = '2025'
-
-    GROUP BY
-        DATE_TRUNC('MONTH', YEAR_MONTH)
-
-    ORDER BY
-        DATE_TRUNC('MONTH', YEAR_MONTH);
+  query: "SELECT\n    -- Reporting month\n    TO_CHAR(\n        DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH),\n        'Mon-YYYY'\n    ) AS MONTH,\n\n    -- Total created plans\
+    \ containing at least one task\n    COALESCE(SUM(CREATED_PLAN), 0)\n        -\
+    \ COALESCE(SUM(PLANS_WITHOUT_TASK), 0)\n        AS PLANS_WITH_AT_LEAST_ONE_TASK,\n\
+    \n    -- Plans containing workflow tasks\n    COALESCE(SUM(PLANS_WITH_WORKFLOW_TASK),\
+    \ 0) AS WORKFLOW_TASKS,\n\n    -- Plans containing flow tasks\n    COALESCE(SUM(PLANS_WITH_FLOW_TASK),\
+    \ 0) AS FLOW_TASKS,\n\n    -- Plans containing HTTP tasks\n    COALESCE(SUM(PLANS_WITH_HTTP_TASK),\
+    \ 0) AS HTTP_TASKS,\n\n    -- Plans containing email tasks\n    COALESCE(SUM(PLANS_WITH_EMAIL_TASK),\
+    \ 0) AS EMAIL_TASKS,\n\n    -- Plans containing AI dataset tasks\n    COALESCE(SUM(PLANS_WITH_AI_DATASET_TASK),\
+    \ 0) AS AI_DATASET_TASKS,\n\n    -- Plans containing CEFD tasks\n    COALESCE(SUM(PLANS_WITH_CEFD_TASK),\
+    \ 0) AS CEFD_TASKS,\n\n    -- Plans containing machine learning tasks\n    COALESCE(SUM(PLANS_WITH_ML_TASK),\
+    \ 0) AS ML_TASKS\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT\n\
+    \nWHERE\n    -- Current month and previous three months\n    YEAR_MONTH >= DATE_TRUNC(\n\
+    \        'MONTH',\n        DATEADD(\n            MONTH,\n            -3,\n   \
+    \         CURRENT_DATE()\n        )\n    )\n\n    -- Purchased accounts only\n\
+    \    AND LICENSE_TYPE = 'Purchase'\n\n    -- Optional filters\n    -- AND PIPELINE_REGION\
+    \ = 'AMER'\n    -- AND ACCOUNT_EDITION = 'Enterprise'\n    -- AND PRICING_AND_PACKAGING\
+    \ = '2025'\n\nGROUP BY\n    DATE_TRUNC('MONTH', YEAR_MONTH)\n\nORDER BY\n    DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH);"
 - name: monthly
   description: Monthly aggregated metrics
-  query: |-
-    SELECT
-        -- Reporting month
-        TO_CHAR(
-            DATE_TRUNC('MONTH', YEAR_MONTH),
-            'Mon-YYYY'
-        ) AS MONTH,
-
-        -- Total created plans containing at least one task
-        COALESCE(SUM(CREATED_PLAN), 0)
-            - COALESCE(SUM(PLANS_WITHOUT_TASK), 0)
-            AS PLANS_WITH_AT_LEAST_ONE_TASK,
-
-        -- Plans containing workflow tasks
-        COALESCE(SUM(PLANS_WITH_WORKFLOW_TASK), 0) AS WORKFLOW_TASKS,
-
-        -- Plans containing flow tasks
-        COALESCE(SUM(PLANS_WITH_FLOW_TASK), 0) AS FLOW_TASKS,
-
-        -- Plans containing HTTP tasks
-        COALESCE(SUM(PLANS_WITH_HTTP_TASK), 0) AS HTTP_TASKS,
-
-        -- Plans containing email tasks
-        COALESCE(SUM(PLANS_WITH_EMAIL_TASK), 0) AS EMAIL_TASKS,
-
-        -- Plans containing AI dataset tasks
-        COALESCE(SUM(PLANS_WITH_AI_DATASET_TASK), 0) AS AI_DATASET_TASKS,
-
-        -- Plans containing CEFD tasks
-        COALESCE(SUM(PLANS_WITH_CEFD_TASK), 0) AS CEFD_TASKS,
-
-        -- Plans containing machine learning tasks
-        COALESCE(SUM(PLANS_WITH_ML_TASK), 0) AS ML_TASKS
-
-    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
-
-    WHERE
-        -- Current month and previous three months
-        YEAR_MONTH >= DATE_TRUNC(
-            'MONTH',
-            DATEADD(
-                MONTH,
-                -3,
-                CURRENT_DATE()
-            )
-        )
-
-        -- Purchased accounts only
-        AND LICENSE_TYPE = 'Purchase'
-
-        -- Optional filters
-        -- AND PIPELINE_REGION = 'AMER'
-        -- AND ACCOUNT_EDITION = 'Enterprise'
-        -- AND PRICING_AND_PACKAGING = '2025'
-
-    GROUP BY
-        DATE_TRUNC('MONTH', YEAR_MONTH)
-
-    ORDER BY
-        DATE_TRUNC('MONTH', YEAR_MONTH);
+  query: "SELECT\n    -- Reporting month\n    TO_CHAR(\n        DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH),\n        'Mon-YYYY'\n    ) AS MONTH,\n\n    -- Total created plans\
+    \ containing at least one task\n    COALESCE(SUM(CREATED_PLAN), 0)\n        -\
+    \ COALESCE(SUM(PLANS_WITHOUT_TASK), 0)\n        AS PLANS_WITH_AT_LEAST_ONE_TASK,\n\
+    \n    -- Plans containing workflow tasks\n    COALESCE(SUM(PLANS_WITH_WORKFLOW_TASK),\
+    \ 0) AS WORKFLOW_TASKS,\n\n    -- Plans containing flow tasks\n    COALESCE(SUM(PLANS_WITH_FLOW_TASK),\
+    \ 0) AS FLOW_TASKS,\n\n    -- Plans containing HTTP tasks\n    COALESCE(SUM(PLANS_WITH_HTTP_TASK),\
+    \ 0) AS HTTP_TASKS,\n\n    -- Plans containing email tasks\n    COALESCE(SUM(PLANS_WITH_EMAIL_TASK),\
+    \ 0) AS EMAIL_TASKS,\n\n    -- Plans containing AI dataset tasks\n    COALESCE(SUM(PLANS_WITH_AI_DATASET_TASK),\
+    \ 0) AS AI_DATASET_TASKS,\n\n    -- Plans containing CEFD tasks\n    COALESCE(SUM(PLANS_WITH_CEFD_TASK),\
+    \ 0) AS CEFD_TASKS,\n\n    -- Plans containing machine learning tasks\n    COALESCE(SUM(PLANS_WITH_ML_TASK),\
+    \ 0) AS ML_TASKS\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT\n\
+    \nWHERE\n    -- Current month and previous three months\n    YEAR_MONTH >= DATE_TRUNC(\n\
+    \        'MONTH',\n        DATEADD(\n            MONTH,\n            -3,\n   \
+    \         CURRENT_DATE()\n        )\n    )\n\n    -- Purchased accounts only\n\
+    \    AND LICENSE_TYPE = 'Purchase'\n\n    -- Optional filters\n    -- AND PIPELINE_REGION\
+    \ = 'AMER'\n    -- AND ACCOUNT_EDITION = 'Enterprise'\n    -- AND PRICING_AND_PACKAGING\
+    \ = '2025'\n\nGROUP BY\n    DATE_TRUNC('MONTH', YEAR_MONTH)\n\nORDER BY\n    DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH);"
 aggregation_level: monthly
 grain: monthly
 freshness: daily

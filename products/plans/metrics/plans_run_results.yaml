@@ -6,315 +6,107 @@ status: validated
 category: product_metric
 definition:
   business: Plans Run Results - Results from Plans runs
-  technical: Query from PLANS_RUN_RESULTS_VIEW
+  technical: Query
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables:
   - DISCOVERY_PRODUCT_MANAGEMENT
-sql_template: |-
-  SELECT
-      -- Reporting month
-      TO_CHAR(
-          DATE_TRUNC('MONTH', YEAR_MONTH),
-          'Mon-YYYY'
-      ) AS MONTH,
-
-      -- Total plan runs
-      COALESCE(SUM(PLAN_RUN), 0) AS TOTAL_PLAN_RUNS,
-
-      -- Successfully completed plan runs
-      COALESCE(SUM(COMPLETED_PLAN_RUNS), 0) AS COMPLETED_PLAN_RUNS,
-
-      -- Percentage of plan runs completed successfully
-      ROUND(
-          DIV0(
-              COALESCE(SUM(COMPLETED_PLAN_RUNS), 0),
-              COALESCE(SUM(PLAN_RUN), 0)
-          ) * 100,
-          2
-      ) AS COMPLETED_RUN_PCT,
-
-      -- Failed plan runs
-      COALESCE(SUM(FAILED_PLAN_RUNS), 0) AS FAILED_PLAN_RUNS,
-
-      -- Percentage of failed plan runs
-      ROUND(
-          DIV0(
-              COALESCE(SUM(FAILED_PLAN_RUNS), 0),
-              COALESCE(SUM(PLAN_RUN), 0)
-          ) * 100,
-          2
-      ) AS FAILED_RUN_PCT,
-
-      -- Cancelled plan runs
-      COALESCE(SUM(CANCELLED_PLAN_RUNS), 0) AS CANCELLED_PLAN_RUNS,
-
-      -- Percentage of cancelled plan runs
-      ROUND(
-          DIV0(
-              COALESCE(SUM(CANCELLED_PLAN_RUNS), 0),
-              COALESCE(SUM(PLAN_RUN), 0)
-          ) * 100,
-          2
-      ) AS CANCELLED_RUN_PCT
-
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
-
-  WHERE
-      -- Current month and previous three months
-      YEAR_MONTH >= DATE_TRUNC(
-          'MONTH',
-          DATEADD(
-              MONTH,
-              -3,
-              CURRENT_DATE()
-          )
-      )
-
-      -- Purchased accounts only
-      AND LICENSE_TYPE = 'Purchase'
-
-      -- Optional filters
-      -- AND PIPELINE_REGION = 'AMER'
-      -- AND ACCOUNT_EDITION = 'Enterprise'
-      -- AND PRICING_AND_PACKAGING = '2025'
-      -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'
-
-  GROUP BY
-      DATE_TRUNC('MONTH', YEAR_MONTH)
-
-  ORDER BY
-      DATE_TRUNC('MONTH', YEAR_MONTH);
+sql_template: "SELECT\n    -- Reporting month\n    TO_CHAR(\n        DATE_TRUNC('MONTH',\
+  \ YEAR_MONTH),\n        'Mon-YYYY'\n    ) AS MONTH,\n\n    -- Total plan runs\n\
+  \    COALESCE(SUM(PLAN_RUN), 0) AS TOTAL_PLAN_RUNS,\n\n    -- Successfully completed\
+  \ plan runs\n    COALESCE(SUM(COMPLETED_PLAN_RUNS), 0) AS COMPLETED_PLAN_RUNS,\n\
+  \n    -- Percentage of plan runs completed successfully\n    ROUND(\n        DIV0(\n\
+  \            COALESCE(SUM(COMPLETED_PLAN_RUNS), 0),\n            COALESCE(SUM(PLAN_RUN),\
+  \ 0)\n        ) * 100,\n        2\n    ) AS COMPLETED_RUN_PCT,\n\n    -- Failed\
+  \ plan runs\n    COALESCE(SUM(FAILED_PLAN_RUNS), 0) AS FAILED_PLAN_RUNS,\n\n   \
+  \ -- Percentage of failed plan runs\n    ROUND(\n        DIV0(\n            COALESCE(SUM(FAILED_PLAN_RUNS),\
+  \ 0),\n            COALESCE(SUM(PLAN_RUN), 0)\n        ) * 100,\n        2\n   \
+  \ ) AS FAILED_RUN_PCT,\n\n    -- Cancelled plan runs\n    COALESCE(SUM(CANCELLED_PLAN_RUNS),\
+  \ 0) AS CANCELLED_PLAN_RUNS,\n\n    -- Percentage of cancelled plan runs\n    ROUND(\n\
+  \        DIV0(\n            COALESCE(SUM(CANCELLED_PLAN_RUNS), 0),\n           \
+  \ COALESCE(SUM(PLAN_RUN), 0)\n        ) * 100,\n        2\n    ) AS CANCELLED_RUN_PCT\n\
+  \nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT\n\nWHERE\n\
+  \    -- Current month and previous three months\n    YEAR_MONTH >= DATE_TRUNC(\n\
+  \        'MONTH',\n        DATEADD(\n            MONTH,\n            -3,\n     \
+  \       CURRENT_DATE()\n        )\n    )\n\n    -- Purchased accounts only\n   \
+  \ AND LICENSE_TYPE = 'Purchase'\n\n    -- Optional filters\n    -- AND PIPELINE_REGION\
+  \ = 'AMER'\n    -- AND ACCOUNT_EDITION = 'Enterprise'\n    -- AND PRICING_AND_PACKAGING\
+  \ = '2025'\n    -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'\n\nGROUP BY\n    DATE_TRUNC('MONTH',\
+  \ YEAR_MONTH)\n\nORDER BY\n    DATE_TRUNC('MONTH', YEAR_MONTH);"
 queries:
 - name: base
   description: Base metric query
-  query: |-
-    SELECT
-        -- Reporting month
-        TO_CHAR(
-            DATE_TRUNC('MONTH', YEAR_MONTH),
-            'Mon-YYYY'
-        ) AS MONTH,
-
-        -- Total plan runs
-        COALESCE(SUM(PLAN_RUN), 0) AS TOTAL_PLAN_RUNS,
-
-        -- Successfully completed plan runs
-        COALESCE(SUM(COMPLETED_PLAN_RUNS), 0) AS COMPLETED_PLAN_RUNS,
-
-        -- Percentage of plan runs completed successfully
-        ROUND(
-            DIV0(
-                COALESCE(SUM(COMPLETED_PLAN_RUNS), 0),
-                COALESCE(SUM(PLAN_RUN), 0)
-            ) * 100,
-            2
-        ) AS COMPLETED_RUN_PCT,
-
-        -- Failed plan runs
-        COALESCE(SUM(FAILED_PLAN_RUNS), 0) AS FAILED_PLAN_RUNS,
-
-        -- Percentage of failed plan runs
-        ROUND(
-            DIV0(
-                COALESCE(SUM(FAILED_PLAN_RUNS), 0),
-                COALESCE(SUM(PLAN_RUN), 0)
-            ) * 100,
-            2
-        ) AS FAILED_RUN_PCT,
-
-        -- Cancelled plan runs
-        COALESCE(SUM(CANCELLED_PLAN_RUNS), 0) AS CANCELLED_PLAN_RUNS,
-
-        -- Percentage of cancelled plan runs
-        ROUND(
-            DIV0(
-                COALESCE(SUM(CANCELLED_PLAN_RUNS), 0),
-                COALESCE(SUM(PLAN_RUN), 0)
-            ) * 100,
-            2
-        ) AS CANCELLED_RUN_PCT
-
-    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
-
-    WHERE
-        -- Current month and previous three months
-        YEAR_MONTH >= DATE_TRUNC(
-            'MONTH',
-            DATEADD(
-                MONTH,
-                -3,
-                CURRENT_DATE()
-            )
-        )
-
-        -- Purchased accounts only
-        AND LICENSE_TYPE = 'Purchase'
-
-        -- Optional filters
-        -- AND PIPELINE_REGION = 'AMER'
-        -- AND ACCOUNT_EDITION = 'Enterprise'
-        -- AND PRICING_AND_PACKAGING = '2025'
-        -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'
-
-    GROUP BY
-        DATE_TRUNC('MONTH', YEAR_MONTH)
-
-    ORDER BY
-        DATE_TRUNC('MONTH', YEAR_MONTH);
+  query: "SELECT\n    -- Reporting month\n    TO_CHAR(\n        DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH),\n        'Mon-YYYY'\n    ) AS MONTH,\n\n    -- Total plan runs\n\
+    \    COALESCE(SUM(PLAN_RUN), 0) AS TOTAL_PLAN_RUNS,\n\n    -- Successfully completed\
+    \ plan runs\n    COALESCE(SUM(COMPLETED_PLAN_RUNS), 0) AS COMPLETED_PLAN_RUNS,\n\
+    \n    -- Percentage of plan runs completed successfully\n    ROUND(\n        DIV0(\n\
+    \            COALESCE(SUM(COMPLETED_PLAN_RUNS), 0),\n            COALESCE(SUM(PLAN_RUN),\
+    \ 0)\n        ) * 100,\n        2\n    ) AS COMPLETED_RUN_PCT,\n\n    -- Failed\
+    \ plan runs\n    COALESCE(SUM(FAILED_PLAN_RUNS), 0) AS FAILED_PLAN_RUNS,\n\n \
+    \   -- Percentage of failed plan runs\n    ROUND(\n        DIV0(\n           \
+    \ COALESCE(SUM(FAILED_PLAN_RUNS), 0),\n            COALESCE(SUM(PLAN_RUN), 0)\n\
+    \        ) * 100,\n        2\n    ) AS FAILED_RUN_PCT,\n\n    -- Cancelled plan\
+    \ runs\n    COALESCE(SUM(CANCELLED_PLAN_RUNS), 0) AS CANCELLED_PLAN_RUNS,\n\n\
+    \    -- Percentage of cancelled plan runs\n    ROUND(\n        DIV0(\n       \
+    \     COALESCE(SUM(CANCELLED_PLAN_RUNS), 0),\n            COALESCE(SUM(PLAN_RUN),\
+    \ 0)\n        ) * 100,\n        2\n    ) AS CANCELLED_RUN_PCT\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT\n\
+    \nWHERE\n    -- Current month and previous three months\n    YEAR_MONTH >= DATE_TRUNC(\n\
+    \        'MONTH',\n        DATEADD(\n            MONTH,\n            -3,\n   \
+    \         CURRENT_DATE()\n        )\n    )\n\n    -- Purchased accounts only\n\
+    \    AND LICENSE_TYPE = 'Purchase'\n\n    -- Optional filters\n    -- AND PIPELINE_REGION\
+    \ = 'AMER'\n    -- AND ACCOUNT_EDITION = 'Enterprise'\n    -- AND PRICING_AND_PACKAGING\
+    \ = '2025'\n    -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'\n\nGROUP BY\n    DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH)\n\nORDER BY\n    DATE_TRUNC('MONTH', YEAR_MONTH);"
 - name: daily
   description: Daily metrics
-  query: |-
-    SELECT
-        -- Reporting month
-        TO_CHAR(
-            DATE_TRUNC('MONTH', YEAR_MONTH),
-            'Mon-YYYY'
-        ) AS MONTH,
-
-        -- Total plan runs
-        COALESCE(SUM(PLAN_RUN), 0) AS TOTAL_PLAN_RUNS,
-
-        -- Successfully completed plan runs
-        COALESCE(SUM(COMPLETED_PLAN_RUNS), 0) AS COMPLETED_PLAN_RUNS,
-
-        -- Percentage of plan runs completed successfully
-        ROUND(
-            DIV0(
-                COALESCE(SUM(COMPLETED_PLAN_RUNS), 0),
-                COALESCE(SUM(PLAN_RUN), 0)
-            ) * 100,
-            2
-        ) AS COMPLETED_RUN_PCT,
-
-        -- Failed plan runs
-        COALESCE(SUM(FAILED_PLAN_RUNS), 0) AS FAILED_PLAN_RUNS,
-
-        -- Percentage of failed plan runs
-        ROUND(
-            DIV0(
-                COALESCE(SUM(FAILED_PLAN_RUNS), 0),
-                COALESCE(SUM(PLAN_RUN), 0)
-            ) * 100,
-            2
-        ) AS FAILED_RUN_PCT,
-
-        -- Cancelled plan runs
-        COALESCE(SUM(CANCELLED_PLAN_RUNS), 0) AS CANCELLED_PLAN_RUNS,
-
-        -- Percentage of cancelled plan runs
-        ROUND(
-            DIV0(
-                COALESCE(SUM(CANCELLED_PLAN_RUNS), 0),
-                COALESCE(SUM(PLAN_RUN), 0)
-            ) * 100,
-            2
-        ) AS CANCELLED_RUN_PCT
-
-    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
-
-    WHERE
-        -- Current month and previous three months
-        YEAR_MONTH >= DATE_TRUNC(
-            'MONTH',
-            DATEADD(
-                MONTH,
-                -3,
-                CURRENT_DATE()
-            )
-        )
-
-        -- Purchased accounts only
-        AND LICENSE_TYPE = 'Purchase'
-
-        -- Optional filters
-        -- AND PIPELINE_REGION = 'AMER'
-        -- AND ACCOUNT_EDITION = 'Enterprise'
-        -- AND PRICING_AND_PACKAGING = '2025'
-        -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'
-
-    GROUP BY
-        DATE_TRUNC('MONTH', YEAR_MONTH)
-
-    ORDER BY
-        DATE_TRUNC('MONTH', YEAR_MONTH);
+  query: "SELECT\n    -- Reporting month\n    TO_CHAR(\n        DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH),\n        'Mon-YYYY'\n    ) AS MONTH,\n\n    -- Total plan runs\n\
+    \    COALESCE(SUM(PLAN_RUN), 0) AS TOTAL_PLAN_RUNS,\n\n    -- Successfully completed\
+    \ plan runs\n    COALESCE(SUM(COMPLETED_PLAN_RUNS), 0) AS COMPLETED_PLAN_RUNS,\n\
+    \n    -- Percentage of plan runs completed successfully\n    ROUND(\n        DIV0(\n\
+    \            COALESCE(SUM(COMPLETED_PLAN_RUNS), 0),\n            COALESCE(SUM(PLAN_RUN),\
+    \ 0)\n        ) * 100,\n        2\n    ) AS COMPLETED_RUN_PCT,\n\n    -- Failed\
+    \ plan runs\n    COALESCE(SUM(FAILED_PLAN_RUNS), 0) AS FAILED_PLAN_RUNS,\n\n \
+    \   -- Percentage of failed plan runs\n    ROUND(\n        DIV0(\n           \
+    \ COALESCE(SUM(FAILED_PLAN_RUNS), 0),\n            COALESCE(SUM(PLAN_RUN), 0)\n\
+    \        ) * 100,\n        2\n    ) AS FAILED_RUN_PCT,\n\n    -- Cancelled plan\
+    \ runs\n    COALESCE(SUM(CANCELLED_PLAN_RUNS), 0) AS CANCELLED_PLAN_RUNS,\n\n\
+    \    -- Percentage of cancelled plan runs\n    ROUND(\n        DIV0(\n       \
+    \     COALESCE(SUM(CANCELLED_PLAN_RUNS), 0),\n            COALESCE(SUM(PLAN_RUN),\
+    \ 0)\n        ) * 100,\n        2\n    ) AS CANCELLED_RUN_PCT\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT\n\
+    \nWHERE\n    -- Current month and previous three months\n    YEAR_MONTH >= DATE_TRUNC(\n\
+    \        'MONTH',\n        DATEADD(\n            MONTH,\n            -3,\n   \
+    \         CURRENT_DATE()\n        )\n    )\n\n    -- Purchased accounts only\n\
+    \    AND LICENSE_TYPE = 'Purchase'\n\n    -- Optional filters\n    -- AND PIPELINE_REGION\
+    \ = 'AMER'\n    -- AND ACCOUNT_EDITION = 'Enterprise'\n    -- AND PRICING_AND_PACKAGING\
+    \ = '2025'\n    -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'\n\nGROUP BY\n    DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH)\n\nORDER BY\n    DATE_TRUNC('MONTH', YEAR_MONTH);"
 - name: monthly
   description: Monthly aggregated metrics
-  query: |-
-    SELECT
-        -- Reporting month
-        TO_CHAR(
-            DATE_TRUNC('MONTH', YEAR_MONTH),
-            'Mon-YYYY'
-        ) AS MONTH,
-
-        -- Total plan runs
-        COALESCE(SUM(PLAN_RUN), 0) AS TOTAL_PLAN_RUNS,
-
-        -- Successfully completed plan runs
-        COALESCE(SUM(COMPLETED_PLAN_RUNS), 0) AS COMPLETED_PLAN_RUNS,
-
-        -- Percentage of plan runs completed successfully
-        ROUND(
-            DIV0(
-                COALESCE(SUM(COMPLETED_PLAN_RUNS), 0),
-                COALESCE(SUM(PLAN_RUN), 0)
-            ) * 100,
-            2
-        ) AS COMPLETED_RUN_PCT,
-
-        -- Failed plan runs
-        COALESCE(SUM(FAILED_PLAN_RUNS), 0) AS FAILED_PLAN_RUNS,
-
-        -- Percentage of failed plan runs
-        ROUND(
-            DIV0(
-                COALESCE(SUM(FAILED_PLAN_RUNS), 0),
-                COALESCE(SUM(PLAN_RUN), 0)
-            ) * 100,
-            2
-        ) AS FAILED_RUN_PCT,
-
-        -- Cancelled plan runs
-        COALESCE(SUM(CANCELLED_PLAN_RUNS), 0) AS CANCELLED_PLAN_RUNS,
-
-        -- Percentage of cancelled plan runs
-        ROUND(
-            DIV0(
-                COALESCE(SUM(CANCELLED_PLAN_RUNS), 0),
-                COALESCE(SUM(PLAN_RUN), 0)
-            ) * 100,
-            2
-        ) AS CANCELLED_RUN_PCT
-
-    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
-
-    WHERE
-        -- Current month and previous three months
-        YEAR_MONTH >= DATE_TRUNC(
-            'MONTH',
-            DATEADD(
-                MONTH,
-                -3,
-                CURRENT_DATE()
-            )
-        )
-
-        -- Purchased accounts only
-        AND LICENSE_TYPE = 'Purchase'
-
-        -- Optional filters
-        -- AND PIPELINE_REGION = 'AMER'
-        -- AND ACCOUNT_EDITION = 'Enterprise'
-        -- AND PRICING_AND_PACKAGING = '2025'
-        -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'
-
-    GROUP BY
-        DATE_TRUNC('MONTH', YEAR_MONTH)
-
-    ORDER BY
-        DATE_TRUNC('MONTH', YEAR_MONTH);
+  query: "SELECT\n    -- Reporting month\n    TO_CHAR(\n        DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH),\n        'Mon-YYYY'\n    ) AS MONTH,\n\n    -- Total plan runs\n\
+    \    COALESCE(SUM(PLAN_RUN), 0) AS TOTAL_PLAN_RUNS,\n\n    -- Successfully completed\
+    \ plan runs\n    COALESCE(SUM(COMPLETED_PLAN_RUNS), 0) AS COMPLETED_PLAN_RUNS,\n\
+    \n    -- Percentage of plan runs completed successfully\n    ROUND(\n        DIV0(\n\
+    \            COALESCE(SUM(COMPLETED_PLAN_RUNS), 0),\n            COALESCE(SUM(PLAN_RUN),\
+    \ 0)\n        ) * 100,\n        2\n    ) AS COMPLETED_RUN_PCT,\n\n    -- Failed\
+    \ plan runs\n    COALESCE(SUM(FAILED_PLAN_RUNS), 0) AS FAILED_PLAN_RUNS,\n\n \
+    \   -- Percentage of failed plan runs\n    ROUND(\n        DIV0(\n           \
+    \ COALESCE(SUM(FAILED_PLAN_RUNS), 0),\n            COALESCE(SUM(PLAN_RUN), 0)\n\
+    \        ) * 100,\n        2\n    ) AS FAILED_RUN_PCT,\n\n    -- Cancelled plan\
+    \ runs\n    COALESCE(SUM(CANCELLED_PLAN_RUNS), 0) AS CANCELLED_PLAN_RUNS,\n\n\
+    \    -- Percentage of cancelled plan runs\n    ROUND(\n        DIV0(\n       \
+    \     COALESCE(SUM(CANCELLED_PLAN_RUNS), 0),\n            COALESCE(SUM(PLAN_RUN),\
+    \ 0)\n        ) * 100,\n        2\n    ) AS CANCELLED_RUN_PCT\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT\n\
+    \nWHERE\n    -- Current month and previous three months\n    YEAR_MONTH >= DATE_TRUNC(\n\
+    \        'MONTH',\n        DATEADD(\n            MONTH,\n            -3,\n   \
+    \         CURRENT_DATE()\n        )\n    )\n\n    -- Purchased accounts only\n\
+    \    AND LICENSE_TYPE = 'Purchase'\n\n    -- Optional filters\n    -- AND PIPELINE_REGION\
+    \ = 'AMER'\n    -- AND ACCOUNT_EDITION = 'Enterprise'\n    -- AND PRICING_AND_PACKAGING\
+    \ = '2025'\n    -- AND BILLING_ACCOUNT_ID = '<ACCOUNT_ID>'\n\nGROUP BY\n    DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH)\n\nORDER BY\n    DATE_TRUNC('MONTH', YEAR_MONTH);"
 aggregation_level: monthly
 grain: monthly
 freshness: daily

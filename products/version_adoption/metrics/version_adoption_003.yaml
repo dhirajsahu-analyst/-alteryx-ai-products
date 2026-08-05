@@ -8,8 +8,7 @@ category: adoption
 definition:
   business: Tracks account-level upgrade health for Designer, supporting customer
     success and support prioritization
-  technical: From DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_ACCOUNT_PERCENTAGE_VIEW, DESIGNER_PCT_SUPPORTED
-    column
+  technical: ', DESIGNER_PCT_SUPPORTED column'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

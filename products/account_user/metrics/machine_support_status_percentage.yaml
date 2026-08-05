@@ -7,7 +7,7 @@ status: validated
 category: adoption
 definition:
   business: Machine-level adoption metric showing infrastructure modernization progress
-  technical: From MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+  technical: ''
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

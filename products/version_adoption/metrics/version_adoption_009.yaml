@@ -8,7 +8,7 @@ category: volume
 definition:
   business: Provides aggregate product usage metrics showing customer base size and
     engagement
-  technical: Direct from PRODUCT_VERSION_ADOPTION_MONTHLY_SUMMARY_VIEW
+  technical: Direct
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

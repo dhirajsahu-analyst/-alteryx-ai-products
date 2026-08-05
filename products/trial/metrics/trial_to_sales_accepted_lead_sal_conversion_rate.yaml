@@ -7,8 +7,7 @@ category: funnel
 definition:
   business: Sales engagement metric showing trial qualification quality for sales
     team
-  technical: 'From TRIAL_FUNNEL_METRICS_OVERALL_VIEW: SAL / TOTAL_TRIAL_REGISTRATION
-    * 100'
+  technical: ': SAL / TOTAL_TRIAL_REGISTRATION * 100'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

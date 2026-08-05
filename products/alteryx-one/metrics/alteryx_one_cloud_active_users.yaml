@@ -6,7 +6,7 @@ status: validated
 category: active_users
 definition:
   business: Count of active users specifically executing actions in cloud modules.
-  technical: From ALTERYX_ONE_ACTIVE_USERS_VIEW
+  technical: ''
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
@@ -15,9 +15,9 @@ sql_template: "SELECT YEAR_MONTH,\n    SUM(ACTIVE_USERS) as \"MONTHLY_ACTIVE_USE
   ,\n    (SUM(ACTIVE_USERS)/NULLIFZERO(SUM(ACTIVATED_USERS))) AS \"PERCENTAGE_MONTHLY_ACTIVE_USER\"\
   ,\n    SUM(CLOUD_ACTIVE_USERS) as \"MONTHLY_CLOUD_ACTIVE_USER\",\n    SUM(DESIGNER_ACTIVE_USERS)\
   \ as \"MONTHLY_DESIGNER_ACTIVE_USER\"\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_MONTHLY_ACCOUNT_ONBOARDING_ADAPTION_USAGE_AT\n\
-  \    WHERE LICENSE_TYPE = 'Purchase' \n    AND PRICING_AND_PACKAGING = '2025'  \n\
-  \    AND YEAR_MONTH > DATEADD('YEAR', -1, YEAR_MONTH)  \n    GROUP BY YEAR_MONTH\
-  \  \n    ORDER BY YEAR_MONTH DESC;"
+  \    WHERE LICENSE_TYPE = 'Purchase'\n    AND PRICING_AND_PACKAGING = '2025'\n \
+  \   AND YEAR_MONTH > DATEADD('YEAR', -1, YEAR_MONTH)\n    GROUP BY YEAR_MONTH\n\
+  \    ORDER BY YEAR_MONTH DESC;"
 queries: []
 aggregation_level: overall
 grain: overall

@@ -8,23 +8,14 @@ category: adoption
 definition:
   business: Identifies dominant versions and their market share, informing support
     and roadmap decisions
-  technical: From VERSION_RUNNING_SUM_ACCOUNTS_VIEW with cumulative running percentage
+  technical: with cumulative running percentage
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.VERSION_RUNNING_SUM_ACCOUNTS_VIEW\n\
-  (\n    PRODUCT_ID            COMMENT 'Alteryx product: Alteryx Designer or Alteryx\
-  \ Server.',\n    PREVAILING_VERSION    COMMENT 'Prevailing (most used) version of\
-  \ the account for that product in the previous calendar month: Designer Prevailing\
-  \ VERSION for Designer, Server Prevailing VERSION for Server.',\n    TOTAL_ACCOUNTS\
-  \        COMMENT 'Distinct count of SFDC_ACCOUNT_CID whose prevailing version is\
-  \ this version in the previous calendar month.',\n    RUNNING_PCT_OF_TOTAL  COMMENT\
-  \ 'Cumulative (Pareto) share of accounts, as a fraction (4 dp): running sum of TOTAL_ACCOUNTS\
-  \ ordered by TOTAL_ACCOUNTS descending, divided by all accounts of the product.'\n\
-  )\n\nAS\nWITH BASE AS (\n    SELECT\n        PRODUCT_ID,\n        CASE\n       \
-  \     WHEN PRODUCT_ID = 'Alteryx Designer' THEN \"Designer Prevailing VERSION\"\n\
-  \            WHEN PRODUCT_ID = 'Alteryx Server'   THEN \"Server Prevailing VERSION\"\
+sql_template: "WITH BASE AS (\n    SELECT\n        PRODUCT_ID,\n        CASE\n   \
+  \         WHEN PRODUCT_ID = 'Alteryx Designer' THEN \"Designer Prevailing VERSION\"\
+  \n            WHEN PRODUCT_ID = 'Alteryx Server'   THEN \"Server Prevailing VERSION\"\
   \n        END AS PREVAILING_VERSION,\n        SFDC_ACCOUNT_CID\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PRODUCT_VERSION_ADOPTION\n\
   \    WHERE PRODUCT_ID IN ('Alteryx Designer', 'Alteryx Server')\n      AND MONTH\
   \ >= DATE_TRUNC('MONTH', DATEADD('MONTH', -1, CURRENT_DATE))\n      AND MONTH <\

@@ -7,7 +7,7 @@ category: adoption
 definition:
   business: Key adoption metric for latest Designer generation tracking migration
     to modern platform
-  technical: 'From DESIGNER_2025_ADOPTION_PCT_LATEST_MONTH_VIEW: latest month snapshot'
+  technical: ': latest month snapshot'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

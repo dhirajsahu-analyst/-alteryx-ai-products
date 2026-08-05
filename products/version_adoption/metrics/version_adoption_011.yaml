@@ -8,7 +8,7 @@ category: adoption
 definition:
   business: Technical health metric showing infrastructure modernization and support
     risk exposure
-  technical: From MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+  technical: ''
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

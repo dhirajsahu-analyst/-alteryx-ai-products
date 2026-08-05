@@ -8,28 +8,19 @@ category: adoption
 definition:
   business: Version distribution metric helping understand customer base composition
     and upgrade urgency
-  technical: From PREVAILING_VERSION_ACCOUNT_DIST_MONTHLY_VIEW
+  technical: ''
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PREVAILING_VERSION_ACCOUNT_DIST_MONTHLY_VIEW\n\
-  (\n    MONTH                      COMMENT 'Telemetry month (first day of month,\
-  \ DATE). Rolling last 6 months.',\n    PRODUCT_ID                 COMMENT 'Alteryx\
-  \ product: Alteryx Designer or Alteryx Server.',\n    PREVAILING_VERSION_BUCKET\
-  \  COMMENT 'Prevailing version bucket: the version as text when it is 2024 or later,\
-  \ otherwise the grouped bucket <=2023.',\n    TOTAL_ACCOUNTS             COMMENT\
-  \ 'Distinct count of BILLING_ACCOUNT_ID in this month / product / version bucket.',\n\
-  \    ACCOUNT_PERCENT            COMMENT 'Share of accounts in this bucket as a fraction\
-  \ (2 dp) of all accounts for the same MONTH and PRODUCT_ID.'\n)\n\nAS\nWITH BASE\
-  \ AS (\n    SELECT\n        DATE(MONTH) AS MONTH,\n        PRODUCT_ID,\n       \
-  \ CASE\n            WHEN PRODUCT_ID = 'Alteryx Designer' AND \"Designer Prevailing\
-  \ VERSION\" >= 2024\n                THEN TO_VARCHAR(\"Designer Prevailing VERSION\"\
-  )\n            WHEN PRODUCT_ID = 'Alteryx Server' AND \"Server Prevailing VERSION\"\
-  \ >= 2024\n                THEN TO_VARCHAR(\"Server Prevailing VERSION\")\n    \
-  \        ELSE '<=2023'\n        END AS PREVAILING_VERSION_BUCKET,\n        BILLING_ACCOUNT_ID\n\
-  \    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PRODUCT_VERSION_ADOPTION\n \
-  \   WHERE PRODUCT_ID IN ('Alteryx Designer', 'Alteryx Server')\n      AND MONTH\
+sql_template: "WITH BASE AS (\n    SELECT\n        DATE(MONTH) AS MONTH,\n       \
+  \ PRODUCT_ID,\n        CASE\n            WHEN PRODUCT_ID = 'Alteryx Designer' AND\
+  \ \"Designer Prevailing VERSION\" >= 2024\n                THEN TO_VARCHAR(\"Designer\
+  \ Prevailing VERSION\")\n            WHEN PRODUCT_ID = 'Alteryx Server' AND \"Server\
+  \ Prevailing VERSION\" >= 2024\n                THEN TO_VARCHAR(\"Server Prevailing\
+  \ VERSION\")\n            ELSE '<=2023'\n        END AS PREVAILING_VERSION_BUCKET,\n\
+  \        BILLING_ACCOUNT_ID\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PRODUCT_VERSION_ADOPTION\n\
+  \    WHERE PRODUCT_ID IN ('Alteryx Designer', 'Alteryx Server')\n      AND MONTH\
   \ >= DATEADD(MONTH, -6, LAST_DAY(CURRENT_DATE - INTERVAL '1 month'))\n)\nSELECT\n\
   \    MONTH,\n    PRODUCT_ID,\n    PREVAILING_VERSION_BUCKET,\n    COUNT(DISTINCT\
   \ BILLING_ACCOUNT_ID) AS TOTAL_ACCOUNTS,\n    ROUND(\n        COUNT(DISTINCT BILLING_ACCOUNT_ID)\

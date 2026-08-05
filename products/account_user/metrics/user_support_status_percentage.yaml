@@ -6,7 +6,7 @@ status: validated
 category: adoption
 definition:
   business: User-level adoption metric showing upgrade velocity in customer base
-  technical: From MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+  technical: ''
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

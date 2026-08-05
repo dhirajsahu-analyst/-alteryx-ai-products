@@ -6,7 +6,7 @@ status: validated
 category: adoption
 definition:
   business: Infrastructure health metric ensuring physical machines have support coverage
-  technical: From DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_MACHINE_PERCENTAGE_VIEW
+  technical: ''
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

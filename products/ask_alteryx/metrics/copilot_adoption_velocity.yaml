@@ -6,17 +6,13 @@ status: validated
 category: adoption
 definition:
   business: Month-over-month percentage change in Copilot adoption rate
-  technical: '[''ADOPTION_PERCENTAGE''] from COPILOT_USERS_ADOPTION_RATE_VIEW'
+  technical: '[''ADOPTION_PERCENTAGE'']'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ADOPTION_RATE_VIEW(\n\
-  \    ACTIVE_USERS COMMENT 'Distinct Purchase AACP users with at least one Copilot\
-  \ chat.',\n    ELIGIBLE_USERS COMMENT 'Distinct users satisfying all Copilot eligibility\
-  \ criteria.',\n    ADOPTION_PERCENTAGE COMMENT 'Percentage of eligible users who\
-  \ actively used Copilot (Active Users / Eligible Users).'\n) AS\nWITH numerator\
-  \ AS (\n    SELECT\n        COUNT(DISTINCT USER_ID_RAW) AS num\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
+sql_template: "WITH numerator AS (\n    SELECT\n        COUNT(DISTINCT USER_ID_RAW)\
+  \ AS num\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
   \    WHERE LICENSE_TYPE = 'Purchase'\n      AND USER_TYPE = 'aacp'\n      AND USER_ID_RAW\
   \ IS NOT NULL\n      AND USER_EMAIL IS NOT NULL\n      AND CHAT_ID IS NOT NULL\n\
   ),\ndenominator AS (\n    SELECT\n        COUNT(DISTINCT USER_ID_RAW) AS denom\n\
@@ -29,8 +25,7 @@ sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.
   )\nSELECT\n    numerator.num AS active_users,\n    denominator.denom AS eligible_users,\n\
   \    ROUND(\n        ROUND(\n            100.0 * numerator.num / NULLIF(denominator.denom,\
   \ 0),\n            2\n        ) / 100.0,\n        4\n    ) AS adoption_percentage\n\
-  FROM numerator,\n     denominator;\n\n\n-- ----------------------------------------------------------------------------\n\
-  -- 6. View: COPILOT_ACCOUNTS_ADOPTION_RATE.VIEW\n-- ----------------------------------------------------------------------------"
+  FROM numerator,\n     denominator;"
 queries: []
 aggregation_level: overall
 grain: overall

@@ -6,20 +6,14 @@ status: validated
 category: volume
 definition:
   business: Count of users currently using Copilot on a regular basis
-  technical: '[''ACTIVE_USERS''] from COPILOT_USERS_ACTIVITY_FUNNEL_VIEW'
+  technical: '[''ACTIVE_USERS'']'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ACTIVITY_FUNNEL_VIEW(\n\
-  \    ONBOARDED_USERS COMMENT 'Distinct Purchase users of type AACP with a valid\
-  \ email who are present in the source data.',\n    ACTIVE_USERS COMMENT 'Distinct\
-  \ onboarded users with at least one chat activity.',\n    USERS_WITH_AT_LEAST_1_WORKFLOW\
-  \ COMMENT 'Distinct active users with at least one non-empty workflow ID, indicating\
-  \ that a workflow was created or associated with chat activity.',\n    ENGAGED_USERS\
-  \ COMMENT 'Distinct users who have created five or more distinct conversations.'\n\
-  ) AS\nWITH engaged_users AS (\n    SELECT\n        USER_ID_RAW\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
-  \    WHERE LICENSE_TYPE = 'Purchase'\n      AND USER_TYPE = 'aacp'\n      AND USER_EMAIL\
+sql_template: "WITH engaged_users AS (\n    SELECT\n        USER_ID_RAW\n    FROM\
+  \ DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n    WHERE\
+  \ LICENSE_TYPE = 'Purchase'\n      AND USER_TYPE = 'aacp'\n      AND USER_EMAIL\
   \ IS NOT NULL\n      AND CHAT_ID IS NOT NULL\n    GROUP BY USER_ID_RAW\n    HAVING\
   \ COUNT(DISTINCT CONVERSATION_ID) >= 5\n)\nSELECT\n    COUNT(DISTINCT USER_ID_RAW)\
   \ AS ONBOARDED_USERS,\n    COUNT(DISTINCT CASE\n        WHEN CHAT_ID IS NOT NULL\n\
@@ -30,8 +24,7 @@ sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.
   \            FROM engaged_users\n        )\n        THEN USER_ID_RAW\n    END) AS\
   \ ENGAGED_USERS\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
   WHERE LICENSE_TYPE = 'Purchase'\n  AND USER_TYPE = 'aacp'\n  AND USER_EMAIL IS NOT\
-  \ NULL;\n\n\n-- ----------------------------------------------------------------------------\n\
-  -- 5. View: COPILOT_USERS_ADOPTION_RATE.VIEW\n-- ----------------------------------------------------------------------------"
+  \ NULL;"
 queries: []
 aggregation_level: overall
 grain: overall

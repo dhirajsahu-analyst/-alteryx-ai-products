@@ -8,7 +8,7 @@ category: adoption
 definition:
   business: Adoption velocity tracking showing monthly progression of latest version
     uptake
-  technical: From DESIGNER_LATEST_VERSION_ADOPTION_MONTHLY_VIEW with time series
+  technical: with time series
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

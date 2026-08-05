@@ -7,8 +7,7 @@ category: volume
 definition:
   business: At-risk infrastructure metric identifying machines requiring immediate
     attention
-  technical: From MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW, unsupported
-    machines
+  technical: ', unsupported machines'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

@@ -6,7 +6,7 @@ status: validated
 category: volume
 definition:
   business: Monthly demand metric for trial program capacity and sales pipeline planning
-  technical: 'From TRIAL_FUNNEL_METRICS_MONTHLY_VIEW: TOTAL_TRIAL_REGISTRATION'
+  technical: ': TOTAL_TRIAL_REGISTRATION'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

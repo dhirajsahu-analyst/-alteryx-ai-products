@@ -6,7 +6,7 @@ status: validated
 category: retention
 definition:
   business: Retention rates for users with Licensed roles (Full/Basic Users).
-  technical: From ALTERYX_ONE_USERS_RETENTIONS_VIEW
+  technical: ''
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
@@ -25,8 +25,8 @@ sql_template: "create or replace view ALTERYX_ONE_USERS_RETENTIONS_VIEW(\n\tCOHO
   \ active between days 14 and 30.',\n\tACTIVE_30_TO_60D COMMENT 'The number of users\
   \ from this cohort who were active between days 31 and 60.',\n\tPERCENTAGE_30_TO_60D\
   \ COMMENT 'The percentage ratio of cohort users active between days 31 and 60.'\n\
-  ) \n as\n    WITH activated_users AS (\n        SELECT\n            USER_ID,\n \
-  \           BILLING_ACCOUNT_ID,\n            ACTIVATION_DATE,\n            DATE_TRUNC('MONTH',\
+  )\n as\n    WITH activated_users AS (\n        SELECT\n            USER_ID,\n  \
+  \          BILLING_ACCOUNT_ID,\n            ACTIVATION_DATE,\n            DATE_TRUNC('MONTH',\
   \ ACTIVATION_DATE) AS COHORT_MONTH,\n            CASE\n                WHEN USER_ROLE_TYPE\
   \ IN ('Full User', 'Basic User') THEN 'Licensed'\n                WHEN USER_ROLE_TYPE\
   \ = 'Viewer User' THEN 'Unlicensed'\n                WHEN IS_ACCOUNT_ADMIN = TRUE\

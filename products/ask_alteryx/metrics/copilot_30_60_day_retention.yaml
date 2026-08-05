@@ -7,17 +7,12 @@ category: retention
 definition:
   business: Measures sustained usage after the first month. Indicates whether Copilot
     provides ongoing value and prevents churn.
-  technical: RETURNING_RATE_PCT from COPILOT_30_60_RETENTION_RATE_VIEW
+  technical: RETURNING_RATE_PCT
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_30_60_RETENTION_RATE_VIEW\
-  \ (\n    TOTAL_USERS COMMENT 'The total count of unique Purchase users eligible\
-  \ for 30-60 day retention analysis.',\n    RETURNING_USERS_30_60D COMMENT 'The number\
-  \ of eligible users who returned to use Copilot at least once between Day 30 and\
-  \ Day 60.',\n    RETURNING_RATE_PCT COMMENT 'The returning user rate represented\
-  \ as a decimal ratio between 0 and 1.'\n) AS\n-- ============================================================================\n\
+sql_template: "-- ============================================================================\n\
   -- VIEW: COPILOT_30_60_RETENTION_RATE_VIEW\n-- DESCRIPTION: Computes 30-60 day retention\
   \ rate of Purchase users on Professional/Enterprise\n-- accounts who have at least\
   \ one Copilot chat activity, using the standard metric\n-- source COPILOT_ACTIVITY_USAGE_AT.\n\
@@ -25,9 +20,8 @@ sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.
   WITH\n\n-- ============================================\n-- USER_ACTIVITY\n-- ============================================\n\
   -- Captures Purchase users from Professional or Enterprise accounts\n-- who have\
   \ at least one Copilot chat activity.\n-- Each record represents a user's activity\
-  \ on a specific date.\n\nuser_activity AS (    \n    SELECT\n        USER_EMAIL\
-  \ AS CREATED_BY_ID,\n        CAST(CONV_CREATED_DATE AS DATE) AS activity_date\n\
-  \    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
+  \ on a specific date.\n\nuser_activity AS (\n    SELECT\n        USER_EMAIL AS CREATED_BY_ID,\n\
+  \        CAST(CONV_CREATED_DATE AS DATE) AS activity_date\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
   \    WHERE ACCOUNT_EDITION IN ('Professional','Enterprise')\n      AND LICENSE_TYPE\
   \ = 'Purchase'\n      AND CHAT_ID IS NOT NULL\n),\n\n-- ============================================\n\
   -- FIRST_USE\n-- ============================================\n-- Identifies the\

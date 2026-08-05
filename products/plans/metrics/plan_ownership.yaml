@@ -6,251 +6,111 @@ status: validated
 category: product_metric
 definition:
   business: Plan Ownership - Plans ownership information
-  technical: Query from PLAN_OWERSHIP_VIEW
+  technical: Query
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables:
   - DISCOVERY_PRODUCT_MANAGEMENT
-sql_template: |-
-  SELECT
-
-      TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY') AS MONTH,
-
-      -- Number of plans created during the month.
-      COUNT(DISTINCT PLAN_ID) AS CREATED_PLANS,
-
-      -- Number of unique users who created at least one plan during the month.
-      COUNT(DISTINCT USER_ID) AS PLAN_CREATORS,
-
-      -- Number of unique workspaces where plans were created during the month.
-      COUNT(DISTINCT WORKSPACE_ID) AS ACTIVE_WORKSPACES,
-
-      -- Number of unique billing accounts that created plans during the month.
-      COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW) AS ACTIVE_BILLING_ACCOUNTS,
-
-      -- Average number of plans created per unique user during the month.
-      ROUND(
-          COUNT(DISTINCT PLAN_ID)
-          / NULLIF(COUNT(DISTINCT USER_ID), 0),
-          2
-      ) AS PLANS_PER_CREATOR,
-
-      -- Average number of plans created per workspace during the month.
-      ROUND(
-          COUNT(DISTINCT PLAN_ID)
-          / NULLIF(COUNT(DISTINCT WORKSPACE_ID), 0),
-          2
-      ) AS PLANS_PER_WORKSPACE,
-
-      -- Average number of plans created per billing account during the month.
-      ROUND(
-          COUNT(DISTINCT PLAN_ID)
-          / NULLIF(COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW), 0),
-          2
-      ) AS PLANS_PER_BILLING_ACCOUNT
-
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
-
-  WHERE PLAN_CREATED_AT >= DATEADD(
-          MONTH,
-          -2,
-          DATE_TRUNC('MONTH', CURRENT_DATE())
-      )
-    AND LICENSE_TYPE = 'Purchase'
-
-  -- Optional Dimension Filters
-  -- AND BILLING_ACCOUNT_ID_RAW = '<billing-account-id>'
-  -- AND PIPELINE_REGION = 'US'
-  -- AND ACCOUNT_EDITION = 'Enterprise'
-  -- AND PRICING_AND_PACKAGING = '2025'
-  -- AND WORKSPACE_ID = '<workspace-id>'
-  -- AND USER_ID = '<user-id>'
-
-  GROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)
-
-  ORDER BY DATE_TRUNC('MONTH', PLAN_CREATED_AT);
+sql_template: "SELECT\n\n    TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY')\
+  \ AS MONTH,\n\n    -- Number of plans created during the month.\n    COUNT(DISTINCT\
+  \ PLAN_ID) AS CREATED_PLANS,\n\n    -- Number of unique users who created at least\
+  \ one plan during the month.\n    COUNT(DISTINCT USER_ID) AS PLAN_CREATORS,\n\n\
+  \    -- Number of unique workspaces where plans were created during the month.\n\
+  \    COUNT(DISTINCT WORKSPACE_ID) AS ACTIVE_WORKSPACES,\n\n    -- Number of unique\
+  \ billing accounts that created plans during the month.\n    COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW)\
+  \ AS ACTIVE_BILLING_ACCOUNTS,\n\n    -- Average number of plans created per unique\
+  \ user during the month.\n    ROUND(\n        COUNT(DISTINCT PLAN_ID)\n        /\
+  \ NULLIF(COUNT(DISTINCT USER_ID), 0),\n        2\n    ) AS PLANS_PER_CREATOR,\n\n\
+  \    -- Average number of plans created per workspace during the month.\n    ROUND(\n\
+  \        COUNT(DISTINCT PLAN_ID)\n        / NULLIF(COUNT(DISTINCT WORKSPACE_ID),\
+  \ 0),\n        2\n    ) AS PLANS_PER_WORKSPACE,\n\n    -- Average number of plans\
+  \ created per billing account during the month.\n    ROUND(\n        COUNT(DISTINCT\
+  \ PLAN_ID)\n        / NULLIF(COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW), 0),\n     \
+  \   2\n    ) AS PLANS_PER_BILLING_ACCOUNT\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT\n\
+  \nWHERE PLAN_CREATED_AT >= DATEADD(\n        MONTH,\n        -2,\n        DATE_TRUNC('MONTH',\
+  \ CURRENT_DATE())\n    )\n  AND LICENSE_TYPE = 'Purchase'\n\n-- Optional Dimension\
+  \ Filters\n-- AND BILLING_ACCOUNT_ID_RAW = '<billing-account-id>'\n-- AND PIPELINE_REGION\
+  \ = 'US'\n-- AND ACCOUNT_EDITION = 'Enterprise'\n-- AND PRICING_AND_PACKAGING =\
+  \ '2025'\n-- AND WORKSPACE_ID = '<workspace-id>'\n-- AND USER_ID = '<user-id>'\n\
+  \nGROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)\n\nORDER BY DATE_TRUNC('MONTH',\
+  \ PLAN_CREATED_AT);"
 queries:
 - name: base
   description: Base metric query
-  query: |-
-    SELECT
-
-        TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY') AS MONTH,
-
-        -- Number of plans created during the month.
-        COUNT(DISTINCT PLAN_ID) AS CREATED_PLANS,
-
-        -- Number of unique users who created at least one plan during the month.
-        COUNT(DISTINCT USER_ID) AS PLAN_CREATORS,
-
-        -- Number of unique workspaces where plans were created during the month.
-        COUNT(DISTINCT WORKSPACE_ID) AS ACTIVE_WORKSPACES,
-
-        -- Number of unique billing accounts that created plans during the month.
-        COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW) AS ACTIVE_BILLING_ACCOUNTS,
-
-        -- Average number of plans created per unique user during the month.
-        ROUND(
-            COUNT(DISTINCT PLAN_ID)
-            / NULLIF(COUNT(DISTINCT USER_ID), 0),
-            2
-        ) AS PLANS_PER_CREATOR,
-
-        -- Average number of plans created per workspace during the month.
-        ROUND(
-            COUNT(DISTINCT PLAN_ID)
-            / NULLIF(COUNT(DISTINCT WORKSPACE_ID), 0),
-            2
-        ) AS PLANS_PER_WORKSPACE,
-
-        -- Average number of plans created per billing account during the month.
-        ROUND(
-            COUNT(DISTINCT PLAN_ID)
-            / NULLIF(COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW), 0),
-            2
-        ) AS PLANS_PER_BILLING_ACCOUNT
-
-    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
-
-    WHERE PLAN_CREATED_AT >= DATEADD(
-            MONTH,
-            -2,
-            DATE_TRUNC('MONTH', CURRENT_DATE())
-        )
-      AND LICENSE_TYPE = 'Purchase'
-
-    -- Optional Dimension Filters
-    -- AND BILLING_ACCOUNT_ID_RAW = '<billing-account-id>'
-    -- AND PIPELINE_REGION = 'US'
-    -- AND ACCOUNT_EDITION = 'Enterprise'
-    -- AND PRICING_AND_PACKAGING = '2025'
-    -- AND WORKSPACE_ID = '<workspace-id>'
-    -- AND USER_ID = '<user-id>'
-
-    GROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)
-
-    ORDER BY DATE_TRUNC('MONTH', PLAN_CREATED_AT);
+  query: "SELECT\n\n    TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY')\
+    \ AS MONTH,\n\n    -- Number of plans created during the month.\n    COUNT(DISTINCT\
+    \ PLAN_ID) AS CREATED_PLANS,\n\n    -- Number of unique users who created at least\
+    \ one plan during the month.\n    COUNT(DISTINCT USER_ID) AS PLAN_CREATORS,\n\n\
+    \    -- Number of unique workspaces where plans were created during the month.\n\
+    \    COUNT(DISTINCT WORKSPACE_ID) AS ACTIVE_WORKSPACES,\n\n    -- Number of unique\
+    \ billing accounts that created plans during the month.\n    COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW)\
+    \ AS ACTIVE_BILLING_ACCOUNTS,\n\n    -- Average number of plans created per unique\
+    \ user during the month.\n    ROUND(\n        COUNT(DISTINCT PLAN_ID)\n      \
+    \  / NULLIF(COUNT(DISTINCT USER_ID), 0),\n        2\n    ) AS PLANS_PER_CREATOR,\n\
+    \n    -- Average number of plans created per workspace during the month.\n   \
+    \ ROUND(\n        COUNT(DISTINCT PLAN_ID)\n        / NULLIF(COUNT(DISTINCT WORKSPACE_ID),\
+    \ 0),\n        2\n    ) AS PLANS_PER_WORKSPACE,\n\n    -- Average number of plans\
+    \ created per billing account during the month.\n    ROUND(\n        COUNT(DISTINCT\
+    \ PLAN_ID)\n        / NULLIF(COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW), 0),\n   \
+    \     2\n    ) AS PLANS_PER_BILLING_ACCOUNT\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT\n\
+    \nWHERE PLAN_CREATED_AT >= DATEADD(\n        MONTH,\n        -2,\n        DATE_TRUNC('MONTH',\
+    \ CURRENT_DATE())\n    )\n  AND LICENSE_TYPE = 'Purchase'\n\n-- Optional Dimension\
+    \ Filters\n-- AND BILLING_ACCOUNT_ID_RAW = '<billing-account-id>'\n-- AND PIPELINE_REGION\
+    \ = 'US'\n-- AND ACCOUNT_EDITION = 'Enterprise'\n-- AND PRICING_AND_PACKAGING\
+    \ = '2025'\n-- AND WORKSPACE_ID = '<workspace-id>'\n-- AND USER_ID = '<user-id>'\n\
+    \nGROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)\n\nORDER BY DATE_TRUNC('MONTH',\
+    \ PLAN_CREATED_AT);"
 - name: daily
   description: Daily metrics
-  query: |-
-    SELECT
-
-        TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY') AS MONTH,
-
-        -- Number of plans created during the month.
-        COUNT(DISTINCT PLAN_ID) AS CREATED_PLANS,
-
-        -- Number of unique users who created at least one plan during the month.
-        COUNT(DISTINCT USER_ID) AS PLAN_CREATORS,
-
-        -- Number of unique workspaces where plans were created during the month.
-        COUNT(DISTINCT WORKSPACE_ID) AS ACTIVE_WORKSPACES,
-
-        -- Number of unique billing accounts that created plans during the month.
-        COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW) AS ACTIVE_BILLING_ACCOUNTS,
-
-        -- Average number of plans created per unique user during the month.
-        ROUND(
-            COUNT(DISTINCT PLAN_ID)
-            / NULLIF(COUNT(DISTINCT USER_ID), 0),
-            2
-        ) AS PLANS_PER_CREATOR,
-
-        -- Average number of plans created per workspace during the month.
-        ROUND(
-            COUNT(DISTINCT PLAN_ID)
-            / NULLIF(COUNT(DISTINCT WORKSPACE_ID), 0),
-            2
-        ) AS PLANS_PER_WORKSPACE,
-
-        -- Average number of plans created per billing account during the month.
-        ROUND(
-            COUNT(DISTINCT PLAN_ID)
-            / NULLIF(COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW), 0),
-            2
-        ) AS PLANS_PER_BILLING_ACCOUNT
-
-    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
-
-    WHERE PLAN_CREATED_AT >= DATEADD(
-            MONTH,
-            -2,
-            DATE_TRUNC('MONTH', CURRENT_DATE())
-        )
-      AND LICENSE_TYPE = 'Purchase'
-
-    -- Optional Dimension Filters
-    -- AND BILLING_ACCOUNT_ID_RAW = '<billing-account-id>'
-    -- AND PIPELINE_REGION = 'US'
-    -- AND ACCOUNT_EDITION = 'Enterprise'
-    -- AND PRICING_AND_PACKAGING = '2025'
-    -- AND WORKSPACE_ID = '<workspace-id>'
-    -- AND USER_ID = '<user-id>'
-
-    GROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)
-
-    ORDER BY DATE_TRUNC('MONTH', PLAN_CREATED_AT);
+  query: "SELECT\n\n    TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY')\
+    \ AS MONTH,\n\n    -- Number of plans created during the month.\n    COUNT(DISTINCT\
+    \ PLAN_ID) AS CREATED_PLANS,\n\n    -- Number of unique users who created at least\
+    \ one plan during the month.\n    COUNT(DISTINCT USER_ID) AS PLAN_CREATORS,\n\n\
+    \    -- Number of unique workspaces where plans were created during the month.\n\
+    \    COUNT(DISTINCT WORKSPACE_ID) AS ACTIVE_WORKSPACES,\n\n    -- Number of unique\
+    \ billing accounts that created plans during the month.\n    COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW)\
+    \ AS ACTIVE_BILLING_ACCOUNTS,\n\n    -- Average number of plans created per unique\
+    \ user during the month.\n    ROUND(\n        COUNT(DISTINCT PLAN_ID)\n      \
+    \  / NULLIF(COUNT(DISTINCT USER_ID), 0),\n        2\n    ) AS PLANS_PER_CREATOR,\n\
+    \n    -- Average number of plans created per workspace during the month.\n   \
+    \ ROUND(\n        COUNT(DISTINCT PLAN_ID)\n        / NULLIF(COUNT(DISTINCT WORKSPACE_ID),\
+    \ 0),\n        2\n    ) AS PLANS_PER_WORKSPACE,\n\n    -- Average number of plans\
+    \ created per billing account during the month.\n    ROUND(\n        COUNT(DISTINCT\
+    \ PLAN_ID)\n        / NULLIF(COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW), 0),\n   \
+    \     2\n    ) AS PLANS_PER_BILLING_ACCOUNT\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT\n\
+    \nWHERE PLAN_CREATED_AT >= DATEADD(\n        MONTH,\n        -2,\n        DATE_TRUNC('MONTH',\
+    \ CURRENT_DATE())\n    )\n  AND LICENSE_TYPE = 'Purchase'\n\n-- Optional Dimension\
+    \ Filters\n-- AND BILLING_ACCOUNT_ID_RAW = '<billing-account-id>'\n-- AND PIPELINE_REGION\
+    \ = 'US'\n-- AND ACCOUNT_EDITION = 'Enterprise'\n-- AND PRICING_AND_PACKAGING\
+    \ = '2025'\n-- AND WORKSPACE_ID = '<workspace-id>'\n-- AND USER_ID = '<user-id>'\n\
+    \nGROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)\n\nORDER BY DATE_TRUNC('MONTH',\
+    \ PLAN_CREATED_AT);"
 - name: monthly
   description: Monthly aggregated metrics
-  query: |-
-    SELECT
-
-        TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY') AS MONTH,
-
-        -- Number of plans created during the month.
-        COUNT(DISTINCT PLAN_ID) AS CREATED_PLANS,
-
-        -- Number of unique users who created at least one plan during the month.
-        COUNT(DISTINCT USER_ID) AS PLAN_CREATORS,
-
-        -- Number of unique workspaces where plans were created during the month.
-        COUNT(DISTINCT WORKSPACE_ID) AS ACTIVE_WORKSPACES,
-
-        -- Number of unique billing accounts that created plans during the month.
-        COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW) AS ACTIVE_BILLING_ACCOUNTS,
-
-        -- Average number of plans created per unique user during the month.
-        ROUND(
-            COUNT(DISTINCT PLAN_ID)
-            / NULLIF(COUNT(DISTINCT USER_ID), 0),
-            2
-        ) AS PLANS_PER_CREATOR,
-
-        -- Average number of plans created per workspace during the month.
-        ROUND(
-            COUNT(DISTINCT PLAN_ID)
-            / NULLIF(COUNT(DISTINCT WORKSPACE_ID), 0),
-            2
-        ) AS PLANS_PER_WORKSPACE,
-
-        -- Average number of plans created per billing account during the month.
-        ROUND(
-            COUNT(DISTINCT PLAN_ID)
-            / NULLIF(COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW), 0),
-            2
-        ) AS PLANS_PER_BILLING_ACCOUNT
-
-    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT
-
-    WHERE PLAN_CREATED_AT >= DATEADD(
-            MONTH,
-            -2,
-            DATE_TRUNC('MONTH', CURRENT_DATE())
-        )
-      AND LICENSE_TYPE = 'Purchase'
-
-    -- Optional Dimension Filters
-    -- AND BILLING_ACCOUNT_ID_RAW = '<billing-account-id>'
-    -- AND PIPELINE_REGION = 'US'
-    -- AND ACCOUNT_EDITION = 'Enterprise'
-    -- AND PRICING_AND_PACKAGING = '2025'
-    -- AND WORKSPACE_ID = '<workspace-id>'
-    -- AND USER_ID = '<user-id>'
-
-    GROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)
-
-    ORDER BY DATE_TRUNC('MONTH', PLAN_CREATED_AT);
+  query: "SELECT\n\n    TO_CHAR(DATE_TRUNC('MONTH', PLAN_CREATED_AT), 'MON YYYY')\
+    \ AS MONTH,\n\n    -- Number of plans created during the month.\n    COUNT(DISTINCT\
+    \ PLAN_ID) AS CREATED_PLANS,\n\n    -- Number of unique users who created at least\
+    \ one plan during the month.\n    COUNT(DISTINCT USER_ID) AS PLAN_CREATORS,\n\n\
+    \    -- Number of unique workspaces where plans were created during the month.\n\
+    \    COUNT(DISTINCT WORKSPACE_ID) AS ACTIVE_WORKSPACES,\n\n    -- Number of unique\
+    \ billing accounts that created plans during the month.\n    COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW)\
+    \ AS ACTIVE_BILLING_ACCOUNTS,\n\n    -- Average number of plans created per unique\
+    \ user during the month.\n    ROUND(\n        COUNT(DISTINCT PLAN_ID)\n      \
+    \  / NULLIF(COUNT(DISTINCT USER_ID), 0),\n        2\n    ) AS PLANS_PER_CREATOR,\n\
+    \n    -- Average number of plans created per workspace during the month.\n   \
+    \ ROUND(\n        COUNT(DISTINCT PLAN_ID)\n        / NULLIF(COUNT(DISTINCT WORKSPACE_ID),\
+    \ 0),\n        2\n    ) AS PLANS_PER_WORKSPACE,\n\n    -- Average number of plans\
+    \ created per billing account during the month.\n    ROUND(\n        COUNT(DISTINCT\
+    \ PLAN_ID)\n        / NULLIF(COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW), 0),\n   \
+    \     2\n    ) AS PLANS_PER_BILLING_ACCOUNT\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_FACT_AT\n\
+    \nWHERE PLAN_CREATED_AT >= DATEADD(\n        MONTH,\n        -2,\n        DATE_TRUNC('MONTH',\
+    \ CURRENT_DATE())\n    )\n  AND LICENSE_TYPE = 'Purchase'\n\n-- Optional Dimension\
+    \ Filters\n-- AND BILLING_ACCOUNT_ID_RAW = '<billing-account-id>'\n-- AND PIPELINE_REGION\
+    \ = 'US'\n-- AND ACCOUNT_EDITION = 'Enterprise'\n-- AND PRICING_AND_PACKAGING\
+    \ = '2025'\n-- AND WORKSPACE_ID = '<workspace-id>'\n-- AND USER_ID = '<user-id>'\n\
+    \nGROUP BY DATE_TRUNC('MONTH', PLAN_CREATED_AT)\n\nORDER BY DATE_TRUNC('MONTH',\
+    \ PLAN_CREATED_AT);"
 aggregation_level: monthly
 grain: monthly
 freshness: daily

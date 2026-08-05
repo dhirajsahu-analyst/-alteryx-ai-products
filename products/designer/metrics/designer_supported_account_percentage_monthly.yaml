@@ -6,7 +6,7 @@ status: validated
 category: adoption
 definition:
   business: Account-level support health metric for Designer product line
-  technical: From DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_ACCOUNT_PERCENTAGE_VIEW
+  technical: ''
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

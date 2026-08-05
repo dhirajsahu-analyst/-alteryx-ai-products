@@ -6,7 +6,7 @@ status: validated
 category: funnel
 definition:
   business: Monthly conversion metric showing trial engagement and qualification trends
-  technical: 'From TRIAL_FUNNEL_METRICS_MONTHLY_VIEW: QL and conversion rates'
+  technical: ': QL and conversion rates'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

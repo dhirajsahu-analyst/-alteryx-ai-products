@@ -6,7 +6,7 @@ status: validated
 category: engagement
 definition:
   business: Product engagement metric showing trial users taking product action
-  technical: 'From TRIAL_FUNNEL_METRICS_MONTHLY_VIEW: USERS_CREATED_NEW_WORKFLOW'
+  technical: ': USERS_CREATED_NEW_WORKFLOW'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

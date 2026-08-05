@@ -7,7 +7,7 @@ category: funnel
 definition:
   business: Detailed funnel analysis identifying conversion bottlenecks and optimization
     opportunities
-  technical: Calculated from TRIAL_FUNNEL_METRICS_MONTHLY_VIEW with sequential ratios
+  technical: Calculated with sequential ratios
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

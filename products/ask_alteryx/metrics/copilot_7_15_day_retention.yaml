@@ -7,17 +7,12 @@ category: retention
 definition:
   business: Measures early user retention after the critical first 1-7 day window.
     Critical for understanding onboarding success and product-market fit.
-  technical: RETURNING_RATE_PCT from COPILOT_7_15_RETENTION_RATE_VIEW
+  technical: RETURNING_RATE_PCT
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_7_15_RETENTION_RATE_VIEW\
-  \ (\n    TOTAL_USERS COMMENT 'The total count of unique Purchase users eligible\
-  \ for 7-15 day retention analysis.',\n    RETURNING_USERS_7_15D COMMENT 'The number\
-  \ of eligible users who returned to use Copilot at least once between Day 7 and\
-  \ Day 15.',\n    RETURNING_RATE_PCT COMMENT 'The returning user rate represented\
-  \ as a decimal ratio between 0 and 1.'\n) AS\n-- ============================================================================\n\
+sql_template: "-- ============================================================================\n\
   -- VIEW: COPILOT_7_15_RETENTION_RATE_VIEW\n-- DESCRIPTION: Computes 7-15 day retention\
   \ rate of Purchase users on Professional/Enterprise\n-- accounts who have at least\
   \ one Copilot chat activity, using the standard metric\n-- source COPILOT_ACTIVITY_USAGE_AT.\n\

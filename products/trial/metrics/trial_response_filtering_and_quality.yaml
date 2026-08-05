@@ -8,8 +8,7 @@ category: funnel
 definition:
   business: Data quality metric showing how response filtering affects conversion
     analysis
-  technical: 'From TRIAL_FUNNEL_METRICS_MONTHLY_VIEW: FILTERED_RESPONSE_COUNT and
-    ADJUSTED_CLOSED_WON_RATE_PCT'
+  technical: ': FILTERED_RESPONSE_COUNT and ADJUSTED_CLOSED_WON_RATE_PCT'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

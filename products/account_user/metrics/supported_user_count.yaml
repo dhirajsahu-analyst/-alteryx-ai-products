@@ -6,8 +6,7 @@ status: validated
 category: volume
 definition:
   business: User-level support coverage metric for capacity and support planning
-  technical: From MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW, supported
-    users only
+  technical: ', supported users only'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

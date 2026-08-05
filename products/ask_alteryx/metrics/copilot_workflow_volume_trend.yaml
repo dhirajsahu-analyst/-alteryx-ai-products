@@ -6,16 +6,12 @@ status: validated
 category: usage
 definition:
   business: Month-over-month change in Copilot workflow execution volume
-  technical: '[''COPILOT_MAPPED_WORKFLOW_RUNS''] from COPILOT_WORKFLOW_DETAILS_VIEW'
+  technical: '[''COPILOT_MAPPED_WORKFLOW_RUNS'']'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_WORKFLOW_DETAILS_VIEW\
-  \ (\n    COPILOT_MAPPED_WORKFLOW_RUNS COMMENT 'Total number of Designer workflow\
-  \ runs mapped to workflows created by Ask Alteryx.',\n    COPILOT_PCT_WORKFLOW_RUNS\
-  \ COMMENT 'The percentage of Designer workflow runs mapped to Copilot, represented\
-  \ as a decimal ratio between 0 and 1.'\n) AS\n-- ============================================================================\n\
+sql_template: "-- ============================================================================\n\
   -- VIEW: COPILOT_WORKFLOW_DETAILS_VIEW\n-- DESCRIPTION: Computes Copilot mapped\
   \ workflow runs and run percentage metrics,\n-- using the standard metric source\
   \ COPILOT_DESIGNER_WORKFLOW_PCT_AT.\n-- ============================================================================\n\

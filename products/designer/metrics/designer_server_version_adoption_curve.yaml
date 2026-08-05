@@ -8,8 +8,7 @@ category: adoption
 definition:
   business: Benchmark adoption curve showing Designer/Server upgrade velocity compared
     to historical patterns
-  technical: From DESIGNER_SERVER_VERSION_ADOPTION_RATE_VIEW tracking adoption at
-    key milestones
+  technical: tracking adoption at key milestones
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

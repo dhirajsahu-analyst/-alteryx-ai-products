@@ -7,7 +7,7 @@ status: validated
 category: adoption
 definition:
   business: Identifies version concentration and strategic support focus areas
-  technical: From VERSION_RUNNING_SUM_USERS_AND_MACHINE_VIEW with Pareto analysis
+  technical: with Pareto analysis
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

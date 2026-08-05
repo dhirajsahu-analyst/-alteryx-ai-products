@@ -6,7 +6,7 @@ status: validated
 category: retention
 definition:
   business: Percentage of new users active within 30-60 days of activation.
-  technical: From ALTERYX_ONE_USERS_RETENTIONS_BY_BUCKET_DAYS_VIEW
+  technical: ''
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
@@ -25,11 +25,11 @@ sql_template: "create or replace view ALTERYX_ONE_USERS_RETENTIONS_BY_BUCKET_DAY
   \ percentage ratio of cohort users active between days 14 and 30.',\n\tACTIVE_30_TO_60D\
   \ COMMENT 'The number of users from this cohort who were active between days 31\
   \ and 60.',\n\tPERCENTAGE_30_TO_60D COMMENT 'The percentage ratio of cohort users\
-  \ active between days 31 and 60.'\n) \n as\n    WITH activated_users AS (\n    \
-  \    SELECT\n            USER_ID,\n            BILLING_ACCOUNT_ID,\n           \
-  \ ACTIVATION_DATE,\n            DATE_TRUNC('MONTH', ACTIVATION_DATE) AS COHORT_MONTH,\n\
-  \            CASE\n                WHEN USER_ROLE_TYPE IN ('Full User', 'Basic User')\
-  \ THEN 'Licensed'\n                WHEN USER_ROLE_TYPE = 'Viewer User' THEN 'Unlicensed'\n\
+  \ active between days 31 and 60.'\n)\n as\n    WITH activated_users AS (\n     \
+  \   SELECT\n            USER_ID,\n            BILLING_ACCOUNT_ID,\n            ACTIVATION_DATE,\n\
+  \            DATE_TRUNC('MONTH', ACTIVATION_DATE) AS COHORT_MONTH,\n           \
+  \ CASE\n                WHEN USER_ROLE_TYPE IN ('Full User', 'Basic User') THEN\
+  \ 'Licensed'\n                WHEN USER_ROLE_TYPE = 'Viewer User' THEN 'Unlicensed'\n\
   \                WHEN IS_ACCOUNT_ADMIN = TRUE THEN 'Unlicensed'\n              \
   \  WHEN IS_WORKSPACE_ADMIN = TRUE THEN 'Unlicensed'\n                ELSE 'Other'\n\
   \            END AS USER_SEGMENT\n        FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_ONE_DAILY_USERS_ONBOARDING_ADAPTION_USAGE_AT\n\
@@ -63,9 +63,9 @@ sql_template: "create or replace view ALTERYX_ONE_USERS_RETENTIONS_BY_BUCKET_DAY
   \ 'Overall' AS SEGMENT,\n            COUNT(DISTINCT USER_ID) AS COHORT_SIZE,\n \
   \           SUM(ACTIVE_1_TO_7D) AS ACTIVE_1_TO_7D, SUM(ACTIVE_7_TO_14D) AS ACTIVE_7_TO_14D,\n\
   \            SUM(ACTIVE_14_TO_30D) AS ACTIVE_14_TO_30D, SUM(ACTIVE_30_TO_60D) AS\
-  \ ACTIVE_30_TO_60D\n        FROM retention \n        GROUP BY COHORT_MONTH\n   \
-  \    \n        UNION ALL\n\n        SELECT COHORT_MONTH, USER_SEGMENT AS SEGMENT,\n\
-  \            COUNT(DISTINCT USER_ID) AS COHORT_SIZE,\n            SUM(ACTIVE_1_TO_7D)\
+  \ ACTIVE_30_TO_60D\n        FROM retention\n        GROUP BY COHORT_MONTH\n\n  \
+  \      UNION ALL\n\n        SELECT COHORT_MONTH, USER_SEGMENT AS SEGMENT,\n    \
+  \        COUNT(DISTINCT USER_ID) AS COHORT_SIZE,\n            SUM(ACTIVE_1_TO_7D)\
   \ AS ACTIVE_1_TO_7D, SUM(ACTIVE_7_TO_14D) AS ACTIVE_7_TO_14D,\n            SUM(ACTIVE_14_TO_30D)\
   \ AS ACTIVE_14_TO_30D, SUM(ACTIVE_30_TO_60D) AS ACTIVE_30_TO_60D\n        FROM retention\n\
   \        GROUP BY COHORT_MONTH, USER_SEGMENT\n    )\n    ORDER BY COHORT_MONTH,\

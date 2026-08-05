@@ -5,152 +5,53 @@ product: plans
 status: validated
 category: product_metric
 definition:
-  business: Plans Creation and Active Users - Tracks plans creation and active user counts
-  technical: Query from PLANS_CREATION_AND_ACTIVE_USERS_VIEW
+  business: Plans Creation and Active Users - Tracks plans creation and active user
+    counts
+  technical: Query
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables:
   - DISCOVERY_PRODUCT_MANAGEMENT
-sql_template: |-
-  SELECT
-      TO_CHAR(
-          DATE_TRUNC('MONTH', YEAR_MONTH),
-          'Mon-YYYY'
-      ) AS MONTH,
-
-      COUNT(
-          DISTINCT IFF(
-              CREATED_PLAN > 0,
-              BILLING_ACCOUNT_ID,
-              NULL
-          )
-      ) AS ACCOUNTS_CREATED_PLANS,
-
-      SUM(ACTIVE_USERS_AMPLITUDE) AS PLANS_ACTIVE_USERS
-
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
-
-  WHERE YEAR_MONTH >= DATE_TRUNC(
-      'MONTH',
-      DATEADD(
-          MONTH,
-          -2,
-          CURRENT_DATE()
-      )
-  )
-
-  GROUP BY
-      DATE_TRUNC('MONTH', YEAR_MONTH)
-
-  ORDER BY
-      DATE_TRUNC('MONTH', YEAR_MONTH);
+sql_template: "SELECT\n    TO_CHAR(\n        DATE_TRUNC('MONTH', YEAR_MONTH),\n  \
+  \      'Mon-YYYY'\n    ) AS MONTH,\n\n    COUNT(\n        DISTINCT IFF(\n      \
+  \      CREATED_PLAN > 0,\n            BILLING_ACCOUNT_ID,\n            NULL\n  \
+  \      )\n    ) AS ACCOUNTS_CREATED_PLANS,\n\n    SUM(ACTIVE_USERS_AMPLITUDE) AS\
+  \ PLANS_ACTIVE_USERS\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT\n\
+  \nWHERE YEAR_MONTH >= DATE_TRUNC(\n    'MONTH',\n    DATEADD(\n        MONTH,\n\
+  \        -2,\n        CURRENT_DATE()\n    )\n)\n\nGROUP BY\n    DATE_TRUNC('MONTH',\
+  \ YEAR_MONTH)\n\nORDER BY\n    DATE_TRUNC('MONTH', YEAR_MONTH);"
 queries:
 - name: base
   description: Base metric query
-  query: |-
-    SELECT
-        TO_CHAR(
-            DATE_TRUNC('MONTH', YEAR_MONTH),
-            'Mon-YYYY'
-        ) AS MONTH,
-
-        COUNT(
-            DISTINCT IFF(
-                CREATED_PLAN > 0,
-                BILLING_ACCOUNT_ID,
-                NULL
-            )
-        ) AS ACCOUNTS_CREATED_PLANS,
-
-        SUM(ACTIVE_USERS_AMPLITUDE) AS PLANS_ACTIVE_USERS
-
-    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
-
-    WHERE YEAR_MONTH >= DATE_TRUNC(
-        'MONTH',
-        DATEADD(
-            MONTH,
-            -2,
-            CURRENT_DATE()
-        )
-    )
-
-    GROUP BY
-        DATE_TRUNC('MONTH', YEAR_MONTH)
-
-    ORDER BY
-        DATE_TRUNC('MONTH', YEAR_MONTH);
+  query: "SELECT\n    TO_CHAR(\n        DATE_TRUNC('MONTH', YEAR_MONTH),\n       \
+    \ 'Mon-YYYY'\n    ) AS MONTH,\n\n    COUNT(\n        DISTINCT IFF(\n         \
+    \   CREATED_PLAN > 0,\n            BILLING_ACCOUNT_ID,\n            NULL\n   \
+    \     )\n    ) AS ACCOUNTS_CREATED_PLANS,\n\n    SUM(ACTIVE_USERS_AMPLITUDE) AS\
+    \ PLANS_ACTIVE_USERS\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT\n\
+    \nWHERE YEAR_MONTH >= DATE_TRUNC(\n    'MONTH',\n    DATEADD(\n        MONTH,\n\
+    \        -2,\n        CURRENT_DATE()\n    )\n)\n\nGROUP BY\n    DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH)\n\nORDER BY\n    DATE_TRUNC('MONTH', YEAR_MONTH);"
 - name: daily
   description: Daily metrics
-  query: |-
-    SELECT
-        TO_CHAR(
-            DATE_TRUNC('MONTH', YEAR_MONTH),
-            'Mon-YYYY'
-        ) AS MONTH,
-
-        COUNT(
-            DISTINCT IFF(
-                CREATED_PLAN > 0,
-                BILLING_ACCOUNT_ID,
-                NULL
-            )
-        ) AS ACCOUNTS_CREATED_PLANS,
-
-        SUM(ACTIVE_USERS_AMPLITUDE) AS PLANS_ACTIVE_USERS
-
-    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
-
-    WHERE YEAR_MONTH >= DATE_TRUNC(
-        'MONTH',
-        DATEADD(
-            MONTH,
-            -2,
-            CURRENT_DATE()
-        )
-    )
-
-    GROUP BY
-        DATE_TRUNC('MONTH', YEAR_MONTH)
-
-    ORDER BY
-        DATE_TRUNC('MONTH', YEAR_MONTH);
+  query: "SELECT\n    TO_CHAR(\n        DATE_TRUNC('MONTH', YEAR_MONTH),\n       \
+    \ 'Mon-YYYY'\n    ) AS MONTH,\n\n    COUNT(\n        DISTINCT IFF(\n         \
+    \   CREATED_PLAN > 0,\n            BILLING_ACCOUNT_ID,\n            NULL\n   \
+    \     )\n    ) AS ACCOUNTS_CREATED_PLANS,\n\n    SUM(ACTIVE_USERS_AMPLITUDE) AS\
+    \ PLANS_ACTIVE_USERS\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT\n\
+    \nWHERE YEAR_MONTH >= DATE_TRUNC(\n    'MONTH',\n    DATEADD(\n        MONTH,\n\
+    \        -2,\n        CURRENT_DATE()\n    )\n)\n\nGROUP BY\n    DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH)\n\nORDER BY\n    DATE_TRUNC('MONTH', YEAR_MONTH);"
 - name: monthly
   description: Monthly aggregated metrics
-  query: |-
-    SELECT
-        TO_CHAR(
-            DATE_TRUNC('MONTH', YEAR_MONTH),
-            'Mon-YYYY'
-        ) AS MONTH,
-
-        COUNT(
-            DISTINCT IFF(
-                CREATED_PLAN > 0,
-                BILLING_ACCOUNT_ID,
-                NULL
-            )
-        ) AS ACCOUNTS_CREATED_PLANS,
-
-        SUM(ACTIVE_USERS_AMPLITUDE) AS PLANS_ACTIVE_USERS
-
-    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT
-
-    WHERE YEAR_MONTH >= DATE_TRUNC(
-        'MONTH',
-        DATEADD(
-            MONTH,
-            -2,
-            CURRENT_DATE()
-        )
-    )
-
-    GROUP BY
-        DATE_TRUNC('MONTH', YEAR_MONTH)
-
-    ORDER BY
-        DATE_TRUNC('MONTH', YEAR_MONTH);
+  query: "SELECT\n    TO_CHAR(\n        DATE_TRUNC('MONTH', YEAR_MONTH),\n       \
+    \ 'Mon-YYYY'\n    ) AS MONTH,\n\n    COUNT(\n        DISTINCT IFF(\n         \
+    \   CREATED_PLAN > 0,\n            BILLING_ACCOUNT_ID,\n            NULL\n   \
+    \     )\n    ) AS ACCOUNTS_CREATED_PLANS,\n\n    SUM(ACTIVE_USERS_AMPLITUDE) AS\
+    \ PLANS_ACTIVE_USERS\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PLANS_MONTHLY_ACCOUNT_AT\n\
+    \nWHERE YEAR_MONTH >= DATE_TRUNC(\n    'MONTH',\n    DATEADD(\n        MONTH,\n\
+    \        -2,\n        CURRENT_DATE()\n    )\n)\n\nGROUP BY\n    DATE_TRUNC('MONTH',\
+    \ YEAR_MONTH)\n\nORDER BY\n    DATE_TRUNC('MONTH', YEAR_MONTH);"
 aggregation_level: monthly
 grain: monthly
 freshness: daily

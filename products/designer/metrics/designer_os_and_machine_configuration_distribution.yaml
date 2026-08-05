@@ -1,30 +1,25 @@
 id: designer_os_and_machine_configuration_distribution
 name: Designer OS and Machine Configuration Distribution
-description: Distribution of Designer installations across operating systems and machine configurations
+description: Distribution of Designer installations across operating systems and machine
+  configurations
 product: designer
 status: validated
 category: deployment
 definition:
-  business: Infrastructure metrics showing Designer compatibility and deployment across customer environments
-  technical: From ENGINE_DESIGNER_SERVER_RUN_WITH_ASSET_TYPE_VIEW aggregated by OS_NAME, CORES_NUM
+  business: Infrastructure metrics showing Designer compatibility and deployment across
+    customer environments
+  technical: aggregated by OS_NAME, CORES_NUM
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |
-  SELECT
-    OS_NAME,
-    OS_VERSION,
-    ROUND(AVG(CORES_NUM), 1) AS avg_cores,
-    ROUND(AVG(RAM), 0) AS avg_ram_mb,
-    COUNT(DISTINCT MACHINE_ID_DECODED) AS machine_count,
-    COUNT(DISTINCT USER_EMAIL) AS user_count,
-    ROUND(COUNT(DISTINCT MACHINE_ID_DECODED) / SUM(COUNT(DISTINCT MACHINE_ID_DECODED)) OVER () * 100, 2) AS pct_of_machines
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ENGINE_DESIGNER_SERVER_RUN_WITH_ASSET_TYPE_VIEW
-  WHERE PRODUCT_NAME = 'Designer'
-  GROUP BY OS_NAME, OS_VERSION
-  ORDER BY machine_count DESC
-  LIMIT 100
+sql_template: "SELECT\n  OS_NAME,\n  OS_VERSION,\n  ROUND(AVG(CORES_NUM), 1) AS avg_cores,\n\
+  \  ROUND(AVG(RAM), 0) AS avg_ram_mb,\n  COUNT(DISTINCT MACHINE_ID_DECODED) AS machine_count,\n\
+  \  COUNT(DISTINCT USER_EMAIL) AS user_count,\n  ROUND(COUNT(DISTINCT MACHINE_ID_DECODED)\
+  \ / SUM(COUNT(DISTINCT MACHINE_ID_DECODED)) OVER () * 100, 2) AS pct_of_machines\n\
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ENGINE_DESIGNER_SERVER_RUN_WITH_ASSET_TYPE_VIEW\n\
+  WHERE PRODUCT_NAME = 'Designer'\nGROUP BY OS_NAME, OS_VERSION\nORDER BY machine_count\
+  \ DESC\nLIMIT 100"
 queries: []
 aggregation_level: overall
 grain: overall

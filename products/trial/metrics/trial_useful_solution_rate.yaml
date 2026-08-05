@@ -8,7 +8,7 @@ category: engagement
 definition:
   business: Quality metric showing trial experience satisfaction and product-market
     fit
-  technical: 'From TRIAL_FUNNEL_METRICS_MONTHLY_VIEW: USEFUL_SOLUTION_RATE_MONTHLY'
+  technical: ': USEFUL_SOLUTION_RATE_MONTHLY'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

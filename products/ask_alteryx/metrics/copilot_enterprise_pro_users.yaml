@@ -8,7 +8,7 @@ category: market_size
 definition:
   business: Count of users with Enterprise or Professional tier licenses eligible
     for Copilot
-  technical: '[''ENTERPRISE_PRO_USERS''] from COPILOT_ELIGBLE_USERS_VIEW'
+  technical: '[''ENTERPRISE_PRO_USERS'']'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
@@ -32,8 +32,7 @@ sql_template: "SELECT\n    COUNT(DISTINCT CASE\n        WHEN LICENSE_TYPE = 'Pur
   \        AND COPILOT_ENABLED = TRUE\n         AND DESIGNER_ACTIVATION_STATUS = TRUE\n\
   \         AND DESIGNER_OFFLINE_ACTIVATION = FALSE\n         AND MAXIMUM_RAW_PRODUCT_VERSION\
   \ = '2025.2'\n        THEN USER_ID_RAW\n    END) AS COPILOT_ELIGIBLE_USERS\nFROM\
-  \ DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT;\n\n\n-- ----------------------------------------------------------------------------\n\
-  -- 3. View: COPILOT_ACCOUNTS_ACTIVITY_FUNNEL.VIEW\n-- ----------------------------------------------------------------------------"
+  \ DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT;"
 queries: []
 aggregation_level: overall
 grain: overall

@@ -6,8 +6,7 @@ status: validated
 category: volume
 definition:
   business: Infrastructure health metric for deployment management and support planning
-  technical: From MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW, supported
-    machines
+  technical: ', supported machines'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

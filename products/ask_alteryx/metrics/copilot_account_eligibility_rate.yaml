@@ -6,24 +6,22 @@ status: validated
 category: market_size
 definition:
   business: Percentage of total Alteryx accounts that are eligible for Copilot
-  technical: '[''COPILOT_ELIGIBLE_ACCOUNTS'', ''TOTAL_AYX_ACCOUNTS''] from COPILOT_ELIGIBLE_ACCOUNT_FUNNEL_VIEW'
+  technical: '[''COPILOT_ELIGIBLE_ACCOUNTS'', ''TOTAL_AYX_ACCOUNTS'']'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: "SELECT \n    YEAR_MONTH::DATE AS MONTH_YEAR,\n    COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW)\
-  \ AS \"TOTAL_AYX_ACCOUNTS\",\n    COUNT(DISTINCT CASE  \n        WHEN PRICING_AND_PACKAGING\
+sql_template: "SELECT\n    YEAR_MONTH::DATE AS MONTH_YEAR,\n    COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW)\
+  \ AS \"TOTAL_AYX_ACCOUNTS\",\n    COUNT(DISTINCT CASE\n        WHEN PRICING_AND_PACKAGING\
   \ = 2025\n        THEN BILLING_ACCOUNT_ID_RAW\n    END) AS \"TOTAL_AYX1_ACCOUNTS\"\
-  ,\n    COUNT(DISTINCT CASE \n        WHEN PRICING_AND_PACKAGING = 2025\n       \
-  \  AND ACCOUNT_EDITION IN ('Enterprise', 'Professional')\n        THEN BILLING_ACCOUNT_ID_RAW\n\
-  \    END) AS \"ACCOUNTS_WITH_ENT_AND_PRO\",\n    COUNT(DISTINCT CASE \n        WHEN\
+  ,\n    COUNT(DISTINCT CASE\n        WHEN PRICING_AND_PACKAGING = 2025\n        \
+  \ AND ACCOUNT_EDITION IN ('Enterprise', 'Professional')\n        THEN BILLING_ACCOUNT_ID_RAW\n\
+  \    END) AS \"ACCOUNTS_WITH_ENT_AND_PRO\",\n    COUNT(DISTINCT CASE\n        WHEN\
   \ PRICING_AND_PACKAGING = 2025\n         AND ACCOUNT_EDITION IN ('Enterprise', 'Professional')\n\
   \         AND ACCOUNT_MAX_VERSION >= '2025.2'\n        THEN BILLING_ACCOUNT_ID_RAW\n\
   \    END) AS \"COPILOT_ELIGIBLE_ACCOUNTS\"\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_MONTHLY_ACCOUNT_ONBOARDING_ADAPTION_USAGE_AT\n\
   WHERE PRODUCT_NAME = 'ALTERYX'\n  AND LICENSE_TYPE = 'Purchase'\n  AND YEAR_MONTH\
-  \ > '2026-01-01'\nGROUP BY YEAR_MONTH::DATE\nORDER BY YEAR_MONTH::DATE DESC;\n\n\
-  \n-- ----------------------------------------------------------------------------\n\
-  -- 2. View: COPILOT_ELIGBLE_USERS_VIEW\n-- ----------------------------------------------------------------------------"
+  \ > '2026-01-01'\nGROUP BY YEAR_MONTH::DATE\nORDER BY YEAR_MONTH::DATE DESC;"
 queries: []
 aggregation_level: overall
 grain: overall

@@ -8,7 +8,7 @@ category: adoption
 definition:
   business: Identifies which versions account for 80% of active users, optimizing
     support and compatibility focus
-  technical: From VERSION_RUNNING_SUM_USERS_AND_MACHINE_VIEW with Pareto calculations
+  technical: with Pareto calculations
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

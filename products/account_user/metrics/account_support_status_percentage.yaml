@@ -8,7 +8,7 @@ category: adoption
 definition:
   business: Support health metric tracking upgrade rates and technical debt across
     customer base
-  technical: Calculated from ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
+  technical: Calculated
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

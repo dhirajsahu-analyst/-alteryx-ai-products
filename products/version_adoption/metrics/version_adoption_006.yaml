@@ -7,8 +7,7 @@ category: volume
 definition:
   business: Identifies customer accounts at risk and support-intensive, driving technical
     support and upgrade campaigns
-  technical: From ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW where SUPPORTED_UNSUPPORTED_PREVAILING_VERSION
-    = 'Unsupported'
+  technical: where SUPPORTED_UNSUPPORTED_PREVAILING_VERSION = 'Unsupported'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

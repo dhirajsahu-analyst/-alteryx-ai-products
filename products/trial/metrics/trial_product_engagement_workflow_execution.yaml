@@ -7,7 +7,7 @@ category: engagement
 definition:
   business: Product activation metric showing trial users moving from creation to
     execution
-  technical: 'From TRIAL_FUNNEL_METRICS_MONTHLY_VIEW: USERS_RAN_WORKFLOW'
+  technical: ': USERS_RAN_WORKFLOW'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE

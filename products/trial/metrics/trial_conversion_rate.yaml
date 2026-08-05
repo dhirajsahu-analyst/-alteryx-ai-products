@@ -1,22 +1,23 @@
-id: trial_conversion_rate
-name: Trial Conversion Rate
-description: Percentage of trial signups that convert to customers.
-product: trial
 category: adoption
-status: active
-freshness: daily
-grain: point_in_time
 definition:
   business: Effectiveness of trial program in converting to revenue.
   technical: converted_trials / total_signups * 100
+description: Percentage of trial signups that convert to customers.
+freshness: daily
+grain: point_in_time
+id: trial_conversion_rate
+last_updated: '2026-08-05'
+maintainer: product-insights@alteryx.com
+name: Trial Conversion Rate
+product: trial
 source: PRODUCT_TABLES
-sql_template: SELECT ROUND(100.0 * (SELECT COUNT(*) FROM TRIALS WHERE STATUS = 'CONVERTED')
-  / NULLIF((SELECT COUNT(*) FROM TRIALS), 0), 2) AS conversion_rate
+sql_template: SELECT ROUND((COUNT(DISTINCT CASE WHEN CONVERSION_FLAG = 1 THEN ACCOUNT_ID
+  END) / NULLIF(COUNT(DISTINCT ACCOUNT_ID), 0)) * 100, 2) AS CONVERSION_RATE FROM
+  DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.TRIAL_SIGNUPS_AT
+status: active
 tags:
 - adoption-rate
 - rate-metric
 - trial-conversion
 - revenue
-maintainer: product-insights@alteryx.com
-last_updated: '2026-08-05'
 version: '1.0'

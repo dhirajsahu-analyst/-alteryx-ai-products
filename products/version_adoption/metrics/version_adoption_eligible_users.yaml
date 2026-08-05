@@ -1,21 +1,24 @@
-id: version_adoption_eligible_users
-name: Version Adoption - Eligible Users
-description: Users meeting minimum version requirements.
-product: version_adoption
 category: funnel
-status: active
-freshness: daily
-grain: point_in_time
 definition:
   business: Users with software versions supporting latest features.
   technical: Count of users with version >= minimum_required_version.
+description: Users meeting minimum version requirements.
+freshness: daily
+grain: point_in_time
+id: version_adoption_eligible_users
+last_updated: '2026-08-05'
+maintainer: product-insights@alteryx.com
+name: Version Adoption - Eligible Users
+product: version_adoption
 source: PRODUCT_TABLES
-sql_template: SELECT COUNT(DISTINCT USER_ID) FROM USER_VERSIONS WHERE VERSION >= '2025.2'
+sql_template: SELECT PRODUCT_NAME, COUNT(DISTINCT USER_ID) AS ELIGIBLE_USERS FROM
+  DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PRODUCT_VERSION_ADOPTION WHERE LICENSE_TYPE
+  = 'Purchase' AND STATUS = 'ACTIVATED' AND PRODUCT_NAME IN ('Designer', 'Server')
+  GROUP BY PRODUCT_NAME
+status: active
 tags:
 - funnel
 - funnel-stage
 - adoption
 - version-eligibility
-maintainer: product-insights@alteryx.com
-last_updated: '2026-08-05'
 version: '1.0'

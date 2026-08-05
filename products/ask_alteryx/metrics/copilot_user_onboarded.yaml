@@ -11,10 +11,10 @@ definition:
   business: All users who have engaged with Copilot in any way.
   technical: Count of distinct USER_ID_RAW from COPILOT_ACTIVITY_USAGE_AT with Purchase
     license and aacp user type.
-source: COPILOT_VIEWS
-sql_template: |
-  SELECT ONBOARDED_USERS
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ACTIVITY_FUNNEL_VIEW
+source: COPILOT_ACTIVITY_USAGE_AT
+sql_template: 'SELECT COUNT(DISTINCT USER_ID_RAW) AS ONBOARDED_USERS
+FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+WHERE LICENSE_TYPE = ''Purchase'' AND USER_TYPE = ''aacp'' AND USER_EMAIL IS NOT NULL'
 tags:
 - copilot
 - engagement

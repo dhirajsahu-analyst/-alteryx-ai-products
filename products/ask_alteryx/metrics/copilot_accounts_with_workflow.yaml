@@ -12,10 +12,10 @@ definition:
     to create or modify workflows.
   technical: Count of distinct billing_account_id_raw where chat_id IS NOT NULL AND
     workflow_id IS NOT NULL AND workflow_id <> ''.
-source: COPILOT_VIEWS
-sql_template: |
-  SELECT ACCOUNTS_WITH_AT_LEAST_1_WORKFLOW
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW
+source: COPILOT_ACTIVITY_USAGE_AT
+sql_template: 'SELECT COUNT(DISTINCT CASE WHEN chat_id IS NOT NULL AND workflow_id IS NOT NULL AND workflow_id <> '''' THEN billing_account_id_raw END) AS accounts_with_at_least_1_workflow
+FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+WHERE license_type = ''Purchase'' AND user_type = ''aacp'' AND billing_account_id_raw IS NOT NULL'
 tags:
 - copilot
 - engagement

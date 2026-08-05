@@ -9,10 +9,10 @@ grain: point_in_time
 definition:
   business: Users who have created at least one chat conversation, indicating engagement.
   technical: Count of distinct USER_ID_RAW where CHAT_ID IS NOT NULL.
-source: COPILOT_VIEWS
-sql_template: |
-  SELECT ACTIVE_USERS
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_USERS_ACTIVITY_FUNNEL_VIEW
+source: COPILOT_ACTIVITY_USAGE_AT
+sql_template: 'SELECT COUNT(DISTINCT CASE WHEN CHAT_ID IS NOT NULL THEN USER_ID_RAW END) AS ACTIVE_USERS
+FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+WHERE LICENSE_TYPE = ''Purchase'' AND USER_TYPE = ''aacp'' AND USER_EMAIL IS NOT NULL'
 tags:
 - copilot
 - engagement

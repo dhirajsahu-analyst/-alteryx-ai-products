@@ -11,10 +11,10 @@ definition:
     Purchase license and aacp user type.
   technical: Count of distinct billing_account_id_raw from COPILOT_ACTIVITY_USAGE_AT
     table filtered by license_type='Purchase' and user_type='aacp'.
-source: COPILOT_VIEWS
-sql_template: |
-  SELECT ONBOARDED_ACCOUNTS
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW
+source: COPILOT_ACTIVITY_USAGE_AT
+sql_template: 'SELECT COUNT(DISTINCT billing_account_id_raw) AS onboarded_accounts
+FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+WHERE license_type = ''Purchase'' AND user_type = ''aacp'' AND billing_account_id_raw IS NOT NULL'
 tags:
 - copilot
 - engagement

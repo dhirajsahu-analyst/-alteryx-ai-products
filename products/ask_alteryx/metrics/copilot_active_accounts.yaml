@@ -10,10 +10,10 @@ definition:
   business: Accounts where users have demonstrated engagement by creating at least
     one chat conversation.
   technical: Count of distinct billing_account_id_raw where chat_id IS NOT NULL.
-source: COPILOT_VIEWS
-sql_template: |
-  SELECT ACTIVE_ACCOUNTS
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW
+source: COPILOT_ACTIVITY_USAGE_AT
+sql_template: 'SELECT COUNT(DISTINCT CASE WHEN chat_id IS NOT NULL THEN billing_account_id_raw END) AS active_accounts
+FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+WHERE license_type = ''Purchase'' AND user_type = ''aacp'' AND billing_account_id_raw IS NOT NULL'
 tags:
 - copilot
 - engagement

@@ -12,10 +12,17 @@ definition:
     multiple conversations.
   technical: Count of accounts with users having COUNT(DISTINCT conversation_id) >=
     5 within the account.
-source: COPILOT_VIEWS
-sql_template: |
-  SELECT ENGAGED_ACCOUNTS
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW
+source: COPILOT_ACTIVITY_USAGE_AT
+sql_template: 'WITH engaged_accounts AS (
+    SELECT billing_account_id_raw
+    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+    WHERE license_type = ''Purchase'' AND user_type = ''aacp'' AND chat_id IS NOT NULL AND billing_account_id_raw IS NOT NULL
+    GROUP BY billing_account_id_raw, created_by_id
+    HAVING COUNT(DISTINCT conversation_id) >= 5
+)
+SELECT COUNT(DISTINCT CASE WHEN billing_account_id_raw IN (SELECT billing_account_id_raw FROM engaged_accounts) THEN billing_account_id_raw END) AS engaged_accounts
+FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+WHERE license_type = ''Purchase'' AND user_type = ''aacp'' AND billing_account_id_raw IS NOT NULL'
 tags:
 - copilot
 - engagement

@@ -1,6 +1,7 @@
 id: version_adoption_pareto_analysis_users_and_machines
 name: Version Adoption Pareto Analysis (Users and Machines)
-description: Cumulative distribution of users and machines across versions showing concentration points
+description: Cumulative distribution of users and machines across versions showing
+  concentration points
 product: account_user
 status: validated
 category: adoption
@@ -11,28 +12,21 @@ source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |
-  SELECT
-    PRODUCT_ID,
-    VERSION,
-    TOTAL_USERS,
-    RUNNING_PCT_OF_USER_TOTAL,
-    TOTAL_MACHINES,
-    RUNNING_PCT_OF_MACHINE_TOTAL,
-    ROW_NUMBER() OVER (PARTITION BY PRODUCT_ID ORDER BY TOTAL_USERS DESC) AS user_rank,
-    CASE
-      WHEN RUNNING_PCT_OF_USER_TOTAL <= 50 THEN 'Critical'
-      WHEN RUNNING_PCT_OF_USER_TOTAL <= 80 THEN 'Important'
-      ELSE 'Long Tail'
-    END AS user_segment,
-    CASE
-      WHEN RUNNING_PCT_OF_MACHINE_TOTAL <= 50 THEN 'Critical'
-      WHEN RUNNING_PCT_OF_MACHINE_TOTAL <= 80 THEN 'Important'
-      ELSE 'Long Tail'
-    END AS machine_segment
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.VERSION_RUNNING_SUM_USERS_AND_MACHINE_VIEW
-  ORDER BY PRODUCT_ID, RUNNING_PCT_OF_USER_TOTAL
-  LIMIT 100
+sql_template: "SELECT\n    PRODUCT_ID,\n    VERSION,\n    COUNT(DISTINCT USER_ID)\
+  \ AS TOTAL_USERS,\n    ROUND(\n        SUM(COUNT(DISTINCT USER_ID)) OVER (\n   \
+  \         PARTITION BY PRODUCT_ID ORDER BY COUNT(DISTINCT USER_ID) DESC ROWS UNBOUNDED\
+  \ PRECEDING\n        ) / SUM(COUNT(DISTINCT USER_ID)) OVER (PARTITION BY PRODUCT_ID),\n\
+  \        4\n    ) AS RUNNING_PCT_OF_USER_TOTAL,\n    --Machine Metrics\n    COUNT(DISTINCT\
+  \ MACHINE_ID) AS TOTAL_MACHINES,\n    ROUND(\n        SUM(COUNT(DISTINCT MACHINE_ID))\
+  \ OVER (\n            PARTITION BY PRODUCT_ID ORDER BY COUNT(DISTINCT MACHINE_ID)\
+  \ DESC ROWS UNBOUNDED PRECEDING\n        ) / SUM(COUNT(DISTINCT MACHINE_ID)) OVER\
+  \ (PARTITION BY PRODUCT_ID),\n        4\n    ) AS RUNNING_PCT_OF_MACHINE_TOTAL\n\
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PRODUCT_VERSION_ADOPTION\nWHERE\n\
+  \    (PRODUCT_ID = 'Alteryx Designer'\n        AND MONTH >= DATEADD(MONTH, -1, LAST_DAY(CURRENT_DATE\
+  \ - INTERVAL '1 month')))\n    OR\n    (PRODUCT_ID = 'Alteryx Server'\n        AND\
+  \ MONTH >= DATE_TRUNC('MONTH', DATEADD('MONTH', -1, CURRENT_DATE))\n        AND\
+  \ MONTH <  DATE_TRUNC('MONTH', CURRENT_DATE))\nGROUP BY PRODUCT_ID, VERSION\nORDER\
+  \ BY PRODUCT_ID, TOTAL_USERS DESC;"
 queries: []
 aggregation_level: overall
 grain: overall

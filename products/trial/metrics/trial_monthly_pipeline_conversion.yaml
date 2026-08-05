@@ -11,18 +11,31 @@ source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |
-  SELECT
-    RESPONSE_MONTH,
-    TOTAL_TRIAL_REGISTRATION,
-    PIPELINE,
-    ROUND((PIPELINE / NULLIF(TOTAL_TRIAL_REGISTRATION, 0)) * 100, 2) AS pipeline_rate_pct,
-    LAG(PIPELINE) OVER (ORDER BY RESPONSE_MONTH) AS prev_month_pipeline,
-    ROUND((PIPELINE - LAG(PIPELINE) OVER (ORDER BY RESPONSE_MONTH)) /
-          NULLIF(LAG(PIPELINE) OVER (ORDER BY RESPONSE_MONTH), 0) * 100, 2) AS mom_growth_pct
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.TRIAL_FUNNEL_METRICS_MONTHLY_VIEW
-  ORDER BY RESPONSE_MONTH DESC
-  LIMIT 100
+sql_template: "SELECT\n    DATE_TRUNC(\n        'MONTH',\n        effective_first_responded_date\n\
+  \    ) AS response_month,\n\n    COUNT(\n        DISTINCT campaign_member_email\n\
+  \    ) AS total_trial_registration,\n\n    COUNT(DISTINCT CASE\n        WHEN is_response_to_ql_conversion\n\
+  \        THEN campaign_member_email\n    END) AS ql,\n\n    COUNT(DISTINCT CASE\n\
+  \        WHEN is_response_to_sal_conversion\n        THEN campaign_member_email\n\
+  \    END) AS sal,\n\n    COUNT(DISTINCT CASE\n        WHEN is_response_to_pipeline_conversion\n\
+  \        THEN campaign_member_email\n    END) AS pipeline,\n\n    COUNT(DISTINCT\
+  \ CASE\n        WHEN is_response_to_cw_conversion\n        THEN campaign_member_email\n\
+  \    END) AS closed_won,\n\n    COUNT(DISTINCT CASE\n        WHEN is_response_filtered\n\
+  \        THEN campaign_member_email\n    END) AS filtered_response_count,\n\n  \
+  \  ROUND(\n        COUNT(DISTINCT CASE\n            WHEN is_response_to_cw_conversion\n\
+  \            THEN campaign_member_email\n        END)\n        / NULLIF(\n     \
+  \       COUNT(DISTINCT CASE\n                WHEN is_response_filtered\n       \
+  \         THEN campaign_member_email\n            END),\n            0\n       \
+  \ ),\n        4\n    ) AS adjusted_closed_won_rate_pct,\n\n    COUNT(DISTINCT CASE\n\
+  \        WHEN COALESCE(dc_workflow_created, 0) > 0\n        THEN campaign_member_email\n\
+  \    END) AS users_created_new_workflow,\n\n    COUNT(DISTINCT CASE\n        WHEN\
+  \ COALESCE(desktop_wf_run, 0) > 0\n          OR COALESCE(dc_workflow_run, 0) > 0\n\
+  \        THEN campaign_member_email\n    END) AS users_ran_workflow,\n\n    ROUND(\n\
+  \        COUNT(DISTINCT CASE\n            WHEN COALESCE(desktop_wf_run, 0) > 0\n\
+  \              OR COALESCE(dc_workflow_run, 0) > 0\n            THEN campaign_member_email\n\
+  \        END)\n        / NULLIF(\n            COUNT(DISTINCT campaign_member_email),\n\
+  \            0\n        ),\n        4\n    ) AS useful_solution_rate_monthly\n\n\
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.TRIAL_FUNNEL_METRICS\n\nGROUP BY\n\
+  \    response_month;"
 queries: []
 aggregation_level: monthly
 grain: monthly

@@ -5,20 +5,29 @@ product: designer
 status: validated
 category: adoption
 definition:
-  business: Key adoption metric for latest Designer generation tracking migration to modern platform
+  business: Key adoption metric for latest Designer generation tracking migration
+    to modern platform
   technical: 'From DESIGNER_2025_ADOPTION_PCT_LATEST_MONTH_VIEW: latest month snapshot'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |
-  SELECT
-    PCT_OF_DESIGNER_ACCOUNTS,
-    PCT_OF_DESIGNER_USERS,
-    (PCT_OF_DESIGNER_ACCOUNTS + PCT_OF_DESIGNER_USERS) / 2 AS blended_adoption_rate,
-    ROUND(PCT_OF_DESIGNER_ACCOUNTS - PCT_OF_DESIGNER_USERS, 2) AS account_user_gap
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.DESIGNER_2025_ADOPTION_PCT_LATEST_MONTH_VIEW
-  LIMIT 1
+sql_template: "SELECT\n    ROUND(\n        COUNT(DISTINCT CASE\n            WHEN DATE_TRUNC('MONTH',\
+  \ MONTH) = DATE_TRUNC('MONTH', DATEADD('MONTH', -1, CURRENT_DATE()))\n         \
+  \    AND LICENSE_TYPE = 'Purchase'\n             AND PRODUCT_ID = 'Alteryx Designer'\n\
+  \             AND \"Designer Prevailing VERSION\" >= '2025.1'\n            THEN\
+  \ BILLING_ACCOUNT_ID\n        END)\n        / NULLIF(\n            COUNT(DISTINCT\
+  \ CASE\n                WHEN DATE_TRUNC('MONTH', MONTH) = DATE_TRUNC('MONTH', DATEADD('MONTH',\
+  \ -1, CURRENT_DATE()))\n                 AND LICENSE_TYPE = 'Purchase'\n       \
+  \         THEN BILLING_ACCOUNT_ID\n            END), 0),\n        2\n    ) AS PCT_OF_DESIGNER_ACCOUNTS,\n\
+  \n    ROUND(\n        COUNT(DISTINCT CASE\n            WHEN DATE_TRUNC('MONTH',\
+  \ MONTH) = DATE_TRUNC('MONTH', DATEADD('MONTH', -1, CURRENT_DATE()))\n         \
+  \    AND LICENSE_TYPE = 'Purchase'\n             AND PRODUCT_ID = 'Alteryx Designer'\n\
+  \             AND VERSION >= '2025.1'\n            THEN \"USER_ID\"\n        END)\n\
+  \        / NULLIF(\n            COUNT(DISTINCT CASE\n                WHEN DATE_TRUNC('MONTH',\
+  \ MONTH) = DATE_TRUNC('MONTH', DATEADD('MONTH', -1, CURRENT_DATE()))\n         \
+  \        AND LICENSE_TYPE = 'Purchase'\n                THEN \"USER_ID\"\n     \
+  \       END), 0),\n        2\n    ) AS PCT_OF_DESIGNER_USERS\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PRODUCT_VERSION_ADOPTION;"
 queries: []
 aggregation_level: overall
 grain: overall

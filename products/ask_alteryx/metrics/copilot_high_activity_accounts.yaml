@@ -11,8 +11,29 @@ source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |-
-  SELECT ENGAGED_ACCOUNTS as high_activity_accounts_count FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW WHERE ENGAGED_ACCOUNTS > 0 LIMIT 100
+sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW(\n\
+  \    ONBOARDED_ACCOUNTS COMMENT 'Distinct Purchase accounts with at least one AACP\
+  \ user present in the source data.',\n    ACTIVE_ACCOUNTS COMMENT 'Distinct onboarded\
+  \ accounts with at least one chat activity.',\n    ACCOUNTS_WITH_AT_LEAST_1_WORKFLOW\
+  \ COMMENT 'Distinct active accounts with at least one non-empty workflow ID, indicating\
+  \ that a workflow was created or associated with chat activity.',\n    ENGAGED_ACCOUNTS\
+  \ COMMENT 'Distinct accounts with at least one AACP user who has created five or\
+  \ more distinct conversations.'\n) AS\nWITH engaged_accounts AS (\n    SELECT\n\
+  \        billing_account_id_raw\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
+  \    WHERE license_type = 'Purchase'\n      AND user_type = 'aacp'\n      AND chat_id\
+  \ IS NOT NULL\n      AND billing_account_id_raw IS NOT NULL\n    GROUP BY\n    \
+  \    billing_account_id_raw,\n        created_by_id\n    HAVING COUNT(DISTINCT conversation_id)\
+  \ >= 5\n)\nSELECT\n    COUNT(DISTINCT billing_account_id_raw) AS onboarded_accounts,\n\
+  \    COUNT(DISTINCT CASE\n        WHEN chat_id IS NOT NULL\n        THEN billing_account_id_raw\n\
+  \    END) AS active_accounts,\n    COUNT(DISTINCT CASE\n        WHEN chat_id IS\
+  \ NOT NULL\n         AND workflow_id IS NOT NULL\n         AND workflow_id <> ''\n\
+  \        THEN billing_account_id_raw\n    END) AS accounts_with_at_least_1_workflow,\n\
+  \    COUNT(DISTINCT CASE\n        WHEN billing_account_id_raw IN (\n           \
+  \ SELECT billing_account_id_raw\n            FROM engaged_accounts\n        )\n\
+  \        THEN billing_account_id_raw\n    END) AS engaged_accounts\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
+  WHERE license_type = 'Purchase'\n  AND user_type = 'aacp'\n  AND billing_account_id_raw\
+  \ IS NOT NULL;\n\n\n-- ----------------------------------------------------------------------------\n\
+  -- 4. View: COPILOT_USERS_ACTIVITY_FUNNEL.VIEW\n-- ----------------------------------------------------------------------------"
 queries: []
 aggregation_level: overall
 grain: overall

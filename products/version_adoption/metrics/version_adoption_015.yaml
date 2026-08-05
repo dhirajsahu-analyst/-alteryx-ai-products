@@ -11,18 +11,18 @@ source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |
-  SELECT
-    MONTH,
-    DESIGNER_PCT_SUPPORTED,
-    SERVER_PCT_SUPPORTED,
-    ROUND(DESIGNER_PCT_SUPPORTED, 2) AS designer_machines_supported,
-    ROUND(100 - DESIGNER_PCT_SUPPORTED, 2) AS designer_machines_unsupported,
-    ROUND((DESIGNER_PCT_SUPPORTED + SERVER_PCT_SUPPORTED) / 2, 2) AS blended_machine_support
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_MACHINE_PERCENTAGE_VIEW
-  WHERE MONTH >= DATEADD('MONTH', -12, CURRENT_DATE())
-  ORDER BY MONTH DESC
-  LIMIT 100
+sql_template: "SELECT\n    DATE(MONTH) AS MONTH,\n    COUNT(DISTINCT CASE WHEN PRODUCT_ID\
+  \ = 'Alteryx Designer'\n                         AND \"Supported_Unsupported\" =\
+  \ 'Supported'\n                        THEN MACHINE_ID ELSE NULL END)\n        /\
+  \ NULLIF(COUNT(DISTINCT CASE WHEN PRODUCT_ID = 'Alteryx Designer'\n            \
+  \            THEN MACHINE_ID ELSE NULL END), 0) AS DESIGNER_PCT_SUPPORTED,\n   \
+  \ COUNT(DISTINCT CASE WHEN PRODUCT_ID = 'Alteryx Server'\n                     \
+  \    AND \"Supported_Unsupported\" = 'Supported'\n                        THEN MACHINE_ID\
+  \ ELSE NULL END)\n        / NULLIF(COUNT(DISTINCT CASE WHEN PRODUCT_ID = 'Alteryx\
+  \ Server'\n                        THEN MACHINE_ID ELSE NULL END), 0) AS SERVER_PCT_SUPPORTED\n\
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PRODUCT_VERSION_ADOPTION\nWHERE PRODUCT_ID\
+  \ IN ('Alteryx Designer', 'Alteryx Server')\n  AND MONTH >= DATE_TRUNC('MONTH',\
+  \ DATEADD('MONTH', -6, CURRENT_DATE))\nGROUP BY MONTH\nORDER BY MONTH DESC;"
 queries: []
 aggregation_level: monthly
 grain: monthly

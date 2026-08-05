@@ -1,28 +1,53 @@
 id: version_adoption_001
 name: Designer Version Adoption Rate
-description: Percentage of Designer users running a supported (current) product version, measured against total active Designer users
+description: Percentage of Designer users running a supported (current) product version,
+  measured against total active Designer users
 product: version_adoption
 status: validated
 category: adoption
 definition:
-  business: Tracks the percentage of Designer users upgraded to supported versions, indicating upgrade velocity and technical debt
-  technical: 'Derived from VERSION_ADOPTION_30_60_90_DAYS_VIEW: DESIGNER_VERSION_USERS / DESIGNER_TOTAL_USERS * 100'
+  business: Tracks the percentage of Designer users upgraded to supported versions,
+    indicating upgrade velocity and technical debt
+  technical: 'Derived from VERSION_ADOPTION_30_60_90_DAYS_VIEW: DESIGNER_VERSION_USERS
+    / DESIGNER_TOTAL_USERS * 100'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |
-  SELECT
-    VERSION,
-    DAYS,
-    RELEASE_DATE,
-    DESIGNER_VERSION_USERS,
-    DESIGNER_TOTAL_USERS,
-    ROUND((DESIGNER_VERSION_USERS / NULLIF(DESIGNER_TOTAL_USERS, 0)) * 100, 2) AS adoption_pct
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.VERSION_ADOPTION_30_60_90_DAYS_VIEW
-  WHERE DAYS IN (30, 60, 90, 180)
-  ORDER BY RELEASE_DATE DESC, DAYS ASC
-  LIMIT 100
+sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.VERSION_ADOPTION_30_60_90_DAYS_VIEW\n\
+  (\n    VERSION                        COMMENT 'Product version whose post-release\
+  \ adoption curve is measured.',\n    DAYS                           COMMENT 'Days\
+  \ elapsed since RELEASE_DATE at which adoption is measured. Restricted to 30, 60,\
+  \ 90 and 180.',\n    RELEASE_DATE                   COMMENT 'General availability\
+  \ release date of the version.',\n    DESIGNER_VERSION_USERS         COMMENT 'Designer\
+  \ users on this version within DAYS of its release.',\n    DESIGNER_TOTAL_USERS\
+  \           COMMENT 'All Designer users in the same window, used as the adoption\
+  \ denominator.',\n    SERVER_VERSION_MACHINES        COMMENT 'Server machines on\
+  \ this version within DAYS of its release.',\n    SERVER_TOTAL_MACHINES        \
+  \  COMMENT 'All Server machines in the same window, used as the adoption denominator.',\n\
+  \    DESIGNER_ADOPTION              COMMENT 'Designer adoption percentage (1 dp):\
+  \ DESIGNER_VERSION_USERS * 100 / DESIGNER_TOTAL_USERS, divide-by-zero safe via DIV0.',\n\
+  \    SERVER_ADOPTION                COMMENT 'Server adoption percentage (1 dp):\
+  \ SERVER_VERSION_MACHINES * 100 / SERVER_TOTAL_MACHINES, divide-by-zero safe via\
+  \ DIV0.',\n    DESIGNER_ADOPTION_AVG_BY_DAYS  COMMENT 'Average DESIGNER_ADOPTION\
+  \ across all versions at the same DAYS milestone, used as the benchmark line.',\n\
+  \    SERVER_ADOPTION_AVG_BY_DAYS    COMMENT 'Average SERVER_ADOPTION across all\
+  \ versions at the same DAYS milestone, used as the benchmark line.'\n)\n\nAS\nWITH\
+  \ base AS (\n    SELECT\n        VERSION,\n        DAYS::INT AS DAYS,\n        RELEASE_DATE,\n\
+  \        SUM(DESIGNER_VERSION_USERS)   AS DESIGNER_VERSION_USERS,\n        SUM(DESIGNER_TOTAL_USERS)\
+  \     AS DESIGNER_TOTAL_USERS,\n        SUM(SERVER_VERSION_MACHINES)  AS SERVER_VERSION_MACHINES,\n\
+  \        SUM(SERVER_TOTAL_MACHINES)    AS SERVER_TOTAL_MACHINES\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.TEL_STRAT.VERSION_ADOPTION_RATES\n\
+  \    WHERE DAYS IN (30, 60, 90, 180)\n    GROUP BY\n        VERSION,\n        DAYS,\n\
+  \        RELEASE_DATE\n),\nrates AS (\n    SELECT\n        VERSION,\n        DAYS,\n\
+  \        RELEASE_DATE,\n        DESIGNER_VERSION_USERS,\n        DESIGNER_TOTAL_USERS,\n\
+  \        SERVER_VERSION_MACHINES,\n        SERVER_TOTAL_MACHINES,\n        ROUND(DIV0(DESIGNER_VERSION_USERS\
+  \ * 100, DESIGNER_TOTAL_USERS), 1)  AS DESIGNER_ADOPTION,\n        ROUND(DIV0(SERVER_VERSION_MACHINES\
+  \ * 100, SERVER_TOTAL_MACHINES), 1) AS SERVER_ADOPTION\n    FROM base\n)\nSELECT\n\
+  \    VERSION,\n    DAYS,\n    RELEASE_DATE,\n    DESIGNER_VERSION_USERS,\n    DESIGNER_TOTAL_USERS,\n\
+  \    SERVER_VERSION_MACHINES,\n    SERVER_TOTAL_MACHINES,\n    DESIGNER_ADOPTION,\n\
+  \    SERVER_ADOPTION,\n    AVG(DESIGNER_ADOPTION) OVER (PARTITION BY DAYS) AS DESIGNER_ADOPTION_AVG_BY_DAYS,\n\
+  \    AVG(SERVER_ADOPTION)   OVER (PARTITION BY DAYS) AS SERVER_ADOPTION_AVG_BY_DAYS\n\
+  FROM rates\nORDER BY\n    DAYS,\n    RELEASE_DATE,\n    VERSION;"
 queries: []
 aggregation_level: monthly
 grain: monthly

@@ -1,30 +1,30 @@
 id: version_adoption_011
 name: Machine and User Supported Version Percentage
-description: Monthly percentage of machines and users running supported versions by product
+description: Monthly percentage of machines and users running supported versions by
+  product
 product: version_adoption
 status: validated
 category: adoption
 definition:
-  business: Technical health metric showing infrastructure modernization and support risk exposure
+  business: Technical health metric showing infrastructure modernization and support
+    risk exposure
   technical: From MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |
-  SELECT
-    MONTH,
-    PRODUCT_ID,
-    TOTAL_MACHINES,
-    PCT_SUPPORTED_MACHINE,
-    TOTAL_USERS,
-    PCT_SUPPORTED_USER,
-    (PCT_SUPPORTED_MACHINE + PCT_SUPPORTED_USER) / 2 AS blended_support_pct,
-    LAG(PCT_SUPPORTED_MACHINE) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH) AS prev_machine_pct,
-    LAG(PCT_SUPPORTED_USER) OVER (PARTITION BY PRODUCT_ID ORDER BY MONTH) AS prev_user_pct
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
-  ORDER BY MONTH DESC, PRODUCT_ID
-  LIMIT 100
+sql_template: "SELECT\n    DATE(MONTH) AS MONTH,\n    PRODUCT_ID,\n    \"Supported_Unsupported\"\
+  \ AS SUPPORTED_UNSUPPORTED,\n\n    --Machine Metrics\n    COUNT(DISTINCT MACHINE_ID)\
+  \ AS TOTAL_MACHINES,\n    ROUND(\n        COUNT(DISTINCT CASE WHEN \"Supported_Unsupported\"\
+  \ = 'Supported' THEN MACHINE_ID END)\n        / NULLIF(SUM(COUNT(DISTINCT MACHINE_ID))\
+  \ OVER (PARTITION BY MONTH, PRODUCT_ID), 0),\n        4\n    ) AS PCT_SUPPORTED_MACHINE,\n\
+  \n    --User Metrics\n    COUNT(DISTINCT USER_ID) AS TOTAL_USERS,\n    ROUND(\n\
+  \        COUNT(DISTINCT CASE WHEN \"Supported_Unsupported\" = 'Supported' THEN USER_ID\
+  \ END)\n        / NULLIF(SUM(COUNT(DISTINCT USER_ID)) OVER (PARTITION BY MONTH,\
+  \ PRODUCT_ID), 0),\n        4\n    ) AS PCT_SUPPORTED_USER\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PRODUCT_VERSION_ADOPTION\n\
+  WHERE PRODUCT_ID IN ('Alteryx Designer', 'Alteryx Server')\n  AND MONTH >= DATE_TRUNC('MONTH',\
+  \ DATEADD('MONTH', -6, CURRENT_DATE))\n  AND MONTH <  DATE_TRUNC('MONTH', CURRENT_DATE)\n\
+  GROUP BY MONTH, PRODUCT_ID, \"Supported_Unsupported\"\nORDER BY MONTH DESC, PRODUCT_ID;"
 queries: []
 aggregation_level: monthly
 grain: monthly

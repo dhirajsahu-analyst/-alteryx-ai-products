@@ -11,8 +11,24 @@ source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |-
-  SELECT COPILOT_PCT_WORKFLOW_RUNS as copilot_workflow_percentage FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_WORKFLOW_DETAILS_VIEW LIMIT 100
+sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_WORKFLOW_DETAILS_VIEW\
+  \ (\n    COPILOT_MAPPED_WORKFLOW_RUNS COMMENT 'Total number of Designer workflow\
+  \ runs mapped to workflows created by Ask Alteryx.',\n    COPILOT_PCT_WORKFLOW_RUNS\
+  \ COMMENT 'The percentage of Designer workflow runs mapped to Copilot, represented\
+  \ as a decimal ratio between 0 and 1.'\n) AS\n-- ============================================================================\n\
+  -- VIEW: COPILOT_WORKFLOW_DETAILS_VIEW\n-- DESCRIPTION: Computes Copilot mapped\
+  \ workflow runs and run percentage metrics,\n-- using the standard metric source\
+  \ COPILOT_DESIGNER_WORKFLOW_PCT_AT.\n-- ============================================================================\n\
+  SELECT\n\n-- ============================================\n-- METRIC DEFINITIONS\n\
+  -- ============================================\n\n-- COPILOT_MAPPED_WORKFLOW_RUNS\n\
+  -- Total number of workflow runs that have been successfully\n-- mapped to workflows\
+  \ created by Ask Alteryx (Copilot).\n-- Represents the numerator used in the Copilot\
+  \ Run Percentage metric.\n\n    COPILOT_MAPPED_WORKFLOW_RUNS,\n\n-- COPILOT_PCT_WORKFLOW_RUNS\n\
+  -- Percentage of Designer workflow runs that were generated\n-- or mapped to Ask\
+  \ Alteryx (Copilot) workflows.\n--\n-- Formula:\n-- Copilot Mapped Workflow Runs\
+  \ / Total Eligible Workflow Runs\n--\n-- Returned as a decimal ratio.\n-- Example:\
+  \ 0.1189 represents 11.89%.\n\n    ROUND(COPILOT_PCT_WORKFLOW_RUNS / 100.0, 4) AS\
+  \ COPILOT_PCT_WORKFLOW_RUNS\n\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_DESIGNER_WORKFLOW_PCT_AT;"
 queries: []
 aggregation_level: overall
 grain: overall

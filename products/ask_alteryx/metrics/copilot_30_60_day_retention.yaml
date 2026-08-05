@@ -5,20 +5,60 @@ product: ask_alteryx
 status: validated
 category: retention
 definition:
-  business: Measures sustained usage after the first month. Indicates whether Copilot provides ongoing value and prevents churn.
+  business: Measures sustained usage after the first month. Indicates whether Copilot
+    provides ongoing value and prevents churn.
   technical: RETURNING_RATE_PCT from COPILOT_30_60_RETENTION_RATE_VIEW
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |
-  SELECT
-    RETURNING_RATE_PCT as retention_rate_pct,
-    RETURNING_USERS_30_60D as returning_users_count,
-    TOTAL_USERS as cohort_size
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_30_60_RETENTION_RATE_VIEW
-  WHERE RETURNING_RATE_PCT IS NOT NULL
-  LIMIT 100
+sql_template: "CREATE OR REPLACE VIEW DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_30_60_RETENTION_RATE_VIEW\
+  \ (\n    TOTAL_USERS COMMENT 'The total count of unique Purchase users eligible\
+  \ for 30-60 day retention analysis.',\n    RETURNING_USERS_30_60D COMMENT 'The number\
+  \ of eligible users who returned to use Copilot at least once between Day 30 and\
+  \ Day 60.',\n    RETURNING_RATE_PCT COMMENT 'The returning user rate represented\
+  \ as a decimal ratio between 0 and 1.'\n) AS\n-- ============================================================================\n\
+  -- VIEW: COPILOT_30_60_RETENTION_RATE_VIEW\n-- DESCRIPTION: Computes 30-60 day retention\
+  \ rate of Purchase users on Professional/Enterprise\n-- accounts who have at least\
+  \ one Copilot chat activity, using the standard metric\n-- source COPILOT_ACTIVITY_USAGE_AT.\n\
+  -- ============================================================================\n\
+  WITH\n\n-- ============================================\n-- USER_ACTIVITY\n-- ============================================\n\
+  -- Captures Purchase users from Professional or Enterprise accounts\n-- who have\
+  \ at least one Copilot chat activity.\n-- Each record represents a user's activity\
+  \ on a specific date.\n\nuser_activity AS (    \n    SELECT\n        USER_EMAIL\
+  \ AS CREATED_BY_ID,\n        CAST(CONV_CREATED_DATE AS DATE) AS activity_date\n\
+  \    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
+  \    WHERE ACCOUNT_EDITION IN ('Professional','Enterprise')\n      AND LICENSE_TYPE\
+  \ = 'Purchase'\n      AND CHAT_ID IS NOT NULL\n),\n\n-- ============================================\n\
+  -- FIRST_USE\n-- ============================================\n-- Identifies the\
+  \ first date each user used Copilot.\n-- This date is used as the cohort anchor\
+  \ for retention analysis.\n\nfirst_use AS (\n    SELECT\n        CREATED_BY_ID,\n\
+  \        MIN(activity_date) AS first_date\n    FROM user_activity\n    GROUP BY\
+  \ CREATED_BY_ID\n),\n\n-- ============================================\n-- ELIGIBLE_COHORT\n\
+  -- ============================================\n-- Users whose first Copilot activity\
+  \ occurred at least 30 days ago.\n-- These users have reached the beginning of the\
+  \ 30–60 day return window.\n\neligible_cohort AS (\n    SELECT\n        CREATED_BY_ID,\n\
+  \        first_date\n    FROM first_use\n    WHERE first_date <= DATEADD(day, -30,\
+  \ CURRENT_DATE())\n),\n\n-- ============================================\n-- RETURNS_30_60\n\
+  -- ============================================\n-- Users who returned to Copilot\
+  \ at least once between\n-- Day 30 and Day 60 after their first use.\n\nreturns_30_60\
+  \ AS (\n    SELECT\n        e.CREATED_BY_ID,\n        MIN(ua.activity_date) AS first_return_date_in_window\n\
+  \    FROM eligible_cohort e\n    JOIN user_activity ua\n      ON ua.CREATED_BY_ID\
+  \ = e.CREATED_BY_ID\n     AND ua.activity_date BETWEEN DATEADD(day, 30, e.first_date)\n\
+  \                              AND DATEADD(day, 60, e.first_date)\n    GROUP BY\
+  \ e.CREATED_BY_ID\n)\n\nSELECT\n\n-- ============================================\n\
+  -- METRIC DEFINITIONS\n-- ============================================\n\n-- TOTAL_USERS\n\
+  -- Number of users eligible for 30–60 day retention analysis.\n-- These users first\
+  \ used Copilot at least 30 days ago.\n\n    (SELECT COUNT(*) FROM eligible_cohort)\
+  \ AS total_users,\n\n-- RETURNING_USERS_30_60D\n-- Number of eligible users who\
+  \ returned to use Copilot\n-- at least once between Day 30 and Day 60 after first\
+  \ use.\n\n    (SELECT COUNT(*) FROM returns_30_60) AS returning_users_30_60d,\n\n\
+  -- RETURNING_RATE_PCT\n-- Share of eligible users who returned between\n-- Day 30\
+  \ and Day 60 after first using Copilot.\n--\n-- Formula:\n-- Returning Users (30–60\
+  \ Days) / Total Eligible Users\n--\n-- Returned as a decimal ratio.\n-- Example:\
+  \ 0.1845 represents 18.45%.\n\n    ROUND(\n        ROUND(\n            (SELECT COUNT(*)\
+  \ FROM returns_30_60) * 100.0 /\n            NULLIF((SELECT COUNT(*) FROM eligible_cohort),\
+  \ 0),\n            2\n        ) / 100.0,\n        4\n    ) AS returning_rate_pct;"
 queries: []
 aggregation_level: overall
 grain: overall

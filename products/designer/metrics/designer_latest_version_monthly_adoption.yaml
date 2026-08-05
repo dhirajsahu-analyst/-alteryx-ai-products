@@ -1,31 +1,40 @@
 id: designer_latest_version_monthly_adoption
 name: Designer Latest Version Monthly Adoption
-description: Monthly trend of Designer 2025.1+ accounts and users with Alteryx One breakdown
+description: Monthly trend of Designer 2025.1+ accounts and users with Alteryx One
+  breakdown
 product: designer
 status: validated
 category: adoption
 definition:
-  business: Adoption velocity tracking showing monthly progression of latest version uptake
+  business: Adoption velocity tracking showing monthly progression of latest version
+    uptake
   technical: From DESIGNER_LATEST_VERSION_ADOPTION_MONTHLY_VIEW with time series
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |
-  SELECT
-    MONTH,
-    TOTAL_ACCOUNTS_PREVAILING_2025_1_PLUS,
-    TOTAL_USERS_VERSION_2025_1_PLUS,
-    TOTAL_AYX_ONE_ACCOUNTS,
-    TOTAL_AYX_ONE_USERS,
-    ROUND(TOTAL_ACCOUNTS_PREVAILING_2025_1_PLUS / NULLIF(TOTAL_AYX_ONE_ACCOUNTS, 0) * 100, 2) AS pct_ayx1_on_2025,
-    ROUND(TOTAL_USERS_VERSION_2025_1_PLUS / NULLIF(TOTAL_AYX_ONE_USERS, 0) * 100, 2) AS pct_ayx1_users_on_2025,
-    LAG(TOTAL_USERS_VERSION_2025_1_PLUS) OVER (ORDER BY MONTH) AS prev_month_users,
-    ROUND((TOTAL_USERS_VERSION_2025_1_PLUS - LAG(TOTAL_USERS_VERSION_2025_1_PLUS) OVER (ORDER BY MONTH)) /
-          NULLIF(LAG(TOTAL_USERS_VERSION_2025_1_PLUS) OVER (ORDER BY MONTH), 0) * 100, 2) AS mom_user_growth_pct
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.DESIGNER_LATEST_VERSION_ADOPTION_MONTHLY_VIEW
-  ORDER BY MONTH DESC
-  LIMIT 100
+sql_template: "SELECT\n    DATE(MONTH) AS MONTH,\n\n    -- from TOTAL_ELIGIBLE_DESIGNER_ACCOUNTS_IN_LATEST_VERSION\n\
+  \    COUNT(DISTINCT CASE WHEN \"Designer Prevailing VERSION\" >= 2025.1\n      \
+  \                  THEN BILLING_ACCOUNT_ID END)             AS TOTAL_ACCOUNTS_PREVAILING_2025_1_PLUS,\n\
+  \n    -- from TOTAL_DESIGNERS_USERS_VERSION_2025_AND_ABOVE (note: raw VERSION, not\
+  \ Prevailing)\n    COUNT(DISTINCT CASE WHEN \"VERSION\" >= 2025.1\n            \
+  \            THEN USER_ID END)                        AS TOTAL_USERS_VERSION_2025_1_PLUS,\n\
+  \n    -- from TOTAL_AYX_ONE_ACCOUNTS (adds 2025 pricing/packaging condition)\n \
+  \   COUNT(DISTINCT CASE WHEN \"PRICING_AND_PACKAGING\" = '2025'\n              \
+  \           AND \"Designer Prevailing VERSION\" >= 2025.1\n                    \
+  \    THEN BILLING_ACCOUNT_ID END)             AS TOTAL_AYX_ONE_ACCOUNTS,\n\n   \
+  \ -- from TOTAL_AYX_ONE_USERS (adds 2025 pricing/packaging + Max_User_VERSION split-part\
+  \ logic)\n    COUNT(DISTINCT CASE WHEN \"PRICING_AND_PACKAGING\" = '2025'\n    \
+  \                     AND (\n                               TRY_TO_NUMBER(SPLIT_PART(\"\
+  Max_User_VERSION\", '.', 1)) > 2025\n                               OR (\n     \
+  \                               TRY_TO_NUMBER(SPLIT_PART(\"Max_User_VERSION\", '.',\
+  \ 1)) = 2025\n                                    AND TRY_TO_NUMBER(SPLIT_PART(\"\
+  Max_User_VERSION\", '.', 2)) >= 1\n                                  )\n       \
+  \                      )\n                        THEN USER_ID END)            \
+  \            AS TOTAL_AYX_ONE_USERS\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PRODUCT_VERSION_ADOPTION\n\
+  WHERE PRODUCT_ID = 'Alteryx Designer'\n  AND \"LICENSE_TYPE\" = 'Purchase'\n  AND\
+  \ \"MONTH\" >= DATEADD(MONTH, -6, LAST_DAY(CURRENT_DATE - INTERVAL '1 month'))\n\
+  GROUP BY DATE(MONTH)\nORDER BY MONTH DESC;"
 queries: []
 aggregation_level: monthly
 grain: monthly

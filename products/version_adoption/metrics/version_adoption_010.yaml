@@ -1,28 +1,27 @@
 id: version_adoption_010
 name: Version Support Status Distribution
-description: Monthly count and percentage of accounts by version support status (Supported vs Unsupported)
+description: Monthly count and percentage of accounts by version support status (Supported
+  vs Unsupported)
 product: version_adoption
 status: validated
 category: adoption
 definition:
-  business: Risk assessment metric showing portion of customer base on unsupported versions requiring attention
+  business: Risk assessment metric showing portion of customer base on unsupported
+    versions requiring attention
   technical: Aggregated from ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |
-  SELECT
-    MONTH,
-    PRODUCT_ID,
-    SUPPORTED_UNSUPPORTED_PREVAILING_VERSION,
-    TOTAL_ACCOUNTS,
-    PCT_SUPPORTED,
-    SUM(TOTAL_ACCOUNTS) OVER (PARTITION BY MONTH, PRODUCT_ID) AS total_accounts_month,
-    ROUND(TOTAL_ACCOUNTS / NULLIF(SUM(TOTAL_ACCOUNTS) OVER (PARTITION BY MONTH, PRODUCT_ID), 0) * 100, 2) AS pct_of_total
-  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW
-  ORDER BY MONTH DESC, PRODUCT_ID
-  LIMIT 100
+sql_template: "SELECT\n    DATE(MONTH) AS MONTH,\n    PRODUCT_ID,\n    SUPPORTED_UNSUPPORTED_PREVAILING_VERSION,\n\
+  \    COUNT(DISTINCT SFDC_ACCOUNT_CID) AS TOTAL_ACCOUNTS,\n    ROUND(\n        COUNT(DISTINCT\
+  \ CASE WHEN SUPPORTED_UNSUPPORTED_PREVAILING_VERSION = 'Supported' THEN SFDC_ACCOUNT_CID\
+  \ END)\n        / NULLIF(SUM(COUNT(DISTINCT SFDC_ACCOUNT_CID)) OVER (PARTITION BY\
+  \ MONTH, PRODUCT_ID), 0),\n        4\n    ) AS PCT_SUPPORTED\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.PRODUCT_VERSION_ADOPTION\n\
+  WHERE PRODUCT_ID IN ('Alteryx Designer', 'Alteryx Server')\n  AND MONTH >= DATE_TRUNC('MONTH',\
+  \ DATEADD('MONTH', -6, CURRENT_DATE))\n  AND MONTH <  DATE_TRUNC('MONTH', CURRENT_DATE)\n\
+  GROUP BY MONTH, PRODUCT_ID, SUPPORTED_UNSUPPORTED_PREVAILING_VERSION\nORDER BY MONTH\
+  \ DESC, PRODUCT_ID;"
 queries: []
 aggregation_level: monthly
 grain: monthly

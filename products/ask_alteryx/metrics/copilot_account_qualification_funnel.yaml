@@ -1,18 +1,32 @@
 id: copilot_account_qualification_funnel
 name: Copilot Account Qualification Funnel
-description: Qualification funnel from all Alteryx accounts through Alteryx One to Copilot eligibility
+description: Qualification funnel from all Alteryx accounts through Alteryx One to
+  Copilot eligibility
 product: ask_alteryx
 status: validated
 category: funnel
 definition:
-  business: Qualification funnel from all Alteryx accounts through Alteryx One to Copilot eligibility
-  technical: '[''TOTAL_AYX_ACCOUNTS'', ''TOTAL_AYX1_ACCOUNTS'', ''ACCOUNTS_WITH_ENT_AND_PRO'', ''COPILOT_ELIGIBLE_ACCOUNTS''] from COPILOT_ELIGIBLE_ACCOUNT_FUNNEL_VIEW'
+  business: Qualification funnel from all Alteryx accounts through Alteryx One to
+    Copilot eligibility
+  technical: '[''TOTAL_AYX_ACCOUNTS'', ''TOTAL_AYX1_ACCOUNTS'', ''ACCOUNTS_WITH_ENT_AND_PRO'',
+    ''COPILOT_ELIGIBLE_ACCOUNTS''] from COPILOT_ELIGIBLE_ACCOUNT_FUNNEL_VIEW'
 source:
   database: DISCOVERY_PRODUCT_MANAGEMENT
   schema: METRIC_STORE
   base_tables: []
-sql_template: |-
-  SELECT TOTAL_AYX_ACCOUNTS as stage_0_all_ayx, TOTAL_AYX1_ACCOUNTS as stage_1_ayx_one, ACCOUNTS_WITH_ENT_AND_PRO as stage_2_ent_pro, COPILOT_ELIGIBLE_ACCOUNTS as stage_3_copilot_eligible, MONTH_YEAR as period, ROUND(TOTAL_AYX1_ACCOUNTS / TOTAL_AYX_ACCOUNTS * 100, 2) as ayx_one_pct, ROUND(COPILOT_ELIGIBLE_ACCOUNTS / TOTAL_AYX_ACCOUNTS * 100, 2) as copilot_pct FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ELIGIBLE_ACCOUNT_FUNNEL_VIEW ORDER BY MONTH_YEAR DESC LIMIT 100
+sql_template: "SELECT \n    YEAR_MONTH::DATE AS MONTH_YEAR,\n    COUNT(DISTINCT BILLING_ACCOUNT_ID_RAW)\
+  \ AS \"TOTAL_AYX_ACCOUNTS\",\n    COUNT(DISTINCT CASE  \n        WHEN PRICING_AND_PACKAGING\
+  \ = 2025\n        THEN BILLING_ACCOUNT_ID_RAW\n    END) AS \"TOTAL_AYX1_ACCOUNTS\"\
+  ,\n    COUNT(DISTINCT CASE \n        WHEN PRICING_AND_PACKAGING = 2025\n       \
+  \  AND ACCOUNT_EDITION IN ('Enterprise', 'Professional')\n        THEN BILLING_ACCOUNT_ID_RAW\n\
+  \    END) AS \"ACCOUNTS_WITH_ENT_AND_PRO\",\n    COUNT(DISTINCT CASE \n        WHEN\
+  \ PRICING_AND_PACKAGING = 2025\n         AND ACCOUNT_EDITION IN ('Enterprise', 'Professional')\n\
+  \         AND ACCOUNT_MAX_VERSION >= '2025.2'\n        THEN BILLING_ACCOUNT_ID_RAW\n\
+  \    END) AS \"COPILOT_ELIGIBLE_ACCOUNTS\"\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_MONTHLY_ACCOUNT_ONBOARDING_ADAPTION_USAGE_AT\n\
+  WHERE PRODUCT_NAME = 'ALTERYX'\n  AND LICENSE_TYPE = 'Purchase'\n  AND YEAR_MONTH\
+  \ > '2026-01-01'\nGROUP BY YEAR_MONTH::DATE\nORDER BY YEAR_MONTH::DATE DESC;\n\n\
+  \n-- ----------------------------------------------------------------------------\n\
+  -- 2. View: COPILOT_ELIGBLE_USERS_VIEW\n-- ----------------------------------------------------------------------------"
 queries: []
 aggregation_level: overall
 grain: overall

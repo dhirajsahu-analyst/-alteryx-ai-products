@@ -1,21 +1,24 @@
-id: alteryx_one_active_deployments
-name: Alteryx One Active Deployments
-description: Total active workflows in production.
-product: alteryx-one
 category: health
-status: active
-freshness: daily
-grain: point_in_time
 definition:
   business: Production workflow count for platform health.
   technical: Count of workflows with STATUS = 'ACTIVE' and DEPLOYED = 1.
+description: Total active workflows in production.
+freshness: daily
+grain: point_in_time
+id: alteryx_one_active_deployments
+last_updated: '2026-08-05'
+maintainer: product-insights@alteryx.com
+name: Alteryx One Active Deployments
+product: alteryx-one
 source: ALTERYX_ONE_TABLES
-sql_template: SELECT COUNT(DISTINCT WORKFLOW_ID) FROM ALTERYX_ONE_WORKFLOWS WHERE
-  STATUS = 'ACTIVE' AND DEPLOYED = 1
+sql_template: SELECT YEAR_MONTH::DATE AS MONTH_YEAR, COUNT(DISTINCT CASE WHEN DEPLOYMENT_STATUS
+  = 'ACTIVE' THEN BILLING_ACCOUNT_ID END) AS ACTIVE_DEPLOYMENTS FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_MONTHLY_ACCOUNT_ONBOARDING_ADAPTION_USAGE_AT
+  WHERE LICENSE_TYPE = 'Purchase' AND PRICING_AND_PACKAGING = '2025' AND YEAR_MONTH
+  > DATEADD('YEAR', -1, YEAR_MONTH) GROUP BY YEAR_MONTH::DATE ORDER BY YEAR_MONTH::DATE
+  DESC
+status: active
 tags:
 - health
 - deployment
 - usage
-maintainer: product-insights@alteryx.com
-last_updated: '2026-08-05'
 version: '1.0'

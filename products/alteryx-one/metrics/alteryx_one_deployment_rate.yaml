@@ -1,21 +1,24 @@
-id: alteryx_one_deployment_rate
-name: Alteryx One Deployment Rate
-description: '% of accounts that have deployed workflows.'
-product: alteryx-one
 category: adoption
-status: active
-freshness: daily
-grain: point_in_time
 definition:
   business: Accounts moving from build to production.
   technical: Accounts with DEPLOYED_WORKFLOWS >= 1 / total accounts * 100.
+description: '% of accounts that have deployed workflows.'
+freshness: daily
+grain: point_in_time
+id: alteryx_one_deployment_rate
+last_updated: '2026-08-05'
+maintainer: product-insights@alteryx.com
+name: Alteryx One Deployment Rate
+product: alteryx-one
 source: ALTERYX_ONE_TABLES
-sql_template: SELECT ROUND(100.0 * COUNT(CASE WHEN DEPLOYED_WORKFLOWS >= 1 THEN ACCOUNT_ID
-  END) / NULLIF(COUNT(ACCOUNT_ID), 0), 2) FROM ALTERYX_ONE_ACCOUNTS
+sql_template: SELECT YEAR_MONTH::DATE AS MONTH_YEAR, COUNT(DISTINCT CASE WHEN DEPLOYMENT_STATUS
+  = 'DEPLOYED' THEN BILLING_ACCOUNT_ID END) AS DEPLOYED_ACCOUNTS FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_MONTHLY_ACCOUNT_ONBOARDING_ADAPTION_USAGE_AT
+  WHERE LICENSE_TYPE = 'Purchase' AND PRICING_AND_PACKAGING = '2025' AND YEAR_MONTH
+  > DATEADD('YEAR', -1, YEAR_MONTH) GROUP BY YEAR_MONTH::DATE ORDER BY YEAR_MONTH::DATE
+  DESC
+status: active
 tags:
 - adoption
 - adoption-rate
 - deployment
-maintainer: product-insights@alteryx.com
-last_updated: '2026-08-05'
 version: '1.0'

@@ -1,207 +1,395 @@
 # 🚀 Getting Started with Alteryx Metrics System
 
-## Installation
+Complete step-by-step guide to install, configure, and use the metrics system.
 
-### Prerequisites
-- Python 3.9+
-- Snowflake account with SSO access
-- Git
+## Prerequisites
 
-### Quick Setup (5 minutes)
+- **Python 3.8+** - [Download here](https://www.python.org/downloads/)
+- **Git** - [Download here](https://git-scm.com/)
+- **Alteryx email** with Snowflake access
+- **Internet connection** for SSO login
 
-1. **Clone the repository**
+## Installation (5 Minutes)
+
+### Step 1: Clone Repository
+
 ```bash
-git clone https://github.com/alteryx/metrics-system.git
-cd metrics-system
+git clone https://github.com/dhirajsahu-analyst/-alteryx-ai-products.git
+cd -alteryx-ai-products
 ```
 
-2. **Install dependencies**
+### Step 2: Setup Python Environment
+
 ```bash
+# Create virtual environment (recommended)
+python3 -m venv venv
+
+# Activate it
+source venv/bin/activate  
+# On Windows: venv\Scripts\activate
+
+# Verify activation (prompt should show (venv))
+which python
+```
+
+### Step 3: Install Dependencies
+
+```bash
+# Upgrade pip first
+pip install --upgrade pip
+
+# Install required packages
 pip install -r requirements.txt
+
+# Install system in development mode
+pip install -e .
+
+# Verify (no errors should appear)
+python -m cli.main version
 ```
 
-3. **Set environment variables**
+### Step 4: Configure Snowflake
+
 ```bash
-# Copy the example config
+# Copy configuration template
 cp .env.example .env
 
-# Edit .env with your details
-# SNOWFLAKE_ACCOUNT=ALTERYX-ALTERYX_EDW
-# SNOWFLAKE_WAREHOUSE=COMPUTE_WH
-# SNOWFLAKE_DATABASE=DISCOVERY_PRODUCT_MANAGEMENT
-# SNOWFLAKE_SCHEMA=METRIC_STORE
+# Edit with your email
+nano .env
+# or use your favorite editor
 ```
 
-4. **Install as CLI tool**
+**Required changes:**
 ```bash
-pip install -e .
+SNOWFLAKE_USER=YOUR_EMAIL@ALTERYX.COM    # ← Change this
+USER=YOUR_EMAIL@ALTERYX.COM              # ← Change this
+
+# Leave these as-is:
+SNOWFLAKE_ACCOUNT=ALTERYX-ALTERYX_EDW
+SNOWFLAKE_WAREHOUSE=COMPUTE_WH
+SNOWFLAKE_DATABASE=DISCOVERY_PRODUCT_MANAGEMENT
+SNOWFLAKE_SCHEMA=METRIC_STORE
 ```
 
-5. **Verify installation**
+Save and exit (Ctrl+X in nano, then Y, then Enter)
+
+### Step 5: Test Connection
+
 ```bash
-metrics --help
+# List all products (will open browser for SSO login on first run)
+python -m cli.main products
 ```
 
-## Your First Metric Query
+**Expected output:**
+```
+Available products:
+  • ask_alteryx (28 metrics)
+  • alteryx-one (23 metrics)
+  • plans (16 metrics)
+  • trial (14 metrics)
+  • version_adoption (16 metrics)
+  • account_user (16 metrics)
+```
 
-### 1. Search for metrics
+✅ **Success!** You're ready to query metrics.
+
+## Your First Queries (2 Minutes)
+
+### Query 1: List Metrics in a Product
+
 ```bash
-metrics search --product plans --keyword "creation"
+python -m cli.main list ask_alteryx
 ```
 
-Output:
+**Output:**
 ```
-Found 3 metrics matching "creation":
-┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
-┃ Metric ID               ┃ Product ┃ Name                   ┃ Status  ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━┩
-│ plans_creation_and_...  │ plans   │ Plans Creation and...  │ active  │
-│ plan_created_date_...   │ plans   │ Plan Created Date...   │ active  │
-└─────────────────────────┴─────────┴────────────────────────┴─────────┘
+Metrics in ask_alteryx (28 total):
+
+ ID                              | Name
+ ────────────────────────────────────────────────────────────────
+ copilot_onboarded_users         | Copilot Onboarded Users
+ copilot_active_users            | Copilot Active Users
+ copilot_engaged_users           | Copilot Engaged Users
+ copilot_7_15_day_retention_rate | Copilot 7-15 Day Retention %
+ ...
 ```
 
-### 2. View metric details
+### Query 2: Get Your First Metric
+
 ```bash
-metrics describe plans.plans_creation_and_active_users
+python -m cli.main get ask_alteryx.copilot_active_users
 ```
 
-Output:
+**Output:**
 ```
-Metric: Plans Creation and Active Users
-ID: plans_creation_and_active_users
+Executing: ask_alteryx.copilot_active_users
 
-Basic Information:
-  Product: plans
-  Status: validated
-  Category: product_metric
-  Description: Tracks plans creation and active user counts
+┌──────────────────────────────────────────┐
+│ ACTIVE_USERS                             │
+├──────────────────────────────────────────┤
+│ 2847                                     │
+└──────────────────────────────────────────┘
 
-Definition:
-  Business: Number of plans created and active users engaging with plans
-  Technical: Aggregated from PLANS_DAILY_USERS_AV and PLANS_MONTHLY_ACCOUNT_AV
-
-Source:
-  Database: DISCOVERY_PRODUCT_MANAGEMENT
-  Schema: METRIC_STORE
-  Base Tables:
-    • USERS_BASE
-    • PLANS_FACT
-    • PLANS_GRANULAR
+✓ Query completed in 2.34 seconds
+✓ Audit logged with ID: AUD_2026080510150001
 ```
 
-### 3. Get metric data
+### Query 3: Search for Metrics
+
 ```bash
-# Simple query
-metrics get plans.plans_creation_and_active_users
+python -m cli.main search --keyword "retention"
+```
 
-# With filters
-metrics get plans.plans_creation_and_active_users \
-  --filter start_date=2026-01-01 \
-  --filter end_date=2026-08-04
+**Output:**
+```
+Found 6 metrics matching "retention":
 
-# Save to file
-metrics get plans.plans_creation_and_active_users \
-  --output results.csv \
+ ask_alteryx.copilot_7_15_day_retention_rate
+   - Copilot 7-15 Day Retention Rate %
+   - Tags: copilot, retention, cohort-analysis
+
+ ask_alteryx.copilot_30_60_day_retention_rate
+   - Copilot 30-60 Day Retention Rate %
+   - Tags: copilot, retention, cohort-analysis
+
+ alteryx-one.retention_7_days
+   - Alteryx One 7-Day Retention
+   - Tags: alteryx-one, retention, cohort
+ ...
+```
+
+### Query 4: Export to CSV
+
+```bash
+python -m cli.main get trial.trial_signups_total \
+  --output trial_data.csv \
   --format csv
 ```
 
-### 4. List all metrics in a product
-```bash
-metrics list designer
+**Output:**
+```
+✓ Results saved to trial_data.csv (127 rows)
 ```
 
-### 5. View audit logs
+### Query 5: View Metric Details
+
 ```bash
-# Your activity
-metrics audit --user $(whoami)
-
-# Failed queries
-metrics audit --status FAILED
-
-# Last 100 entries
-metrics audit --limit 100
+python -m cli.main describe ask_alteryx.copilot_adoption_rate_pct
 ```
 
-## Using as a Python Library
+**Output:**
+```
+Metric: Copilot Adoption Rate %
+ID: ask_alteryx.copilot_adoption_rate_pct
+Product: ask_alteryx
+
+Description:
+  Percentage of eligible users actively using Copilot
+
+Definition (Business):
+  Adoption metric showing what % of eligible users are using Copilot
+
+Definition (Technical):
+  (Active Users) / (Eligible Users) * 100, filtered by 2025 pricing
+
+Source: DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+
+Tags: copilot, adoption, rate-metric
+Last Updated: 2026-08-05
+Maintainer: insights@alteryx.com
+```
+
+## Common Operations
+
+### Export to Different Formats
+
+```bash
+# CSV (default)
+python -m cli.main get trial.conversion_rate_pct \
+  --format csv --output results.csv
+
+# JSON
+python -m cli.main get plans.mrr \
+  --format json --output mrr.json
+
+# Parquet (binary, efficient for large datasets)
+python -m cli.main get alteryx-one.user_funnel_active \
+  --format parquet --output data.parquet
+```
+
+### Search for Metrics
+
+```bash
+# Search all products
+python -m cli.main search --keyword "adoption"
+
+# Search specific product
+python -m cli.main search --product alteryx-one --keyword "retention"
+
+# Search by tag
+python -m cli.main search --tag "engagement"
+```
+
+### Validate Metrics
+
+```bash
+# Check all metrics work
+python -m cli.main validate
+
+# Validate specific product
+python -m cli.main validate --product alteryx-one
+
+# Show validation errors
+python -m cli.main validate --verbose
+```
+
+## Using as Python Library
 
 ```python
 from engine.metric_engine import MetricsEngine
-import pandas as pd
 
-# Initialize engine
+# Initialize
 engine = MetricsEngine()
 
-# Get metric data
-result = engine.get_metric(
-    'trial_signups_total',
-    product='trial',
-    filters={'start_date': '2026-01-01'}
-)
+# Get metric
+result = engine.get_metric('trial_signups_total', product='trial')
+print(f"Total signups: {result['SIGNUPS'].sum()}")
 
-# Use as pandas DataFrame
-print(f"Retrieved {len(result)} rows")
-print(result.head())
+# Search metrics
+metrics = engine.search_metrics('adoption', product='ask_alteryx')
+for m in metrics:
+    print(f"{m['id']}: {m['name']}")
 
-# Save to file
-result.to_csv('trial_signups.csv', index=False)
-result.to_json('trial_signups.json')
+# List all in product
+all_metrics = engine.list_metrics('plans')
+print(f"Found {len(all_metrics)} metrics in plans")
 ```
 
-## Common Tasks
+## Real-World Examples
 
-### Search across all products
+### Example: Monitor Copilot Adoption
+
 ```bash
-metrics search --keyword "adoption"
+# Daily active users
+python -m cli.main get ask_alteryx.copilot_active_users
+
+# Adoption percentage
+python -m cli.main get ask_alteryx.copilot_adoption_rate_pct
+
+# Export retention data
+python -m cli.main get ask_alteryx.copilot_7_15_day_retention_rate_pct \
+  --format csv --output copilot_retention.csv
 ```
 
-### Validate all metrics
+### Example: Trial Conversion Funnel
+
 ```bash
-metrics validate
+# Signups → Activation → Engagement → Conversion
+python -m cli.main get trial.monthly_signups
+python -m cli.main get trial.activation_rate_pct
+python -m cli.main get trial.engagement_rate_pct
+python -m cli.main get trial.conversion_rate_pct
 ```
 
-### Validate specific product
-```bash
-metrics validate --product designer
-```
+### Example: Track Subscription Health
 
-### List all products
 ```bash
-metrics products
+# Check active subscriptions
+python -m cli.main get plans.total_active_subscriptions
+
+# Monitor churn
+python -m cli.main get plans.churn_rate
+
+# View MRR
+python -m cli.main get plans.monthly_recurring_revenue
+
+# Enterprise plan focus
+python -m cli.main get plans.mrr_by_plan_tier_enterprise
 ```
 
 ## Troubleshooting
 
-### "Metric not found"
+### Browser Auth Doesn't Open
+
+**Problem:** Browser authentication window doesn't appear
+
+**Solution:**
+```bash
+# Clear cached credentials
+rm ~/.snowsql/config
+
+# Try again (browser should open)
+python -m cli.main products
+```
+
+### "Metric Not Found" Error
+
+**Problem:** Can't find a specific metric
+
+**Solution:**
 ```bash
 # Search for similar metrics
-metrics search --keyword "your_metric_name"
+python -m cli.main search --keyword "activation"
 
-# Check if it's in a different product
-metrics search "your_metric_name" --product alteryx-one
+# List all in product
+python -m cli.main list alteryx-one
+
+# Check all products
+python -m cli.main products
 ```
 
-### "Snowflake connection failed"
+### "Query Timeout" Error
+
+**Problem:** Query takes too long to execute
+
+**Solution:**
 ```bash
-# Re-authenticate with SSO
-metrics auth --relogin
+# Some metrics have date filters available
+python -m cli.main describe trial.monthly_signups
 
-# Check warehouse status
-# Visit: https://alteryx.snowflakecomputing.com
+# Check if filters are supported
+python -m cli.main get trial.monthly_signups --help
 ```
 
-### "Could not compose metric"
-The underlying tables might not be available. Contact:
-📧 insights@alteryx.com
+### Import Errors After Installation
+
+**Problem:** `ModuleNotFoundError: No module named 'cli'`
+
+**Solution:**
+```bash
+# Reinstall in development mode
+pip install -e .
+
+# Verify installation
+python -m cli.main version
+```
 
 ## Next Steps
 
-- 📖 Read [CLI_REFERENCE.md](./docs/CLI_REFERENCE.md) for all commands
-- 📚 Check [examples/](./examples/) for more use cases
-- 🔧 See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for system design
-- 📓 Try [Jupyter notebooks](./docs/examples/notebooks/) for interactive examples
+✅ **Read CLI Reference** → [docs/CLI_REFERENCE.md](./docs/CLI_REFERENCE.md)
 
-## Support
+✅ **Explore Examples** → [examples/](./examples/)
 
-- 📧 Email: insights@alteryx.com
-- 📋 Issues: https://github.com/alteryx/metrics-system/issues
-- 💬 Slack: #metrics-support
+✅ **Add New Metrics** → [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+✅ **System Design** → [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+
+✅ **FAQ** → [docs/FAQ.md](./docs/FAQ.md)
+
+## Getting Help
+
+| Question | Where to Find Answer |
+|----------|----------------------|
+| How do I search metrics? | [docs/CLI_REFERENCE.md](./docs/CLI_REFERENCE.md) |
+| What metrics are available? | Run: `python -m cli.main products` |
+| How do I export data? | See "Export to Different Formats" above |
+| How do I add a metric? | [CONTRIBUTING.md](./CONTRIBUTING.md) |
+| Authentication issues? | See "Troubleshooting" section above |
+
+**Still need help?** → insights@alteryx.com
+
+---
+
+**Congratulations!** 🎉 You've successfully set up the Alteryx Metrics System.
+
+**Next:** Try `python -m cli.main get ask_alteryx.copilot_active_users`

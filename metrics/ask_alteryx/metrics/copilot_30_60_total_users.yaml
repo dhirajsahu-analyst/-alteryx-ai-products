@@ -1,0 +1,28 @@
+id: copilot_30_60_total_users
+name: Copilot 30-60 Day Retention - Total Users
+description: Number of users eligible for 30–60 day retention analysis. These users first used Copilot at least 30 days ago.
+product: ask_alteryx
+category: retention
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Users who first used Copilot at least 30 days ago, making them eligible for measuring 30-60 day retention.
+  technical: Count of distinct users from Enterprise/Professional accounts with Purchase licenses who have Copilot chat activity and whose first activity date is 30+ days in the past.
+source: COPILOT_30_60_RETENTION_RATE_VIEW
+sql_template: |
+  WITH user_activity AS (
+      SELECT USER_EMAIL AS CREATED_BY_ID, CAST(CONV_CREATED_DATE AS DATE) AS activity_date
+      FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT
+      WHERE ACCOUNT_EDITION IN ('Professional','Enterprise') AND LICENSE_TYPE = 'Purchase' AND CHAT_ID IS NOT NULL
+  ),
+  first_use AS (
+      SELECT CREATED_BY_ID, MIN(activity_date) AS first_date FROM user_activity GROUP BY CREATED_BY_ID
+  ),
+  eligible_cohort AS (
+      SELECT CREATED_BY_ID, first_date FROM first_use WHERE first_date <= DATEADD(day, -30, CURRENT_DATE())
+  )
+  SELECT COUNT(*) AS total_users FROM eligible_cohort
+tags: [retention, cohort-analysis, copilot-engagement]
+maintainer: product-insights@alteryx.com
+version: 1.0

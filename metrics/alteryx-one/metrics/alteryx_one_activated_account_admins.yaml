@@ -1,0 +1,21 @@
+id: alteryx_one_activated_account_admins
+name: Alteryx One Activated Account Admins
+description: Account admins who have logged in.
+product: alteryx-one
+category: activation
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Account admins taking active role in platform.
+  technical: Count of users with ROLE = 'ACCOUNT_ADMIN' and LAST_LOGIN IS NOT NULL.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT COUNT(DISTINCT USER_ID) FROM ALTERYX_ONE_USERS WHERE ROLE = 'ACCOUNT_ADMIN'
+  AND LAST_LOGIN IS NOT NULL
+tags:
+- activation
+- role-based
+- account-admin
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

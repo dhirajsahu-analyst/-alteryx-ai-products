@@ -1,0 +1,21 @@
+id: plans_funnel_active
+name: Plans Funnel - Active
+description: Plans with recent activity (used in past 30 days).
+product: plans
+category: funnel
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Plans being actively used.
+  technical: Count of plans with last_activity >= 30 days ago.
+source: PRODUCT_TABLES
+sql_template: SELECT COUNT(DISTINCT PLAN_ID) FROM PLANS WHERE LAST_ACTIVITY >= DATEADD(DAY,
+  -30, CURRENT_DATE())
+tags:
+- funnel
+- funnel-stage
+- engagement
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

@@ -1,0 +1,21 @@
+id: alteryx_one_user_retention_1_7d
+name: Alteryx One User Retention - 1-7 Day
+description: '% of new users active within 1-7 days of signup.'
+product: alteryx-one
+category: retention
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Early engagement signal within first week.
+  technical: Users with activity in days 1-7 / total new users.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT ROUND(100.0 * COUNT(CASE WHEN DAYS_TO_FIRST_LOGIN BETWEEN 1 AND
+  7 THEN USER_ID END) / NULLIF(COUNT(USER_ID), 0), 2) FROM ALTERYX_ONE_USERS
+tags:
+- retention
+- rate-metric
+- early-retention
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

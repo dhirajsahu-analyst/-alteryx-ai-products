@@ -1,0 +1,20 @@
+id: alteryx_one_user_retention_14_30d
+name: Alteryx One User Retention - 14-30 Day
+description: '% of new users active in days 14-30.'
+product: alteryx-one
+category: retention
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Month-long engagement signal.
+  technical: Users with activity in days 14-30 / total new users.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT ROUND(100.0 * COUNT(CASE WHEN DAYS_TO_FIRST_LOGIN BETWEEN 14
+  AND 30 THEN USER_ID END) / NULLIF(COUNT(USER_ID), 0), 2) FROM ALTERYX_ONE_USERS
+tags:
+- retention
+- rate-metric
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

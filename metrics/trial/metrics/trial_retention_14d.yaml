@@ -1,0 +1,26 @@
+id: trial_retention_14d
+name: Trial - Retention - 14D
+description: 14-day retention rate
+product: trial
+category: retention
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: 14-day retention rate
+  technical: Count of distinct entities meeting 14d criteria from trial data sources.
+source: TRIAL_METRIC_VIEW
+tables:
+- DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.TRIAL_USAGE_AT
+sql_template: "WITH base_metrics AS (\n    SELECT\n        DISTINCT CASE\n       \
+  \     WHEN 14D IS NOT NULL THEN 1\n            ELSE 0\n        END AS is_active\n\
+  \    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.TRIAL_USAGE_AT\n    WHERE CREATED_AT\
+  \ >= DATEADD(day, -30, CURRENT_DATE())\n)\nSELECT\n    COUNT(*) AS 14d\nFROM base_metrics\n\
+  WHERE is_active = 1"
+tags:
+- retention
+- retention
+- cohort-analysis
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-04'
+version: '1.0'

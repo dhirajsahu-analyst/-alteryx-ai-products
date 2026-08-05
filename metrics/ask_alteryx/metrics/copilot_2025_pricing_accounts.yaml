@@ -1,0 +1,25 @@
+id: copilot_2025_pricing_accounts
+name: Copilot Account Funnel - 2025 Pricing
+description: Count of Alteryx accounts using 2025 pricing model for the given month.
+product: ask_alteryx
+category: copilot_engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Accounts with new 2025 pricing model, subset of total accounts.
+  technical: Count of distinct BILLING_ACCOUNT_ID_RAW where PRICING_AND_PACKAGING
+    = 2025.
+source: COPILOT_VIEWS
+sql_template: "SELECT\n    YEAR_MONTH::DATE AS MONTH_YEAR,\n    COUNT(DISTINCT CASE\n\
+  \        WHEN PRICING_AND_PACKAGING = 2025\n        THEN BILLING_ACCOUNT_ID_RAW\n\
+  \    END) AS \"TOTAL_AYX1_ACCOUNTS\"\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.ALTERYX_MONTHLY_ACCOUNT_ONBOARDING_ADAPTION_USAGE_AT\n\
+  WHERE PRODUCT_NAME = 'ALTERYX'\n  AND LICENSE_TYPE = 'Purchase'\n  AND YEAR_MONTH\
+  \ > '2026-01-01'\nGROUP BY YEAR_MONTH::DATE\nORDER BY YEAR_MONTH::DATE DESC"
+tags:
+- copilot
+- engagement
+- metrics
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

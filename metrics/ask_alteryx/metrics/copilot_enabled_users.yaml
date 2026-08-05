@@ -1,0 +1,26 @@
+id: copilot_enabled_users
+name: Copilot Enabled Users
+description: Count of Enterprise/Professional users with Copilot feature enabled.
+product: ask_alteryx
+category: copilot_engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: 'Second tier of eligibility: users from target editions who have Copilot
+    explicitly enabled.'
+  technical: Count of distinct USER_ID_RAW meeting Enterprise/Professional criteria
+    AND COPILOT_ENABLED = TRUE.
+source: COPILOT_VIEWS
+sql_template: "SELECT COUNT(DISTINCT CASE\n    WHEN LICENSE_TYPE = 'Purchase'\n  \
+  \   AND PRICING_AND_PACKAGING = '2025'\n     AND ACCOUNT_EDITION IN ('Enterprise',\
+  \ 'Professional')\n     AND STATUS = 'ACTIVATED'\n     AND ALTERYX_USER_EMAIL IS\
+  \ NOT NULL\n     AND COPILOT_ENABLED = TRUE\n    THEN USER_ID_RAW\nEND) AS COPILOT_ENABLED_USERS\n\
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT"
+tags:
+- copilot
+- engagement
+- metrics
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

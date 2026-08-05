@@ -1,0 +1,24 @@
+id: copilot_active_accounts
+name: Copilot Active Accounts
+description: Number of accounts with at least one Copilot chat activity.
+product: ask_alteryx
+category: copilot_engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Accounts where users have demonstrated engagement by creating at least
+    one chat conversation.
+  technical: Count of distinct billing_account_id_raw where chat_id IS NOT NULL.
+source: COPILOT_VIEWS
+sql_template: "SELECT COUNT(DISTINCT CASE\n    WHEN chat_id IS NOT NULL\n    THEN\
+  \ billing_account_id_raw\nEND) AS active_accounts\nFROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
+  WHERE license_type = 'Purchase'\n  AND user_type = 'aacp'\n  AND billing_account_id_raw\
+  \ IS NOT NULL"
+tags:
+- copilot
+- engagement
+- metrics
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

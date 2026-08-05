@@ -1,0 +1,21 @@
+id: alteryx_one_activated_basic_users
+name: Alteryx One Activated Basic Users
+description: Basic-access users who have logged in.
+product: alteryx-one
+category: activation
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Basic users with limited platform access.
+  technical: Count of users with ROLE = 'BASIC_USER' and LAST_LOGIN IS NOT NULL.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT COUNT(DISTINCT USER_ID) FROM ALTERYX_ONE_USERS WHERE ROLE = 'BASIC_USER'
+  AND LAST_LOGIN IS NOT NULL
+tags:
+- activation
+- role-based
+- basic-user
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

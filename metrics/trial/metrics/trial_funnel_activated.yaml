@@ -1,0 +1,21 @@
+id: trial_funnel_activated
+name: Trial Funnel - Activated
+description: Trial accounts with at least one usage activity.
+product: trial
+category: funnel
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Trial users who engaged with the product.
+  technical: Count of trials with activity records > 0.
+source: PRODUCT_TABLES
+sql_template: SELECT COUNT(DISTINCT TRIAL_ID) FROM TRIALS WHERE ACTIVITY_COUNT > 0
+tags:
+- funnel
+- funnel-stage
+- trial-conversion
+- activation
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

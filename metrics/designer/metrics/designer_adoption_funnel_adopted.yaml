@@ -1,0 +1,21 @@
+id: designer_adoption_funnel_adopted
+name: Designer Adoption - Adopted
+description: Eligible users who have created or executed workflows.
+product: designer
+category: funnel
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Users actively using Designer.
+  technical: Count of users with workflow_count > 0 or execution_count > 0.
+source: PRODUCT_TABLES
+sql_template: SELECT COUNT(DISTINCT USER_ID) FROM DESIGNER_USAGE WHERE WORKFLOW_COUNT
+  > 0 OR EXECUTION_COUNT > 0
+tags:
+- funnel
+- funnel-stage
+- adoption
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

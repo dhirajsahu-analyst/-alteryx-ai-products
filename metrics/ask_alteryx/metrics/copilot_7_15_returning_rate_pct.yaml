@@ -1,0 +1,38 @@
+id: copilot_7_15_returning_rate_pct
+name: Copilot 7-15 Day Retention Rate
+description: Percentage of eligible users who returned between Day 7 and Day 15 after
+  first using Copilot (decimal ratio).
+product: ask_alteryx
+category: copilot_engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: The percentage of users in the 7-day eligible cohort who showed activity
+    (returned) between day 7 and day 15. Returns as decimal ratio (e.g., 0.2845 =
+    28.45%).
+  technical: 'Calculated as: (returning_users_7_15 / total_users_eligible) * 100,
+    rounded to 4 decimal places. Returned as decimal ratio.'
+source: COPILOT_VIEWS
+sql_template: "WITH user_activity AS (\n    SELECT\n        USER_EMAIL AS CREATED_BY_ID,\n\
+  \        CAST(CONV_CREATED_DATE AS DATE) AS activity_date\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
+  \    WHERE ACCOUNT_EDITION IN ('Professional','Enterprise')\n      AND LICENSE_TYPE\
+  \ = 'Purchase'\n      AND CHAT_ID IS NOT NULL\n),\nfirst_use AS (\n    SELECT\n\
+  \        CREATED_BY_ID,\n        MIN(activity_date) AS first_date\n    FROM user_activity\n\
+  \    GROUP BY CREATED_BY_ID\n),\neligible_cohort AS (\n    SELECT\n        CREATED_BY_ID,\n\
+  \        first_date\n    FROM first_use\n    WHERE first_date <= DATEADD(day, -7,\
+  \ CURRENT_DATE())\n),\nreturns_7_15 AS (\n    SELECT\n        fu.CREATED_BY_ID,\n\
+  \        MIN(ua.activity_date) AS first_return_date_in_window\n    FROM eligible_cohort\
+  \ fu\n    JOIN user_activity ua\n      ON ua.CREATED_BY_ID = fu.CREATED_BY_ID\n\
+  \     AND ua.activity_date BETWEEN DATEADD(day, 7, fu.first_date)\n            \
+  \                  AND DATEADD(day, 15, fu.first_date)\n    GROUP BY fu.CREATED_BY_ID\n\
+  )\nSELECT ROUND(\n    ROUND(\n        (SELECT COUNT(*) FROM returns_7_15) * 100.0\
+  \ /\n        NULLIF((SELECT COUNT(*) FROM eligible_cohort), 0),\n        2\n   \
+  \ ) / 100.0,\n    4\n) AS returning_rate_pct"
+tags:
+- copilot
+- engagement
+- metrics
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

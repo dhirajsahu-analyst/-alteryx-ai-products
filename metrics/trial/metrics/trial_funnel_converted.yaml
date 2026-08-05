@@ -1,0 +1,21 @@
+id: trial_funnel_converted
+name: Trial Funnel - Converted
+description: Trial accounts converted to paid customers.
+product: trial
+category: funnel
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Trials that successfully converted to paying customers.
+  technical: Count of trials with status = 'CONVERTED' and linked to purchase.
+source: PRODUCT_TABLES
+sql_template: SELECT COUNT(DISTINCT TRIAL_ID) FROM TRIALS WHERE STATUS = 'CONVERTED'
+tags:
+- funnel
+- funnel-stage
+- trial-conversion
+- revenue
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

@@ -1,0 +1,20 @@
+id: alteryx_one_user_retention_30_60d
+name: Alteryx One User Retention - 30-60 Day
+description: '% of new users returning in days 30-60.'
+product: alteryx-one
+category: retention
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Two-month engagement signal.
+  technical: Users with activity in days 30-60 / total new users.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT ROUND(100.0 * COUNT(CASE WHEN DAYS_TO_FIRST_LOGIN BETWEEN 30
+  AND 60 THEN USER_ID END) / NULLIF(COUNT(USER_ID), 0), 2) FROM ALTERYX_ONE_USERS
+tags:
+- retention
+- rate-metric
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

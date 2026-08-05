@@ -1,0 +1,35 @@
+id: copilot_7_15_returning_users
+name: Copilot 7-15 Day Retention - Returning Users
+description: Number of eligible users who returned to use Copilot at least once between
+  Day 7 and Day 15 after first use.
+product: ask_alteryx
+category: copilot_engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Users from the 7-day eligible cohort who showed activity (used Copilot)
+    between day 7 and day 15 after their first use.
+  technical: Count of distinct users who appear in the eligible cohort and have at
+    least one activity record within the 7-15 day window after their first_date.
+source: COPILOT_VIEWS
+sql_template: "WITH user_activity AS (\n    SELECT\n        USER_EMAIL AS CREATED_BY_ID,\n\
+  \        CAST(CONV_CREATED_DATE AS DATE) AS activity_date\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\n\
+  \    WHERE ACCOUNT_EDITION IN ('Professional','Enterprise')\n      AND LICENSE_TYPE\
+  \ = 'Purchase'\n      AND CHAT_ID IS NOT NULL\n),\nfirst_use AS (\n    SELECT\n\
+  \        CREATED_BY_ID,\n        MIN(activity_date) AS first_date\n    FROM user_activity\n\
+  \    GROUP BY CREATED_BY_ID\n),\neligible_cohort AS (\n    SELECT\n        CREATED_BY_ID,\n\
+  \        first_date\n    FROM first_use\n    WHERE first_date <= DATEADD(day, -7,\
+  \ CURRENT_DATE())\n),\nreturns_7_15 AS (\n    SELECT\n        fu.CREATED_BY_ID,\n\
+  \        MIN(ua.activity_date) AS first_return_date_in_window\n    FROM eligible_cohort\
+  \ fu\n    JOIN user_activity ua\n      ON ua.CREATED_BY_ID = fu.CREATED_BY_ID\n\
+  \     AND ua.activity_date BETWEEN DATEADD(day, 7, fu.first_date)\n            \
+  \                  AND DATEADD(day, 15, fu.first_date)\n    GROUP BY fu.CREATED_BY_ID\n\
+  )\nSELECT COUNT(*) AS returning_users_7_15d\nFROM returns_7_15"
+tags:
+- copilot
+- engagement
+- metrics
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

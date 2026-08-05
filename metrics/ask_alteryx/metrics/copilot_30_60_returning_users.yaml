@@ -1,0 +1,17 @@
+id: copilot_30_60_returning_users
+name: Copilot 30-60 Day Retention - Returning Users
+description: Number of eligible users who returned to use Copilot at least once between Day 30 and Day 60 after first use.
+product: ask_alteryx
+category: retention
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Users from the 30-day eligible cohort who showed activity between day 30 and day 60 after their first use.
+  technical: Count of distinct users who have at least one activity record within the 30-60 day window after first_date.
+source: COPILOT_30_60_RETENTION_RATE_VIEW
+sql_template: |
+  WITH user_activity AS (SELECT USER_EMAIL AS CREATED_BY_ID, CAST(CONV_CREATED_DATE AS DATE) AS activity_date FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT WHERE ACCOUNT_EDITION IN ('Professional','Enterprise') AND LICENSE_TYPE = 'Purchase' AND CHAT_ID IS NOT NULL), first_use AS (SELECT CREATED_BY_ID, MIN(activity_date) AS first_date FROM user_activity GROUP BY CREATED_BY_ID), eligible_cohort AS (SELECT CREATED_BY_ID, first_date FROM first_use WHERE first_date <= DATEADD(day, -30, CURRENT_DATE())), returns_30_60 AS (SELECT e.CREATED_BY_ID, MIN(ua.activity_date) AS first_return_date_in_window FROM eligible_cohort e JOIN user_activity ua ON ua.CREATED_BY_ID = e.CREATED_BY_ID AND ua.activity_date BETWEEN DATEADD(day, 30, e.first_date) AND DATEADD(day, 60, e.first_date) GROUP BY e.CREATED_BY_ID) SELECT COUNT(*) AS returning_users_30_60d FROM returns_30_60
+tags: [retention, cohort-analysis, copilot-engagement]
+maintainer: product-insights@alteryx.com
+version: 1.0

@@ -1,0 +1,21 @@
+id: designer_adoption_funnel_eligible
+name: Designer Adoption - Eligible Users
+description: Users eligible to use Designer based on licensing/version.
+product: designer
+category: funnel
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Users with Designer access permissions.
+  technical: Count of users with designer_enabled = TRUE and valid license.
+source: PRODUCT_TABLES
+sql_template: SELECT COUNT(DISTINCT USER_ID) FROM USERS WHERE DESIGNER_ENABLED = TRUE
+  AND LICENSE_TYPE = 'Purchase'
+tags:
+- funnel
+- funnel-stage
+- designer-adoption
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

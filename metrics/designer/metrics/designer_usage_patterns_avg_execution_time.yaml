@@ -1,0 +1,25 @@
+id: designer_usage_patterns_avg_execution_time
+name: Designer - Usage Patterns - Avg Execution Time
+description: Average execution time
+product: designer
+category: usage_patterns
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Average execution time
+  technical: Count of distinct entities meeting avg_execution_time criteria from designer
+    data sources.
+source: DESIGNER_METRIC_VIEW
+tables:
+- DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.DESIGNER_USAGE_AT
+sql_template: "WITH base_metrics AS (\n    SELECT\n        DISTINCT CASE\n       \
+  \     WHEN AVG_EXECUTION_TIME IS NOT NULL THEN 1\n            ELSE 0\n        END\
+  \ AS is_active\n    FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.DESIGNER_USAGE_AT\n\
+  \    WHERE CREATED_AT >= DATEADD(day, -30, CURRENT_DATE())\n)\nSELECT\n    COUNT(*)\
+  \ AS avg_execution_time\nFROM base_metrics\nWHERE is_active = 1"
+tags:
+- usage_patterns
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-04'
+version: '1.0'

@@ -1,0 +1,21 @@
+id: alteryx_one_engagement_rate
+name: Alteryx One Engagement Rate
+description: '% of registered users who are active.'
+product: alteryx-one
+category: engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Share of registered users engaging with platform.
+  technical: ACTIVE_USERS / REGISTERED_USERS * 100.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT ROUND(100.0 * COUNT(CASE WHEN LAST_LOGIN IS NOT NULL THEN USER_ID
+  END) / NULLIF(COUNT(USER_ID), 0), 2) FROM ALTERYX_ONE_USERS
+tags:
+- engagement
+- rate-metric
+- adoption-rate
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

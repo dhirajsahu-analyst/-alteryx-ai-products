@@ -1,0 +1,21 @@
+id: alteryx_one_active_deployments
+name: Alteryx One Active Deployments
+description: Total active workflows in production.
+product: alteryx-one
+category: health
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Production workflow count for platform health.
+  technical: Count of workflows with STATUS = 'ACTIVE' and DEPLOYED = 1.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT COUNT(DISTINCT WORKFLOW_ID) FROM ALTERYX_ONE_WORKFLOWS WHERE
+  STATUS = 'ACTIVE' AND DEPLOYED = 1
+tags:
+- health
+- deployment
+- usage
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

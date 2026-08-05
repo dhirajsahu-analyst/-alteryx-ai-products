@@ -1,0 +1,22 @@
+id: alteryx_one_account_funnel_retained
+name: Alteryx One Account Funnel - Retained
+description: Accounts active in current month and previous month.
+product: alteryx-one
+category: funnel
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Accounts demonstrating month-over-month retention.
+  technical: Count of accounts active in both current and previous month.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT COUNT(DISTINCT ACCOUNT_ID) FROM ALTERYX_ONE_MONTHLY_ACCOUNTS
+  WHERE ACTIVE_USERS >= 1 AND LAST_MONTH_ACTIVE = 1
+tags:
+- funnel
+- funnel-stage
+- account
+- retention
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

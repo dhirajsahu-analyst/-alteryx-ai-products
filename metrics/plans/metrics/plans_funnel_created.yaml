@@ -1,0 +1,20 @@
+id: plans_funnel_created
+name: Plans Funnel - Created
+description: Total plans created in the period.
+product: plans
+category: funnel
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: All plans initiated by users.
+  technical: Count of distinct plan records created.
+source: PRODUCT_TABLES
+sql_template: SELECT COUNT(DISTINCT PLAN_ID) FROM PLANS WHERE CREATED_AT IS NOT NULL
+tags:
+- funnel
+- funnel-stage
+- plan-adoption
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

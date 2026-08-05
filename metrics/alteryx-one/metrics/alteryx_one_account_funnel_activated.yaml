@@ -1,0 +1,22 @@
+id: alteryx_one_account_funnel_activated
+name: Alteryx One Account Funnel - Activated
+description: Accounts with at least one workspace created.
+product: alteryx-one
+category: funnel
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Accounts that have taken first action (workspace creation).
+  technical: Count of accounts with WORKSPACE_COUNT >= 1.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT COUNT(DISTINCT ACCOUNT_ID) FROM ALTERYX_ONE_ACCOUNTS WHERE WORKSPACE_COUNT
+  >= 1
+tags:
+- funnel
+- funnel-stage
+- account
+- activation
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

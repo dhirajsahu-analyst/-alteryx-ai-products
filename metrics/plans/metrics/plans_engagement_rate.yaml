@@ -1,0 +1,21 @@
+id: plans_engagement_rate
+name: Plans Engagement Rate
+description: Percentage of created plans that are actively used.
+product: plans
+category: engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Share of plans demonstrating regular usage.
+  technical: active_plans / created_plans * 100
+source: PRODUCT_TABLES
+sql_template: SELECT ROUND(100.0 * COUNT(CASE WHEN LAST_ACTIVITY >= DATEADD(DAY, -30,
+  CURRENT_DATE()) THEN PLAN_ID END) / NULLIF(COUNT(PLAN_ID), 0), 2) FROM PLANS
+tags:
+- engagement
+- rate-metric
+- plan-adoption
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

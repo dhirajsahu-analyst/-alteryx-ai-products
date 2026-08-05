@@ -1,0 +1,25 @@
+id: copilot_onboarded_accounts
+name: Copilot Onboarded Accounts
+description: Total number of accounts with Copilot activity.
+product: ask_alteryx
+category: copilot_engagement
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: All accounts that have recorded any Copilot interaction by users with
+    Purchase license and aacp user type.
+  technical: Count of distinct billing_account_id_raw from COPILOT_ACTIVITY_USAGE_AT
+    table filtered by license_type='Purchase' and user_type='aacp'.
+source: COPILOT_VIEWS
+sql_template: "SELECT COUNT(DISTINCT billing_account_id_raw) AS onboarded_accounts\n\
+  FROM DISCOVERY_PRODUCT_MANAGEMENT.METRIC_STORE.COPILOT_ACTIVITY_USAGE_AT\nWHERE\
+  \ license_type = 'Purchase'\n  AND user_type = 'aacp'\n  AND billing_account_id_raw\
+  \ IS NOT NULL"
+tags:
+- copilot
+- engagement
+- metrics
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

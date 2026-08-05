@@ -1,0 +1,22 @@
+id: alteryx_one_account_funnel_engaged
+name: Alteryx One Account Funnel - Engaged
+description: Accounts with 5+ active users or high activity.
+product: alteryx-one
+category: funnel
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: High-engagement accounts showing strong adoption.
+  technical: Count of accounts with ACTIVE_USERS >= 5 or ACTIVITY_SCORE >= 50.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT COUNT(DISTINCT ACCOUNT_ID) FROM ALTERYX_ONE_MONTHLY_ACCOUNTS
+  WHERE ACTIVE_USERS >= 5 OR ACTIVITY_SCORE >= 50
+tags:
+- funnel
+- funnel-stage
+- account
+- engagement
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

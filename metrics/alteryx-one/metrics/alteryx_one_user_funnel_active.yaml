@@ -1,0 +1,22 @@
+id: alteryx_one_user_funnel_active
+name: Alteryx One User Funnel - Active
+description: Users with activity in past 30 days.
+product: alteryx-one
+category: funnel
+status: active
+freshness: daily
+grain: point_in_time
+definition:
+  business: Users actively using Alteryx One.
+  technical: Count of users with LAST_LOGIN >= 30 days ago.
+source: ALTERYX_ONE_TABLES
+sql_template: SELECT COUNT(DISTINCT USER_ID) FROM ALTERYX_ONE_USERS WHERE LAST_LOGIN
+  >= DATEADD(DAY, -30, CURRENT_DATE())
+tags:
+- funnel
+- funnel-stage
+- user
+- engagement
+maintainer: product-insights@alteryx.com
+last_updated: '2026-08-05'
+version: '1.0'

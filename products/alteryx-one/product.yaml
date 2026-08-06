@@ -1,0 +1,28 @@
+product_id: alteryx_one
+name: Alteryx One
+description: >-
+  Governed telemetry definitions for customer activation, engagement,
+  adoption, retention, deployment, and product usage across Alteryx One.
+status: active
+certification: certified
+version: 1.0.0
+owners:
+  business: alteryx_one_business_team@alteryx.com
+  analytics: alteryx_one_analytics_team@alteryx.com
+  engineering: alteryx_one_engineering_team@alteryx.com
+domains:
+  - activation
+  - engagement
+  - retention
+  - deployment
+  - adoption
+shared_entities:
+  - account
+  - user
+  - workspace
+  - subscription
+  - date
+freshness:
+  expected: daily
+  maximum_delay_hours: 24
+dependencies: []

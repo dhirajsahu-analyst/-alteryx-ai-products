@@ -10,7 +10,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "snowflake-connector-python==3.9.1",
-        "snowflake-sqlalchemy==1.5.1",
+        "snowflake-sqlalchemy==1.6.1",
         "PyYAML==6.0.1",
         "pandas==2.2.0",
         "typer==0.9.0",

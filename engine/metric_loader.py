@@ -4,6 +4,8 @@ import yaml
 from pathlib import Path
 from typing import Dict, Optional, List, Tuple
 import os
+from engine.catalog.validator import get_schema_validator
+from engine.retrieval.retriever import get_metadata_retriever
 
 class MetricLoader:
     """Load metric definitions from YAML files"""
@@ -11,6 +13,8 @@ class MetricLoader:
     def __init__(self, products_dir: str = "products"):
         self.products_dir = Path(products_dir)
         self._cache = {}
+        self.validator = get_schema_validator()
+        self.retriever = get_metadata_retriever()
     
     def load_metric(self, metric_id: str, product: Optional[str] = None) -> Optional[Dict]:
         """
@@ -24,6 +28,10 @@ class MetricLoader:
             Metric definition dict or None if not found
         """
         
+        # Check SQLite compiled catalog first
+        if self.retriever.is_available():
+            return self.retriever.load_metric(metric_id, product)
+            
         # Check cache first
         cache_key = f"{product}:{metric_id}" if product else metric_id
         if cache_key in self._cache:
@@ -53,6 +61,10 @@ class MetricLoader:
     def search_metrics(self, keyword: str = "", product: Optional[str] = None) -> List[Dict]:
         """Search metrics by keyword and/or product"""
         
+        # Check SQLite compiled catalog first
+        if self.retriever.is_available():
+            return self.retriever.search_metrics(keyword, product)
+            
         results = []
         products_to_search = []
         
@@ -85,6 +97,10 @@ class MetricLoader:
     def list_metrics(self, product: str) -> List[Dict]:
         """List all metrics in a product"""
         
+        # Check SQLite compiled catalog first
+        if self.retriever.is_available():
+            return self.retriever.list_metrics(product)
+            
         product_dir = self.products_dir / product
         metrics_dir = product_dir / "metrics"
         
@@ -101,6 +117,10 @@ class MetricLoader:
     def get_all_products(self) -> List[Dict]:
         """Get metadata for all products"""
         
+        # Check SQLite compiled catalog first
+        if self.retriever.is_available():
+            return self.retriever.get_all_products()
+            
         products = []
         for product_dir in self.products_dir.iterdir():
             if not product_dir.is_dir():
@@ -143,6 +163,20 @@ class MetricLoader:
         
         with open(file_path, 'r') as f:
             data = yaml.safe_load(f)
+            
+        if data and isinstance(data, dict):
+            # Validate as metric if it contains sql_template
+            if 'sql_template' in data:
+                is_valid, err_msg = self.validator.validate_metric(data)
+                if not is_valid:
+                    import sys
+                    print(f"SCHEMA WARNING [{file_path.name}]: {err_msg}", file=sys.stderr)
+            # Validate as product if it contains product_id
+            elif 'product_id' in data:
+                is_valid, err_msg = self.validator.validate_product(data)
+                if not is_valid:
+                    import sys
+                    print(f"SCHEMA WARNING [{file_path.name}]: {err_msg}", file=sys.stderr)
         
         return data if data else {}
 

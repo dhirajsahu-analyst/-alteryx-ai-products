@@ -3,8 +3,14 @@
 import typer
 from typing import Optional
 from rich.console import Console
+from dotenv import load_dotenv
+load_dotenv()
+
 from engine.metric_engine import MetricsEngine
 from engine.error_handler import ErrorFormatter, MetricNotFoundError, CompositionError
+from engine.compiler.compiler import get_catalog_compiler
+from engine.lineage.lineage import get_lineage_engine
+from engine.observability.doctor import get_telemetry_doctor
 import os
 
 app = typer.Typer(
@@ -162,14 +168,17 @@ def describe(
         if 'source' in metric_info:
             console.print("[bold]Source:[/bold]")
             source = metric_info['source']
-            console.print(f"  Database: {source.get('database', 'N/A')}")
-            console.print(f"  Schema: {source.get('schema', 'N/A')}")
-            
-            base_tables = source.get('base_tables', [])
-            if base_tables:
-                console.print(f"  Base Tables:")
-                for table in base_tables:
-                    console.print(f"    • {table}")
+            if isinstance(source, dict):
+                console.print(f"  Database: {source.get('database', 'N/A')}")
+                console.print(f"  Schema: {source.get('schema', 'N/A')}")
+                
+                base_tables = source.get('base_tables', [])
+                if base_tables:
+                    console.print(f"  Base Tables:")
+                    for table in base_tables:
+                        console.print(f"    • {table}")
+            else:
+                console.print(f"  {source}")
             console.print()
         
         # Metadata
@@ -211,6 +220,155 @@ def products():
     
     except Exception as e:
         console.print(f"[red]✗ Error: {str(e)}[/red]")
+
+@app.command()
+def build():
+    """Discover, validate, and compile all products and metrics into local SQLite database"""
+    console.print("[cyan]Compiling repository telemetry catalog...[/cyan]\n")
+    try:
+        compiler = get_catalog_compiler()
+        success, summary = compiler.compile()
+        
+        if success:
+            console.print("[bold green]✓ Compilation successful![/bold green]")
+        else:
+            console.print("[bold red]✗ Compilation failed with errors.[/bold red]")
+            
+        console.print(f"\n[bold]Build Summary:[/bold]")
+        console.print(f"  Products Discovered:      {summary['products_discovered']}")
+        console.print(f"  Products Compiled:        {summary['products_compiled']}")
+        console.print(f"  Metrics Discovered:       {summary['metrics_discovered']}")
+        console.print(f"  Metrics Compiled:         {summary['metrics_compiled']}")
+        console.print(f"  Relationships Discovered: {summary.get('relationships_discovered', 0)}")
+        console.print(f"  Relationships Compiled:   {summary.get('relationships_compiled', 0)}")
+        
+        if summary['warnings']:
+            console.print(f"\n[bold yellow]Warnings ({len(summary['warnings'])}):[/bold yellow]")
+            for warn in summary['warnings'][:10]:
+                console.print(f"  • {warn}")
+            if len(summary['warnings']) > 10:
+                console.print(f"  ... and {len(summary['warnings']) - 10} more warnings.")
+                
+        if summary['errors']:
+            console.print(f"\n[bold red]Errors ({len(summary['errors'])}):[/bold red]")
+            for err in summary['errors']:
+                console.print(f"  • {err}")
+                
+    except Exception as e:
+        console.print(f"[red]✗ Build error: {str(e)}[/red]")
+
+@app.command()
+def lineage(asset_id: str = typer.Argument(..., help="Asset or metric ID to trace upstream lineage")):
+    """Trace upstream models, tables, and contributors for a given metric"""
+    console.print(f"[cyan]Tracing upstream lineage for asset: {asset_id}...[/cyan]\n")
+    try:
+        engine = get_lineage_engine()
+        result = engine.get_upstream_lineage(asset_id)
+        if not result:
+            console.print(f"[red]✗ Asset [{asset_id}] not found in compiled catalog. Build the catalog first.[/red]")
+            return
+            
+        console.print(f"[bold cyan]Upstream Lineage Map:[/bold cyan]")
+        console.print(f"  Asset ID:   {result['asset_id']}")
+        console.print(f"  Name:       {result['name']}")
+        console.print(f"  Product:    {result['product']}")
+        console.print(f"  Asset Type: {result['type']}")
+        
+        console.print(f"\n[bold green]Direct Source Tables/Models:[/bold green]")
+        if result['direct_sources']:
+            for src in result['direct_sources']:
+                console.print(f"  • {src}")
+        else:
+            console.print("  • None (Direct Query or unmapped)")
+            
+        if result['base_metrics']:
+            console.print(f"\n[bold yellow]Contributing Base Metrics:[/bold yellow]")
+            for base in result['base_metrics']:
+                console.print(f"  • {base['asset_id']} ({base['name']}) -> pulls from {base['direct_sources']}")
+                
+    except Exception as e:
+        console.print(f"[red]✗ Lineage tracing error: {str(e)}[/red]")
+
+@app.command()
+def impact(asset_id: str = typer.Argument(..., help="Table/Model ID or Metric ID to trace downstream impact")):
+    """Analyze downstream impact on metrics and relationships if an asset is modified"""
+    console.print(f"[cyan]Analyzing downstream impact for: {asset_id}...[/cyan]\n")
+    try:
+        engine = get_lineage_engine()
+        result = engine.get_downstream_impact(asset_id)
+        if not result:
+            console.print(f"[red]✗ Asset [{asset_id}] not found in compiled catalog. Build the catalog first.[/red]")
+            return
+            
+        console.print(f"[bold cyan]Impact Analysis Map for [{asset_id}]:[/bold cyan]")
+        
+        console.print(f"\n[bold red]Affected Metrics ({len(result['affected_metrics'])}):[/bold red]")
+        if result['affected_metrics']:
+            for m in result['affected_metrics']:
+                console.print(f"  • {m['metric_id']} ({m['name']}) [Product: {m['product']}, Status: {m['status']}]")
+        else:
+            console.print("  • No metrics directly affected.")
+            
+        console.print(f"\n[bold yellow]Affected Relationships ({len(result['affected_relationships'])}):[/bold yellow]")
+        if result['affected_relationships']:
+            for rel in result['affected_relationships']:
+                console.print(f"  • {rel['relationship_id']} (Joins {rel['left_model']} <-> {rel['right_model']})")
+        else:
+            console.print("  • No semantic relationships affected.")
+                
+    except Exception as e:
+        console.print(f"[red]✗ Impact analysis error: {str(e)}[/red]")
+
+@app.command()
+def doctor():
+    """Audit repository configurations and generate production-readiness scorecard"""
+    console.print("[cyan]Executing TelemetryIQ Doctor production readiness audit...[/cyan]\n")
+    try:
+        doctor_engine = get_telemetry_doctor()
+        success, report = doctor_engine.run_audit()
+        
+        # Display overall scorecard
+        color = "green" if success else ("yellow" if report["readiness_score"] >= 70.0 else "red")
+        console.print(f"[bold {color}]TelemetryIQ Readiness Score: {report['readiness_score']}%[/bold {color}]")
+        
+        status_text = "READY FOR PRODUCTION" if success else "NEEDS REMEDIATION"
+        console.print(f"Status: [bold {color}]{status_text}[/bold {color}]\n")
+        
+        # Display summary counts
+        console.print("[bold cyan]Asset Inventory Summary:[/bold cyan]")
+        console.print(f"  Products:      {report['summary']['total_products']}")
+        console.print(f"  Metrics:       {report['summary']['total_metrics']}")
+        console.print(f"  Relationships: {report['summary']['total_relationships']}")
+        console.print(f"  Checks Run:    {report['summary']['passed_checks']}/{report['summary']['total_checks']}")
+        
+        # Display coverage
+        console.print(f"\n[bold cyan]Metadata Quality Coverage:[/bold cyan]")
+        console.print(f"  Business Definitions: {report['metric_coverage']['business_definitions']}%")
+        console.print(f"  Metric Ownership:     {report['metric_coverage']['owners']}%")
+        console.print(f"  Telemetry Grains:     {report['metric_coverage']['grains']}%")
+        console.print(f"  Valid SQL Templates:  {report['metric_coverage']['sql_references']}%")
+        console.print(f"  Keywords/Tags:        {report['metric_coverage']['tags']}%")
+        
+        # Display Product maturity breakdown
+        console.print(f"\n[bold cyan]Product Domain Maturity Breakdown:[/bold cyan]")
+        for p_id, pm in sorted(report["product_maturity"].items()):
+            p_color = "green" if pm["score"] >= 80 else ("yellow" if pm["score"] >= 50 else "red")
+            console.print(f"  • {p_id:20} Score: [bold {p_color}]{pm['score']}%[/bold {p_color}] ({pm['passed_metrics']}/{pm['metrics_count']} fully-certified metrics)")
+            
+        if report["critical_risks"]:
+            console.print(f"\n[bold red]CRITICAL RISKS ({len(report['critical_risks'])}):[/bold red]")
+            for risk in report["critical_risks"]:
+                console.print(f"  ✗ {risk}")
+                
+        if report["high_priority_remediations"]:
+            console.print(f"\n[bold yellow]High Priority Remediation Actions ({len(report['high_priority_remediations'])}):[/bold yellow]")
+            for rem in report["high_priority_remediations"][:10]:
+                console.print(f"  → {rem}")
+            if len(report["high_priority_remediations"]) > 10:
+                console.print(f"  ... and {len(report['high_priority_remediations']) - 10} more remediation actions.")
+                
+    except Exception as e:
+        console.print(f"[red]✗ Doctor audit failed: {str(e)}[/red]")
 
 @app.command()
 def validate(

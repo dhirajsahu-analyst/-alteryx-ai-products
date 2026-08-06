@@ -1,0 +1,26 @@
+relationship_id: plans_to_alteryx_one_billing_account
+left_model: PLANS_MONTHLY_ACCOUNT_AT
+right_model: ALTERYX_MONTHLY_ACCOUNT_ONBOARDING_ADAPTION_USAGE_AT
+left_keys:
+  - BILLING_ACCOUNT_ID
+right_keys:
+  - BILLING_ACCOUNT_ID
+cardinality: one_to_one
+approved_join_type: inner
+relationship_direction: bi_directional
+effective_date_logic: JOIN on LEFT.YEAR_MONTH = RIGHT.YEAR_MONTH
+null_behavior: drop
+required_pre_aggregation: false
+supported_grains:
+  - monthly
+supported_dimensions:
+  - BILLING_ACCOUNT_ID
+  - LICENSE_TYPE
+  - PRICING_AND_PACKAGING
+supported_metrics:
+  - plans_funnel_active
+  - alteryx_one_monthly_active_users
+known_duplication_risks: None
+certification: certified
+owner: product_governance@alteryx.com
+validation_tests: []

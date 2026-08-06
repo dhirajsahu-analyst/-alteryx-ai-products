@@ -23,3 +23,73 @@
 {"timestamp": "2026-08-05T05:53:44.645691Z", "user_id": "demo_user", "action": "search_metric", "query": "adoption", "product": "designer", "results_count": 4, "status": "SUCCESS"}
 {"timestamp": "2026-08-05T05:53:44.647796Z", "user_id": "demo_user", "action": "describe_metric", "metric_id": "designer_2025_adoption_rate", "status": "SUCCESS"}
 {"timestamp": "2026-08-05T05:53:44.674913Z", "user_id": "demo_user", "action": "list_metrics", "product": "trial", "count": 18, "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.404355Z", "user_id": "anonymous", "action": "list_metrics", "product": "Account & User Analytics", "count": 0, "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.426182Z", "user_id": "anonymous", "action": "list_metrics", "product": "plans", "count": 17, "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.455410Z", "user_id": "anonymous", "action": "list_metrics", "product": "Trial", "count": 21, "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.455630Z", "user_id": "anonymous", "action": "list_metrics", "product": "Ask Alteryx / Copilot", "count": 0, "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.479189Z", "user_id": "anonymous", "action": "list_metrics", "product": "Designer", "count": 18, "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.479424Z", "user_id": "anonymous", "action": "list_metrics", "product": "Alteryx One", "count": 0, "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.479566Z", "user_id": "anonymous", "action": "list_metrics", "product": "Version Adoption", "count": 0, "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.480901Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_engagement_engagement_score", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.482543Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_engagement_plan_utilization_rate", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.483895Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_engagement_rate", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.485328Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_engagement_task_adoption_rate", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.486675Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_funnel_active", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.487951Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_funnel_created", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.489531Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_funnel_plan_lifecycle_activated", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.491091Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_funnel_plan_lifecycle_engaged", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.492693Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_funnel_plan_lifecycle_prospect", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.494219Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_funnel_plan_lifecycle_retained", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.495834Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_funnel_plan_lifecycle_selected", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.497346Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_health_churn_rate", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.498827Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_health_downgrade_rate", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.500350Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_health_upgrade_rate", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.501850Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_task_usage_daily_tasks", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.503355Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_task_usage_monthly_tasks", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.504943Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "plans_task_usage_peak_task_usage", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.506482Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_conversion_rate", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.507982Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_engagement_daily_active", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.509483Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_engagement_engagement_rate", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.511009Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_engagement_feature_adoption", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.512565Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_engagement_weekly_active", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.513888Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_funnel_activated", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.516552Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_funnel_conversion_rates_monthly_percentage", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.517935Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_funnel_converted", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.519393Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_funnel_signup_activated", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.521019Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_funnel_signup_converted", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.522608Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_funnel_signup_engaged", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.524127Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_funnel_signup_prospect", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.525675Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_funnel_signup_registered", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.526978Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_funnel_signups", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.529780Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_funnel_stages_monthly_absolute_counts", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.531311Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_health_conversion_rate", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.532823Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_health_dropout_rate", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.534324Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_retention_14d", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.535849Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_retention_30d", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.537395Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_retention_7d", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.538723Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "trial_user_engagement", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.540103Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_adoption_funnel_adopted", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.541427Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_adoption_funnel_eligible", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.543023Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_adoption_rate", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.544567Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_engagement_daily_active_users", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.546068Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_engagement_feature_adoption", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.547660Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_engagement_workflow_creation", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.549238Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_engagement_workflow_execution", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.550879Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_funnel_adoption_active", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.552552Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_funnel_adoption_eligible", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.554211Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_funnel_adoption_first_use", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.555814Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_funnel_adoption_installed", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.557646Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_funnel_adoption_power_user", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.559438Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_health_performance_issues", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.561221Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_health_support_ticket_rate", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.562964Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_health_user_retention", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.564597Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_usage_patterns_avg_execution_time", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.566294Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_usage_patterns_avg_workflows_per_user", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:43:14.567948Z", "user_id": "anonymous", "action": "describe_metric", "metric_id": "designer_usage_patterns_error_rate", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:49:46.592992Z", "user_id": "ayx105566", "action": "list_metrics", "product": "plans", "count": 17, "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:50:46.975688Z", "user_id": "ayx105566", "action": "get_metric", "metric_id": "plans_funnel_created", "product": "plans", "status": "UNAVAILABLE", "error": "Metric cannot be composed from available foundations", "suggestions": ["plans_funnel_active", "plans_funnel_plan_lifecycle_activated", "plans_funnel_plan_lifecycle_engaged"], "reason": "No composition rules defined"}
+{"timestamp": "2026-08-05T13:50:52.630997Z", "user_id": "ayx105566", "action": "describe_metric", "metric_id": "plans_funnel_created", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:51:18.629052Z", "user_id": "ayx105566", "action": "describe_metric", "metric_id": "plans_funnel_created", "status": "SUCCESS"}
+{"timestamp": "2026-08-05T13:52:22.104497Z", "user_id": "ayx105566", "action": "get_metric", "metric_id": "plans_engagement_engagement_score", "product": "plans", "status": "UNAVAILABLE", "error": "Metric cannot be composed from available foundations", "suggestions": ["plans_engagement_task_adoption_rate", "plans_funnel_active", "plans_engagement_plan_utilization_rate"], "reason": "No composition rules defined"}
+{"timestamp": "2026-08-05T13:58:44.006860Z", "user_id": "ayx105566", "action": "list_metrics", "product": "alteryx-one", "count": 28, "status": "SUCCESS"}
+{"timestamp": "2026-08-06T07:20:58.251768Z", "user_id": "ayx105566", "action": "search_metric", "query": "engagement", "product": null, "results_count": 45, "status": "SUCCESS"}

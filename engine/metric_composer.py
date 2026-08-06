@@ -4,6 +4,7 @@ from typing import Optional, Dict, List, Tuple
 from engine.metric_loader import get_metric_loader
 from engine.snowflake_connector import get_snowflake_connector
 from engine.error_handler import CompositionError
+from engine.semantic_graph.graph import get_semantic_graph
 import pandas as pd
 
 class MetricComposer:
@@ -13,6 +14,7 @@ class MetricComposer:
         self.loader = get_metric_loader()
         self.connector = get_snowflake_connector()
         self.composition_rules = self.loader.load_composition_rules()
+        self.graph = get_semantic_graph()
     
     def can_compose_metric(self, metric_id: str, metric_def: Dict) -> Tuple[bool, Optional[str]]:
         """
@@ -135,10 +137,27 @@ class MetricComposer:
     
     def _compose_from_base_metrics(self, base_metric_ids: List[str],
                                    join_rule: Dict, filters: Optional[Dict]) -> Optional[pd.DataFrame]:
-        """Compose metric by joining base metrics"""
+        """Compose metric by joining base metrics after verifying semantic join compatibility"""
         
         if not base_metric_ids:
             return None
+            
+        def get_metric_source_model(m_def: Dict, m_id: str) -> str:
+            source = m_def.get('source', '')
+            if isinstance(source, dict):
+                base_tables = source.get('base_tables', [])
+                if base_tables:
+                    return base_tables[0]
+            elif isinstance(source, str) and source:
+                return source
+            return m_def.get('source_model', m_id)
+        
+        # Load first base metric definition to trace its model
+        first_id = base_metric_ids[0]
+        first_def = self.loader.load_metric(first_id)
+        if not first_def:
+            raise ValueError(f"Base metric '{first_id}' not found")
+        model_a = get_metric_source_model(first_def, first_id)
         
         # Load all base metrics
         dataframes = {}
@@ -164,6 +183,18 @@ class MetricComposer:
         # Join remaining dataframes
         if 'join_on' in join_rule:
             for base_id in base_metric_ids[1:]:
+                # Check semantic join compatibility
+                other_def = self.loader.load_metric(base_id)
+                model_b = get_metric_source_model(other_def, base_id)
+                
+                is_compatible, err_msg = self.graph.check_join_compatibility(model_a, model_b)
+                if not is_compatible:
+                    raise CompositionError(
+                        base_id,
+                        [f"Semantic Graph join check between {model_a} and {model_b}"],
+                        f"Join blocked by semantic governance: {err_msg}"
+                    )
+                
                 join_columns = join_rule['join_on']
                 join_type = join_rule.get('join_type', 'inner')
                 

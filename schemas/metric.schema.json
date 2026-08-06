@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MetricContract",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "metric_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "product": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "domain": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "proposed", "active", "certified", "deprecated", "archived"]
+    },
+    "certification": {
+      "type": "string",
+      "enum": ["draft", "proposed", "active", "certified", "deprecated", "archived"]
+    },
+    "freshness": {
+      "type": ["string", "object"]
+    },
+    "grain": {
+      "type": "string"
+    },
+    "definition": {
+      "type": "object",
+      "properties": {
+        "business": { "type": "string" },
+        "technical": { "type": "string" }
+      },
+      "required": ["business", "technical"]
+    },
+    "source": {
+      "type": ["string", "object"]
+    },
+    "sql_template": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "maintainer": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "last_updated": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "description",
+    "product",
+    "status",
+    "sql_template"
+  ],
+  "additionalProperties": true
+}

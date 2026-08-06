@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProductManifest",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "proposed", "active", "certified", "deprecated", "archived"]
+    },
+    "certification": {
+      "type": "string",
+      "enum": ["draft", "proposed", "active", "certified", "deprecated", "archived"]
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "owners": {
+      "type": "object",
+      "properties": {
+        "business": { "type": "string" },
+        "analytics": { "type": "string" },
+        "engineering": { "type": "string" }
+      },
+      "required": ["business", "analytics", "engineering"]
+    },
+    "domains": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "shared_entities": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "freshness": {
+      "type": "object",
+      "properties": {
+        "expected": { "type": "string" },
+        "maximum_delay_hours": { "type": "integer" }
+      },
+      "required": ["expected"]
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": [
+    "product_id",
+    "name",
+    "description",
+    "status",
+    "version",
+    "owners",
+    "domains"
+  ],
+  "additionalProperties": false
+}

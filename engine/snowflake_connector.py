@@ -1,11 +1,14 @@
 """Snowflake connection and query execution"""
 
 import os
-from typing import Optional, Dict, Any, List
+import re
+import time
+from typing import Optional, Dict, Any, List, Tuple
 import pandas as pd
 from snowflake.connector import connect
 from snowflake.connector.errors import DatabaseError, ProgrammingError
 from engine.error_handler import SnowflakeError, AuthError
+from engine.audit_logger import AuditLogger
 
 class SnowflakeConnector:
     """Manage Snowflake connections and execute queries"""
@@ -14,6 +17,35 @@ class SnowflakeConnector:
         self.use_sso = use_sso
         self._connection = None
         self._authenticated = False
+        self.audit_logger = AuditLogger()
+        
+    def validate_sql_safety(self, query: str) -> Tuple[bool, Optional[str]]:
+        """
+        Validate that the query contains only read-only SELECT or WITH statements.
+        Blocks write operations (INSERT, UPDATE, DELETE, etc.) and DDL.
+        """
+        # Remove SQL comments to prevent bypasses inside comments
+        cleaned = re.sub(r'/\*.*?\*/', '', query, flags=re.DOTALL)
+        cleaned = re.sub(r'--.*$', '', cleaned, flags=re.MULTILINE)
+        
+        # Remove quoted string literals to prevent false positives inside string literals
+        cleaned = re.sub(r"'[^']*'", '', cleaned)
+        cleaned = re.sub(r'"[^"]*"', '', cleaned)
+        
+        # Look for mutational/write/DDL keywords
+        restricted_keywords = {
+            "INSERT", "UPDATE", "DELETE", "DROP", "CREATE", "ALTER", "MERGE", 
+            "TRUNCATE", "GRANT", "REVOKE", "COPY", "RENAME", "REPLACE"
+        }
+        
+        # Extract all uppercase words as tokens
+        tokens = set(re.findall(r'\b[A-Z_]+\b', cleaned.upper()))
+        found = restricted_keywords.intersection(tokens)
+        
+        if found:
+            return False, f"Disallowed mutational/DDL keyword(s) detected: {list(found)}"
+            
+        return True, None
     
     def connect(self, account: Optional[str] = None, warehouse: Optional[str] = None,
                 database: Optional[str] = None, schema: Optional[str] = None) -> None:
@@ -33,29 +65,44 @@ class SnowflakeConnector:
             warehouse = warehouse or os.getenv("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH")
             database = database or os.getenv("SNOWFLAKE_DATABASE", "DISCOVERY_PRODUCT_MANAGEMENT")
             schema = schema or os.getenv("SNOWFLAKE_SCHEMA", "METRIC_STORE")
+            role = os.getenv("SNOWFLAKE_ROLE")
             
             if self.use_sso:
                 # SSO Authentication
-                self._connection = connect(
-                    account=account,
-                    user=os.getenv("SNOWFLAKE_USER"),
-                    authenticator="externalbrowser",
-                    warehouse=warehouse,
-                    database=database,
-                    schema=schema,
-                )
+                conn_params = {
+                    "account": account,
+                    "user": os.getenv("SNOWFLAKE_USER"),
+                    "authenticator": "externalbrowser",
+                    "warehouse": warehouse,
+                    "database": database,
+                    "schema": schema,
+                }
+                if role:
+                    conn_params["role"] = role
+                self._connection = connect(**conn_params)
             else:
                 # Username/password (not recommended)
-                self._connection = connect(
-                    account=account,
-                    user=os.getenv("SNOWFLAKE_USER"),
-                    password=os.getenv("SNOWFLAKE_PASSWORD"),
-                    warehouse=warehouse,
-                    database=database,
-                    schema=schema,
-                )
+                conn_params = {
+                    "account": account,
+                    "user": os.getenv("SNOWFLAKE_USER"),
+                    "password": os.getenv("SNOWFLAKE_PASSWORD"),
+                    "warehouse": warehouse,
+                    "database": database,
+                    "schema": schema,
+                }
+                if role:
+                    conn_params["role"] = role
+                self._connection = connect(**conn_params)
             
             self._authenticated = True
+            
+            # Enforce 30-second query execution timeout on the session
+            try:
+                cursor = self._connection.cursor()
+                cursor.execute("ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS = 30")
+                cursor.close()
+            except Exception:
+                pass
             
         except DatabaseError as e:
             if "Free trial" in str(e) or "suspended" in str(e):
@@ -74,12 +121,12 @@ class SnowflakeConnector:
     
     def execute_query(self, query: str, filters: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
         """
-        Execute a query in Snowflake
+        Execute SQL query on Snowflake and return results as pandas DataFrame
         
         Args:
-            query: SQL query to execute
-            filters: Optional filter values to substitute in query
-        
+            query: SQL query template or raw string
+            filters: Filter dictionary to replace placeholders
+            
         Returns:
             Results as pandas DataFrame
         """
@@ -88,10 +135,31 @@ class SnowflakeConnector:
             raise AuthError("Not connected to Snowflake. Call connect() first.")
         
         try:
+            # 1. SQL Safety Check (Read-only enforcement)
+            is_safe, err_msg = self.validate_sql_safety(query)
+            if not is_safe:
+                raise SnowflakeError("SECURITY_VIOLATION", f"SQL validation failed: {err_msg}")
+            
             # Substitute filter parameters if provided
             if filters:
                 query = self._substitute_filters(query, filters)
+                
+            # 2. EXPLAIN Compilation Validation (for SELECT / WITH statements)
+            stmt_norm = re.sub(r'\s+', ' ', query.strip().upper())
+            if stmt_norm.startswith("SELECT") or stmt_norm.startswith("WITH"):
+                try:
+                    cursor_explain = self._connection.cursor()
+                    cursor_explain.execute(f"EXPLAIN {query}")
+                    cursor_explain.close()
+                except ProgrammingError as e:
+                    raise SnowflakeError(
+                        "COMPILATION_ERROR",
+                        f"SQL failed compilation in Snowflake: {str(e)}",
+                        e
+                    )
             
+            # 3. Safe Execution and Timing Trace
+            start_time = time.time()
             cursor = self._connection.cursor()
             cursor.execute(query)
             
@@ -99,9 +167,37 @@ class SnowflakeConnector:
             results = cursor.fetch_pandas_all()
             cursor.close()
             
+            duration_ms = int((time.time() - start_time) * 1000)
+            rows_count = len(results)
+            
+            # 4. Enforce Row Limits (truncating to maximum 10000 rows)
+            if rows_count > 10000:
+                results = results.head(10000)
+                
+            # 5. Structured Audit Logging on Success
+            user_id = os.getenv("USER", "anonymous")
+            self.audit_logger.log(
+                user_id=user_id,
+                action="snowflake_query",
+                query=query[:200] + ("..." if len(query) > 200 else ""),
+                duration_ms=duration_ms,
+                rows_returned=rows_count,
+                status="SUCCESS"
+            )
+            
             return results
             
+        except SnowflakeError:
+            raise
         except ProgrammingError as e:
+            user_id = os.getenv("USER", "anonymous")
+            self.audit_logger.log(
+                user_id=user_id,
+                action="snowflake_query",
+                query=query[:200] + ("..." if len(query) > 200 else ""),
+                status="FAILED",
+                error=str(e)
+            )
             if "does not exist" in str(e):
                 raise SnowflakeError(
                     "TABLE_NOT_FOUND",
@@ -110,7 +206,15 @@ class SnowflakeConnector:
                 )
             else:
                 raise SnowflakeError("QUERY_ERROR", str(e), e)
-        except DatabaseError as e:
+        except Exception as e:
+            user_id = os.getenv("USER", "anonymous")
+            self.audit_logger.log(
+                user_id=user_id,
+                action="snowflake_query",
+                query=query[:200] + ("..." if len(query) > 200 else ""),
+                status="ERROR",
+                error=str(e)
+            )
             raise SnowflakeError("DATABASE_ERROR", str(e), e)
     
     def check_table_exists(self, table_name: str, schema: Optional[str] = None) -> bool:

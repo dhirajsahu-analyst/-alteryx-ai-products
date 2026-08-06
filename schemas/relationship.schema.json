@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RelationshipContract",
+  "type": "object",
+  "properties": {
+    "relationship_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "left_model": {
+      "type": "string"
+    },
+    "right_model": {
+      "type": "string"
+    },
+    "left_keys": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "right_keys": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "cardinality": {
+      "type": "string",
+      "enum": ["one_to_one", "one_to_many", "many_to_one", "many_to_many"]
+    },
+    "approved_join_type": {
+      "type": "string",
+      "enum": ["inner", "left", "right", "outer"]
+    },
+    "relationship_direction": {
+      "type": "string",
+      "enum": ["bi_directional", "left_to_right", "right_to_left"]
+    },
+    "effective_date_logic": {
+      "type": "string"
+    },
+    "null_behavior": {
+      "type": "string",
+      "enum": ["ignore", "drop", "keep"]
+    },
+    "required_pre_aggregation": {
+      "type": "boolean"
+    },
+    "supported_grains": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "supported_dimensions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "supported_metrics": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "known_duplication_risks": {
+      "type": "string"
+    },
+    "certification": {
+      "type": "string",
+      "enum": ["draft", "proposed", "active", "certified", "deprecated", "archived"]
+    },
+    "owner": {
+      "type": "string"
+    },
+    "validation_tests": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": [
+    "relationship_id",
+    "left_model",
+    "right_model",
+    "left_keys",
+    "right_keys",
+    "cardinality",
+    "approved_join_type",
+    "certification"
+  ],
+  "additionalProperties": false
+}

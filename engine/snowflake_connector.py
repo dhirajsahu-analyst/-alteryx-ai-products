@@ -152,11 +152,14 @@ class SnowflakeConnector:
                     cursor_explain.execute(f"EXPLAIN {query}")
                     cursor_explain.close()
                 except ProgrammingError as e:
-                    raise SnowflakeError(
-                        "COMPILATION_ERROR",
-                        f"SQL failed compilation in Snowflake: {str(e)}",
-                        e
-                    )
+                    if "insufficient privilege" in str(e).lower() or "not authorized" in str(e).lower():
+                        pass  # Fall back to direct execution if EXPLAIN is restricted on this object
+                    else:
+                        raise SnowflakeError(
+                            "COMPILATION_ERROR",
+                            f"SQL failed compilation in Snowflake: {str(e)}",
+                            e
+                        )
             
             # 3. Safe Execution and Timing Trace
             start_time = time.time()

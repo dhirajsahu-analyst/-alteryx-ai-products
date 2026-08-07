@@ -1,0 +1,360 @@
+{
+  "last_updated": "2026-08-07 09:03:43 UTC",
+  "metrics_data": {
+    "account_user": {
+      "account_user_engagement_rate": {
+        "metric_id": "account_user_engagement_rate",
+        "name": "Account User Engagement Rate",
+        "description": "Percentage of registered users who are active.",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[COMPOSITION_FAILED] Could not build 'account_user_engagement_rate' from available foundations: Metric not available: No composition rules defined"
+      },
+      "account_user_funnel_active": {
+        "metric_id": "account_user_funnel_active",
+        "name": "Account User Funnel - Active",
+        "description": "Users with activity in the past 30 days.",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[COMPOSITION_FAILED] Could not build 'account_user_funnel_active' from available foundations: Metric not available: No composition rules defined"
+      }
+    },
+    "alteryx_one": {
+      "alteryx_one_monthly_active_users": {
+        "metric_id": "alteryx_one_monthly_active_users",
+        "name": "Alteryx One Monthly Active Users",
+        "description": "Count of unique users with activity in current month.",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[SNOWFLAKE_ERROR] SQL failed compilation in Snowflake: 000904 (42000): SQL compilation error: error line 1 at position 51\ninvalid identifier 'ACTIVE_FULL_USERS'"
+      },
+      "alteryx_one_deployment_rate": {
+        "metric_id": "alteryx_one_deployment_rate",
+        "name": "Alteryx One Deployment Rate",
+        "description": "% of accounts that have deployed workflows.",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[SNOWFLAKE_ERROR] SQL failed compilation in Snowflake: 000904 (42000): SQL compilation error: error line 1 at position 72\ninvalid identifier 'DEPLOYMENT_STATUS'"
+      },
+      "alteryx_one_workspace_creation_rate": {
+        "metric_id": "alteryx_one_workspace_creation_rate",
+        "name": "Alteryx One Workspace Creation Rate",
+        "description": "Monthly workspaces created per active user.",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[SNOWFLAKE_ERROR] SQL failed compilation in Snowflake: 000904 (42000): SQL compilation error: error line 1 at position 62\ninvalid identifier 'WORKSPACE_ID'"
+      }
+    },
+    "ask_alteryx": {
+      "copilot_total_accounts": {
+        "metric_id": "copilot_total_accounts",
+        "name": "Copilot Account Funnel - Total Accounts",
+        "description": "Total Alteryx accounts for the given month.",
+        "grain": "point_in_time",
+        "status": "active",
+        "data": [
+          {
+            "TOTAL_AYX_ACCOUNTS": 10728
+          }
+        ],
+        "columns": [
+          "TOTAL_AYX_ACCOUNTS"
+        ],
+        "error": null
+      },
+      "copilot_adoption_percentage": {
+        "metric_id": "copilot_adoption_percentage",
+        "name": "Copilot User Adoption Rate",
+        "description": "Percentage of eligible users who are actively using Copilot (decimal ratio).",
+        "grain": "point_in_time",
+        "status": "active",
+        "data": [
+          {
+            "ADOPTION_PERCENTAGE": null
+          }
+        ],
+        "columns": [
+          "ADOPTION_PERCENTAGE"
+        ],
+        "error": null
+      },
+      "copilot_workflow_adoption_pct": {
+        "metric_id": "copilot_workflow_adoption_pct",
+        "name": "Copilot Workflow Adoption Rate",
+        "description": "Percentage of Designer workflow runs (from Copilot-eligible users after first interaction) mapped to Copilot workflows (decimal ratio).",
+        "grain": "point_in_time",
+        "status": "active",
+        "data": [
+          {
+            "COPILOT_PCT_WORKFLOW_RUNS": 0.138
+          }
+        ],
+        "columns": [
+          "COPILOT_PCT_WORKFLOW_RUNS"
+        ],
+        "error": null
+      }
+    },
+    "designer": {
+      "designer_engagement_daily_active_users": {
+        "metric_id": "designer_engagement_daily_active_users",
+        "name": "Designer - Engagement - Daily Active Users",
+        "description": "Daily active Designer users",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[COMPOSITION_FAILED] Could not build 'designer_engagement_daily_active_users' from available foundations: Metric not available: No composition rules defined"
+      },
+      "designer_usage_patterns_error_rate": {
+        "metric_id": "designer_usage_patterns_error_rate",
+        "name": "Designer - Usage Patterns - Error Rate",
+        "description": "Workflow error rate",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[COMPOSITION_FAILED] Could not build 'designer_usage_patterns_error_rate' from available foundations: Metric not available: No composition rules defined"
+      },
+      "designer_health_performance_issues": {
+        "metric_id": "designer_health_performance_issues",
+        "name": "Designer - Health - Performance Issues",
+        "description": "Performance issue count",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[COMPOSITION_FAILED] Could not build 'designer_health_performance_issues' from available foundations: Metric not available: No composition rules defined"
+      }
+    },
+    "plans": {
+      "plans_engagement_engagement_score": {
+        "metric_id": "plans_engagement_engagement_score",
+        "name": "Plans - Engagement - Engagement Score",
+        "description": "Overall plan engagement score",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[COMPOSITION_FAILED] Could not build 'plans_engagement_engagement_score' from available foundations: Metric not available: No composition rules defined"
+      },
+      "plans_engagement_rate": {
+        "metric_id": "plans_engagement_rate",
+        "name": "Plans Engagement Rate",
+        "description": "Percentage of created plans that are actively used.",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[COMPOSITION_FAILED] Could not build 'plans_engagement_rate' from available foundations: Metric not available: No composition rules defined"
+      }
+    },
+    "trial": {
+      "trial_conversion_rate": {
+        "metric_id": "trial_conversion_rate",
+        "name": "Trial Conversion Rate",
+        "description": "Percentage of trial signups that convert to customers.",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[COMPOSITION_FAILED] Could not build 'trial_conversion_rate' from available foundations: Metric not available: No composition rules defined"
+      },
+      "trial_funnel_signups": {
+        "metric_id": "trial_funnel_signups",
+        "name": "Trial Funnel - Signups",
+        "description": "Total number of trial signups in the period.",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[COMPOSITION_FAILED] Could not build 'trial_funnel_signups' from available foundations: Metric not available: No composition rules defined"
+      },
+      "trial_user_engagement": {
+        "metric_id": "trial_user_engagement",
+        "name": "Trial User Engagement Rate",
+        "description": "Percentage of trial users who are actively using the product.",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[COMPOSITION_FAILED] Could not build 'trial_user_engagement' from available foundations: Metric not available: No composition rules defined"
+      }
+    },
+    "version_adoption": {
+      "version_adoption_compliance_rate": {
+        "metric_id": "version_adoption_compliance_rate",
+        "name": "Version Adoption Compliance Rate",
+        "description": "Percentage of users on supported/eligible versions.",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[COMPOSITION_FAILED] Could not build 'version_adoption_compliance_rate' from available foundations: Metric not available: No composition rules defined"
+      },
+      "version_adoption_adoption_adoption_rate": {
+        "metric_id": "version_adoption_adoption_adoption_rate",
+        "name": "Version Adoption - Adoption - Adoption Rate",
+        "description": "Overall version adoption rate",
+        "grain": "point_in_time",
+        "status": "dormant",
+        "data": [],
+        "columns": [],
+        "error": "[COMPOSITION_FAILED] Could not build 'version_adoption_adoption_adoption_rate' from available foundations: Metric not available: No composition rules defined"
+      }
+    }
+  },
+  "products": [
+    {
+      "last_updated": "2026-08-03T12:46:05.544703",
+      "metric_count": 18,
+      "product_description": "Cross-product account and user metrics",
+      "product_id": "account_user",
+      "product_name": "account_user",
+      "source_database": "DISCOVERY_PRODUCT_MANAGEMENT",
+      "source_schema": "METRIC_STORE",
+      "typical_grain": "Monthly aggregated",
+      "views": [
+        "ACCOUNT_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW",
+        "MACHINE_AND_USER_SUPPORTED_UNSUPPORTED_SUMMARY_MONTHLY_VIEW",
+        "PREVAILING_VERSION_ACCOUNT_DIST_MONTHLY_VIEW",
+        "VERSION_RUNNING_SUM_ACCOUNTS_VIEW",
+        "VERSION_RUNNING_SUM_USERS_AND_MACHINE_VIEW"
+      ],
+      "full_name": ""
+    },
+    {
+      "certification": "certified",
+      "dependencies": [],
+      "description": "Governed telemetry definitions for customer activation, engagement, adoption, retention, deployment, and product usage across Alteryx One.",
+      "domains": [
+        "activation",
+        "engagement",
+        "retention",
+        "deployment",
+        "adoption"
+      ],
+      "freshness": {
+        "expected": "daily",
+        "maximum_delay_hours": 24
+      },
+      "name": "Alteryx One",
+      "owners": {
+        "analytics": "alteryx_one_analytics_team@alteryx.com",
+        "business": "alteryx_one_business_team@alteryx.com",
+        "engineering": "alteryx_one_engineering_team@alteryx.com"
+      },
+      "product_id": "alteryx_one",
+      "shared_entities": [
+        "account",
+        "user",
+        "workspace",
+        "subscription",
+        "date"
+      ],
+      "status": "active",
+      "version": "1.0.0",
+      "product_name": "alteryx_one",
+      "full_name": "Alteryx One",
+      "metric_count": 28
+    },
+    {
+      "last_updated": "2026-08-03T12:46:05.529509",
+      "metric_count": 28,
+      "product_description": "Copilot adoption, engagement, retention, funnel metrics",
+      "product_id": "ask_alteryx",
+      "product_name": "ask_alteryx",
+      "source_database": "DISCOVERY_PRODUCT_MANAGEMENT",
+      "source_schema": "METRIC_STORE",
+      "typical_grain": "Monthly aggregated",
+      "views": [
+        "COPILOT_30_60_RETENTION_RATE_VIEW",
+        "COPILOT_7_15_RETENTION_RATE_VIEW",
+        "COPILOT_ACCOUNTS_ACTIVITY_FUNNEL_VIEW",
+        "COPILOT_ELIGBLE_USERS_VIEW",
+        "COPILOT_ELIGIBLE_ACCOUNT_FUNNEL_VIEW",
+        "COPILOT_USERS_ACTIVITY_FUNNEL_VIEW",
+        "COPILOT_USERS_ADOPTION_RATE_VIEW",
+        "COPILOT_WORKFLOW_DETAILS_VIEW"
+      ],
+      "full_name": ""
+    },
+    {
+      "last_updated": "2026-08-03T12:46:05.540613",
+      "metric_count": 18,
+      "product_description": "Designer product metrics and analytics",
+      "product_id": "designer",
+      "product_name": "designer",
+      "source_database": "DISCOVERY_PRODUCT_MANAGEMENT",
+      "source_schema": "METRIC_STORE",
+      "typical_grain": "Monthly aggregated",
+      "views": [
+        "AOA_ON_DESIGNER_2026_AND_ACTIVITIES_VIEW",
+        "DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_ACCOUNT_PERCENTAGE_VIEW",
+        "DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_MACHINE_PERCENTAGE_VIEW",
+        "DESIGNER_SERVER_SUPPORTED_UNSUPPORTED_USERS_PERCENTAGE_VIEW",
+        "ENGINE_DESIGNER_SERVER_RUN_WITH_ASSET_TYPE_VIEW"
+      ],
+      "full_name": ""
+    },
+    {
+      "created_date": "2026-08-04",
+      "description": "Plan-based workflow automation and scheduling product",
+      "full_name": "",
+      "last_updated": "2026-08-04",
+      "metrics_source": {
+        "database": "DISCOVERY_PRODUCT_MANAGEMENT",
+        "schema": "METRIC_STORE",
+        "view_prefix": "PLAN"
+      },
+      "product_id": "plans",
+      "product_name": "plans",
+      "repository": "https://github.com/alteryx/plans",
+      "status": "active",
+      "team": "Product Management",
+      "metric_count": 17
+    },
+    {
+      "last_updated": "2026-08-03T12:46:05.548594",
+      "metric_count": 21,
+      "product_description": "Trial conversion and funnel metrics",
+      "product_id": "trial",
+      "product_name": "trial",
+      "source_database": "DISCOVERY_PRODUCT_MANAGEMENT",
+      "source_schema": "METRIC_STORE",
+      "typical_grain": "Monthly aggregated",
+      "views": [
+        "TRIAL_FUNNEL_METRICS_VIEW"
+      ],
+      "full_name": ""
+    },
+    {
+      "last_updated": "2026-08-03T12:46:05.535410",
+      "metric_count": 16,
+      "product_description": "Product version adoption trends and metrics",
+      "product_id": "version_adoption",
+      "product_name": "version_adoption",
+      "source_database": "DISCOVERY_PRODUCT_MANAGEMENT",
+      "source_schema": "METRIC_STORE",
+      "typical_grain": "Monthly aggregated",
+      "views": [
+        "DESIGNER_2025_ADOPTION_PCT_LATEST_MONTH_VIEW",
+        "DESIGNER_LATEST_VERSION_ADOPTION_MONTHLY_VIEW",
+        "DESIGNER_SERVER_VERSION_ADOPTION_RATE_VIEW",
+        "PRODUCT_VERSION_ADOPTION_MONTHLY_SUMMARY_VIEW",
+        "VERSION_ADOPTION_30_60_90_DAYS_VIEW"
+      ],
+      "full_name": ""
+    }
+  ]
+}

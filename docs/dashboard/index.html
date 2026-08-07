@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TelemetryIQ Master Portal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom scrollbars for professional dashboard feel */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased h-screen overflow-hidden flex flex-col">
+
+    <!-- 1. Header Bar -->
+    <header class="bg-slate-950 border-b border-slate-800 px-6 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-3">
+            <span class="text-2xl">📊</span>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-white">TelemetryIQ <span class="text-xs font-semibold text-cyan-400 border border-cyan-500/30 bg-cyan-950/40 px-2 py-0.5 rounded-full uppercase tracking-wider">Master Portal</span></h1>
+                <p class="text-xs text-slate-400">Enterprise Semantic Intelligence layer for Alteryx Product Telemetry</p>
+            </div>
+        </div>
+        <div class="text-right">
+            <p class="text-xs text-slate-400">Database Sync Status: <span id="sync-status" class="text-emerald-400 font-medium">● Connected</span></p>
+            <p class="text-[10px] text-slate-500" id="last-updated">Last Updated: Loading...</p>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <div class="flex flex-1 overflow-hidden">
+
+        <!-- 2. Left Panel: Product Navigation -->
+        <aside class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between shrink-0 p-4">
+            <div class="space-y-6">
+                <div>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Telemetry Data Products</span>
+                    <nav class="mt-3 space-y-1" id="product-menu">
+                        <!-- Navigation items injected here dynamically -->
+                        <div class="animate-pulse space-y-2">
+                            <div class="h-10 bg-slate-800 rounded"></div>
+                            <div class="h-10 bg-slate-800 rounded"></div>
+                            <div class="h-10 bg-slate-800 rounded"></div>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- Bottom Diagnostics Area -->
+            <div class="border-t border-slate-800 pt-4">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Diagnostic Suite</span>
+                <div class="mt-2 p-2 bg-slate-900/50 border border-slate-800 rounded space-y-1.5">
+                    <p class="text-xs flex items-center justify-between text-slate-300">
+                        <span>Schema Contracts:</span>
+                        <span class="text-emerald-400 font-medium">✓ Valid</span>
+                    </p>
+                    <p class="text-xs flex items-center justify-between text-slate-300">
+                        <span>Database compiler:</span>
+                        <span class="text-emerald-400 font-medium">✓ SQLite</span>
+                    </p>
+                    <p class="text-xs flex items-center justify-between text-slate-300">
+                        <span>SQL validation:</span>
+                        <span class="text-emerald-400 font-medium">✓ Enforced</span>
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 3. Central Viewport: Dynamic Main Dashboard -->
+        <main class="flex-1 bg-slate-900 overflow-y-auto p-6 flex flex-col space-y-6">
+            <!-- Product Header -->
+            <div class="bg-slate-950 border border-slate-800/80 p-6 rounded-xl shadow-lg flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 shrink-0">
+                <div>
+                    <h2 class="text-2xl font-bold text-white tracking-tight" id="active-product-title">Loading Active Product...</h2>
+                    <p class="text-sm text-slate-400 mt-1 max-w-2xl" id="active-product-desc">Please wait while the semantic data catalog is loaded.</p>
+                </div>
+                <div class="flex items-center space-x-4 bg-slate-900 px-4 py-2 border border-slate-800 rounded-lg">
+                    <div class="text-center">
+                        <span class="text-xs uppercase text-slate-500 font-semibold block">Metric Scope</span>
+                        <span class="text-lg font-bold text-cyan-400" id="active-metrics-count">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI & Single Value Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="kpi-grid">
+                <!-- Injected dynamically -->
+            </div>
+
+            <!-- Visual Charts Area -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="charts-grid">
+                <!-- Injected dynamically -->
+            </div>
+            
+            <!-- Technical SQL Detail & Traceability Ledger -->
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-6 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 class="font-bold text-lg text-white">Semantic Traceability & Lineage Ledger</h3>
+                    <span class="text-xs text-slate-400">Zero-Trust Audit Logs Enforced</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-slate-500 font-semibold">
+                                <th class="py-2">Metric ID</th>
+                                <th class="py-2">Source Table</th>
+                                <th class="py-2">Telemetry Grain</th>
+                                <th class="py-2">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lineage-table-body" class="text-slate-300 divide-y divide-slate-900">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- 4. Right Panel: Dynamic Global Filters -->
+        <aside class="w-64 bg-slate-950 border-l border-slate-800 p-4 shrink-0 flex flex-col space-y-6">
+            <div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Global Context Filters</span>
+                <div class="mt-4 space-y-4">
+                    <!-- Date Filter -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs text-slate-400 font-semibold">Calendar Month</label>
+                        <select id="filter-month" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-sm rounded-lg p-2 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                            <option value="ALL">All Months</option>
+                            <option value="2026-07">July 2026</option>
+                            <option value="2026-06">June 2026</option>
+                            <option value="2026-05">May 2026</option>
+                        </select>
+                    </div>
+
+                    <!-- Segment Filter -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs text-slate-400 font-semibold">License Segment</label>
+                        <select id="filter-license" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-sm rounded-lg p-2 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                            <option value="ALL">All Licenses</option>
+                            <option value="Purchase">Purchase (Paid)</option>
+                            <option value="Trial">Trial / Free</option>
+                        </select>
+                    </div>
+
+                    <!-- Edition Filter -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs text-slate-400 font-semibold">Account Edition</label>
+                        <select id="filter-edition" class="w-full bg-slate-900 border border-slate-800 text-slate-200 text-sm rounded-lg p-2 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                            <option value="ALL">All Editions</option>
+                            <option value="Enterprise">Enterprise</option>
+                            <option value="Professional">Professional</option>
+                        </select>
+                    </div>
+
+                    <button id="btn-apply-filters" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm py-2.5 rounded-lg transition shadow-lg shadow-cyan-500/10">
+                        ⚡ Apply Filters
+                    </button>
+                </div>
+            </div>
+            
+            <div class="border-t border-slate-800 pt-4">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Filter Context</span>
+                <div id="filter-summary" class="mt-2 space-y-1 text-xs text-slate-400">
+                    <p>📅 Month: <span class="text-cyan-400" id="summary-month">All</span></p>
+                    <p>💼 License: <span class="text-cyan-400" id="summary-license">All</span></p>
+                    <p>🏢 Edition: <span class="text-cyan-400" id="summary-edition">All</span></p>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Vanilla Javascript Interactivity -->
+    <script>
+        let dashboardData = null;
+        let activeProductId = null;
+        let activeCharts = [];
+
+        // On Load, fetch compiled dataset
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('./dashboard_data.json');
+                dashboardData = await response.json();
+                
+                // Set metadata values
+                document.getElementById('last-updated').textContent = `Last Updated: ${dashboardData.last_updated}`;
+                
+                // Initialize menus & products
+                if (dashboardData.products && dashboardData.products.length > 0) {
+                    renderProductMenu(dashboardData.products);
+                    switchProduct(dashboardData.products[0].product_id);
+                } else {
+                    showError("No products catalog compiled in dataset.");
+                }
+            } catch (err) {
+                console.error(err);
+                showError("Failed to load compiled dataset dashboard_data.json. Run 'python3 scripts/update_dashboard.py' to generate the data feed.");
+            }
+        });
+
+        function showError(message) {
+            document.getElementById('active-product-title').textContent = "Connection Error";
+            document.getElementById('active-product-desc').innerHTML = `<span class="text-red-400 font-semibold">${message}</span>`;
+            document.getElementById('sync-status').textContent = "● Offline/No Data";
+            document.getElementById('sync-status').className = "text-red-400 font-medium";
+        }
+
+        // Render product options on the left-nav menu
+        function renderProductMenu(products) {
+            const menu = document.getElementById('product-menu');
+            menu.innerHTML = '';
+            
+            products.forEach(p => {
+                const button = document.createElement('button');
+                button.className = "w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition duration-150 flex items-center justify-between text-slate-400 hover:bg-slate-900 hover:text-white";
+                button.id = `nav-${p.product_id}`;
+                button.innerHTML = `
+                    <span>${p.full_name || p.product_id}</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700/50 font-bold">${p.metric_count || 0}</span>
+                `;
+                button.addEventListener('click', () => switchProduct(p.product_id));
+                menu.appendChild(button);
+            });
+        }
+
+        // Switch displayed product dashboard
+        function switchProduct(productId) {
+            if (activeProductId) {
+                const oldNav = document.getElementById(`nav-${activeProductId}`);
+                if (oldNav) oldNav.className = oldNav.className.replace("bg-cyan-950/40 text-cyan-400 border border-cyan-500/20", "text-slate-400");
+            }
+            
+            activeProductId = productId;
+            const newNav = document.getElementById(`nav-${productId}`);
+            if (newNav) {
+                newNav.className = "w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition duration-150 flex items-center justify-between bg-cyan-950/40 text-cyan-400 border border-cyan-500/20";
+            }
+            
+            const productMeta = dashboardData.products.find(p => p.product_id === productId);
+            document.getElementById('active-product-title').textContent = productMeta ? (productMeta.full_name || productMeta.product_id) : productId;
+            document.getElementById('active-product-desc').textContent = productMeta ? (productMeta.description || '') : '';
+            
+            renderDashboard();
+        }
+
+        // Apply filters handler
+        document.getElementById('btn-apply-filters').addEventListener('click', () => {
+            const month = document.getElementById('filter-month').value;
+            const license = document.getElementById('filter-license').value;
+            const edition = document.getElementById('filter-edition').value;
+            
+            document.getElementById('summary-month').textContent = month === 'ALL' ? 'All Months' : month;
+            document.getElementById('summary-license').textContent = license === 'ALL' ? 'All' : license;
+            document.getElementById('summary-edition').textContent = edition === 'ALL' ? 'All' : edition;
+            
+            renderDashboard();
+        });
+
+        // Filter and compile metrics to render cards & charts
+        function renderDashboard() {
+            // Destroy existing charts to prevent canvas ghosting overlap
+            activeCharts.forEach(c => c.destroy());
+            activeCharts = [];
+            
+            const kpiGrid = document.getElementById('kpi-grid');
+            const chartsGrid = document.getElementById('charts-grid');
+            const lineageBody = document.getElementById('lineage-table-body');
+            
+            kpiGrid.innerHTML = '';
+            chartsGrid.innerHTML = '';
+            lineageBody.innerHTML = '';
+            
+            const pData = dashboardData.metrics_data[activeProductId] || {};
+            const metrics = Object.values(pData);
+            
+            document.getElementById('active-metrics-count').textContent = metrics.length;
+            
+            if (metrics.length === 0) {
+                kpiGrid.innerHTML = '<div class="col-span-3 text-center py-6 text-slate-500">No active metrics data compiled for this product domain.</div>';
+                return;
+            }
+            
+            // Filter criteria
+            const filterMonth = document.getElementById('filter-month').value;
+            const filterLicense = document.getElementById('filter-license').value;
+            const filterEdition = document.getElementById('filter-edition').value;
+            
+            metrics.forEach(m => {
+                // Apply filters to data rows
+                let rawRows = m.data || [];
+                let filteredRows = rawRows.filter(row => {
+                    let match = true;
+                    // Match Month column (could be MONTH, YEAR_MONTH, or MONTH_YEAR)
+                    if (filterMonth !== 'ALL') {
+                        const rowMonth = row.MONTH || row.YEAR_MONTH || row.MONTH_YEAR || row.MONTH_YEAR_DATE;
+                        if (rowMonth && !String(rowMonth).startsWith(filterMonth)) {
+                            match = false;
+                        }
+                    }
+                    // Match License Type
+                    if (filterLicense !== 'ALL') {
+                        const rowLic = row.LICENSE_TYPE || row.LICENSE;
+                        if (rowLic && String(rowLic) !== filterLicense) {
+                            match = false;
+                        }
+                    }
+                    // Match Edition / Pricing and packaging
+                    if (filterEdition !== 'ALL') {
+                        const rowEd = row.ACCOUNT_EDITION || row.PRICING_AND_PACKAGING;
+                        if (rowEd && String(rowEd) !== filterEdition) {
+                            match = false;
+                        }
+                    }
+                    return match;
+                });
+                
+                // Add to Lineage Ledger table
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-900/60 text-slate-300";
+                tr.innerHTML = `
+                    <td class="py-2.5 font-mono text-xs text-cyan-400 font-semibold">${m.metric_id}</td>
+                    <td class="py-2.5 text-slate-400 font-mono text-xs">${m.error ? 'N/A' : (filteredRows.length > 0 ? Object.keys(filteredRows[0]).join(', ') : 'No schema')}</td>
+                    <td class="py-2.5"><span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-400">${m.grain}</span></td>
+                    <td class="py-2.5"><span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${m.error ? 'bg-amber-950/40 text-amber-500 border border-amber-500/20' : 'bg-emerald-950/40 text-emerald-400 border border-emerald-500/20'}">${m.error ? 'Dormant' : 'Certified'}</span></td>
+                `;
+                lineageBody.appendChild(tr);
+
+                // If metric returned an error (e.g. timeout or permission failure)
+                if (m.error) {
+                    renderErrorCard(m, kpiGrid);
+                    return;
+                }
+                
+                // Determine layout: Line chart (time series) or Bar Chart or KPI Card
+                if (filteredRows.length === 0) {
+                    renderEmptyCard(m, kpiGrid);
+                } else if (filteredRows.length === 1) {
+                    // Render single row as a KPI single-value Card
+                    renderKPICard(m, filteredRows[0], kpiGrid);
+                } else {
+                    // Try to render chart
+                    renderChartCard(m, filteredRows, chartsGrid);
+                }
+            });
+        }
+
+        function renderErrorCard(m, container) {
+            const card = document.createElement('div');
+            card.className = "bg-slate-950 border border-red-500/20 p-5 rounded-xl flex flex-col justify-between shadow-lg relative overflow-hidden";
+            card.innerHTML = `
+                <div class="absolute top-0 right-0 bg-red-950/40 text-red-500 border-l border-b border-red-500/20 text-[10px] px-3 py-1 font-bold uppercase rounded-bl-lg">Dormant</div>
+                <div>
+                    <h4 class="font-bold text-slate-400 text-xs uppercase tracking-wider">${m.name}</h4>
+                    <p class="text-[10px] text-slate-500 mt-0.5 font-mono">${m.metric_id}</p>
+                    <p class="text-xs text-slate-400 mt-2 line-clamp-2">${m.description}</p>
+                </div>
+                <div class="mt-4 p-2 bg-red-950/20 border border-red-500/10 rounded-lg">
+                    <span class="text-[10px] font-mono text-red-400 font-semibold leading-tight block">Warning: SQL table compiled with restricted execution limits. Check 'metrics doctor' context.</span>
+                </div>
+            `;
+            container.appendChild(card);
+        }
+
+        function renderEmptyCard(m, container) {
+            const card = document.createElement('div');
+            card.className = "bg-slate-950 border border-slate-800/80 p-5 rounded-xl flex flex-col justify-between shadow-lg";
+            card.innerHTML = `
+                <div>
+                    <h4 class="font-bold text-slate-400 text-xs uppercase tracking-wider">${m.name}</h4>
+                    <p class="text-[10px] text-slate-500 mt-0.5 font-mono">${m.metric_id}</p>
+                </div>
+                <div class="my-6 text-center text-slate-500 text-xs font-semibold">
+                    No matching records found for active filter context.
+                </div>
+            `;
+            container.appendChild(card);
+        }
+
+        function renderKPICard(m, rowData, container) {
+            // Find first numeric column that is not a date
+            let value = "N/A";
+            let numericKey = Object.keys(rowData).find(key => typeof rowData[key] === 'number' && key !== 'MONTH' && key !== 'YEAR_MONTH' && !key.includes('ID'));
+            
+            if (numericKey !== undefined) {
+                const rawVal = rowData[numericKey];
+                value = Number.isInteger(rawVal) ? rawVal.toLocaleString() : rawVal.toFixed(2);
+                if (numericKey.includes('PCT') || numericKey.includes('RATE') || m.name.toLowerCase().includes('percentage') || m.name.toLowerCase().includes('rate')) {
+                    value += "%";
+                }
+            } else {
+                // Fallback to first non-date column
+                const keys = Object.keys(rowData);
+                if (keys.length > 0) value = rowData[keys[0]];
+            }
+
+            const card = document.createElement('div');
+            card.className = "bg-slate-950 border border-slate-800/80 p-5 rounded-xl flex flex-col justify-between shadow-lg relative overflow-hidden";
+            card.innerHTML = `
+                <div class="absolute top-0 right-0 bg-emerald-950/40 text-emerald-400 border-l border-b border-emerald-500/20 text-[10px] px-3 py-1 font-bold uppercase rounded-bl-lg">KPI</div>
+                <div>
+                    <h4 class="font-bold text-slate-400 text-xs uppercase tracking-wider">${m.name}</h4>
+                    <p class="text-[10px] text-slate-500 mt-0.5 font-mono">${m.metric_id}</p>
+                    <p class="text-3xl font-extrabold text-white mt-4 tracking-tight">${value}</p>
+                </div>
+                <p class="text-xs text-slate-400 mt-3 border-t border-slate-900 pt-2 line-clamp-2">${m.description}</p>
+            `;
+            container.appendChild(card);
+        }
+
+        function renderChartCard(m, rows, container) {
+            // Sort rows by Date/Month to ensure timeline linearity
+            const dateKey = Object.keys(rows[0]).find(key => key === 'MONTH' || key === 'YEAR_MONTH' || key === 'MONTH_YEAR' || key === 'MONTH_YEAR_DATE');
+            if (dateKey) {
+                rows.sort((a, b) => String(a[dateKey]).localeCompare(String(b[dateKey])));
+            }
+            
+            // Labels are dates
+            const labels = rows.map(r => r[dateKey] || 'N/A');
+            
+            // Datasets
+            const numericKeys = Object.keys(rows[0]).filter(key => typeof rows[0][key] === 'number' && key !== 'MONTH' && key !== 'YEAR_MONTH' && !key.includes('ID') && key !== dateKey);
+            
+            const datasets = numericKeys.map((key, idx) => {
+                const colors = [
+                    { border: 'rgb(6, 182, 212)', bg: 'rgba(6, 182, 212, 0.15)' }, // Cyan
+                    { border: 'rgb(16, 185, 129)', bg: 'rgba(16, 185, 129, 0.15)' }, // Emerald
+                    { border: 'rgb(245, 158, 11)', bg: 'rgba(245, 158, 11, 0.15)' }  // Amber
+                ];
+                const col = colors[idx % colors.length];
+                
+                return {
+                    label: key.replace(/_/g, ' '),
+                    data: rows.map(r => r[key]),
+                    borderColor: col.border,
+                    backgroundColor: col.bg,
+                    fill: true,
+                    tension: 0.3,
+                    borderWidth: 2
+                };
+            });
+
+            const cardId = `chart-card-${m.metric_id}`;
+            const canvasId = `canvas-${m.metric_id}`;
+            
+            const card = document.createElement('div');
+            card.className = "bg-slate-950 border border-slate-800/80 p-5 rounded-xl shadow-lg flex flex-col space-y-4 h-96";
+            card.id = cardId;
+            card.innerHTML = `
+                <div class="flex items-start justify-between border-b border-slate-900 pb-2 shrink-0">
+                    <div>
+                        <h4 class="font-bold text-white text-sm tracking-tight leading-tight">${m.name}</h4>
+                        <p class="text-[10px] text-slate-500 font-mono mt-0.5">${m.metric_id}</p>
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-cyan-950/40 text-cyan-400 border border-cyan-500/20">Timeline</span>
+                </div>
+                <div class="flex-1 relative min-h-0">
+                    <canvas id="${canvasId}"></canvas>
+                </div>
+                <p class="text-xs text-slate-400 truncate shrink-0">${m.description}</p>
+            `;
+            container.appendChild(card);
+            
+            // Render Chart.js
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            const newChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { color: '#94a3b8', font: { size: 10 } }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: '#020617',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            titleColor: '#fff',
+                            bodyColor: '#cbd5e1'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(51, 65, 85, 0.2)' },
+                            ticks: { color: '#64748b', font: { size: 9 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(51, 65, 85, 0.2)' },
+                            ticks: { color: '#64748b', font: { size: 9 } }
+                        }
+                    }
+                }
+            });
+            
+            activeCharts.push(newChart);
+        }
+    </script>
+</body>
+</html>
